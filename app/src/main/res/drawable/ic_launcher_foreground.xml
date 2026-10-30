@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="512"
+    android:viewportHeight="512">
+
+    <group
+        android:pivotX="256"
+        android:pivotY="256"
+        android:scaleX="0.72"
+        android:scaleY="0.72">
+
+        <!-- Aro base oscuro (#19263A) radio=168 -->
+        <path
+            android:fillColor="#00000000"
+            android:pathData="M256,88 A168,168 0 1,1 255.9,88 Z"
+            android:strokeWidth="14"
+            android:strokeColor="#FF334155" />
+
+        <!-- Arco azul brillante (#58A6FF) -->
+        <path
+            android:fillColor="#00000000"
+            android:pathData="M393.6,159.6 A168,168 0 1,1 103.7,185"
+            android:strokeWidth="14"
+            android:strokeLineCap="butt"
+            android:strokeColor="#FF58A6FF" />
+
+        <!-- Arco verde esmeralda (#3FB950) -->
+        <path
+            android:fillColor="#00000000"
+            android:pathData="M103.7,185 A168,168 0 0,1 270.6,88.6"
+            android:strokeWidth="14"
+            android:strokeLineCap="butt"
+            android:strokeColor="#FF3FB950" />
+
+        <!-- Solapa trasera de la carpeta (#1F6FEB) -->
+        <path
+            android:fillColor="#FF1F6FEB"
+            android:pathData="M164,174 L236,174 L264,196 L348,196 Q366,196 366,214 L366,320 Q366,336 348,336 L164,336 Q148,336 148,320 L148,190 Q148,174 164,174 Z" />
+
+        <!-- Documento interior (#A5D6FF) -->
+        <path
+            android:fillColor="#FFA5D6FF"
+            android:pathData="M182,192 L332,192 Q342,192 342,202 L342,235 L172,235 L172,202 Q172,192 182,192 Z" />
+
+        <!-- Frente de carpeta (#58A6FF) -->
+        <path
+            android:fillColor="#FF58A6FF"
+            android:strokeColor="#FFA5D6FF"
+            android:strokeWidth="3"
+            android:pathData="M168,214 L344,214 Q366,214 366,236 L366,318 Q366,340 344,340 L168,340 Q146,340 146,318 L146,236 Q146,214 168,214 Z" />
+
+        <!-- Líneas de archivo dentro de la carpeta -->
+        <path
+            android:fillColor="#00000000"
+            android:strokeColor="#BB0D1117"
+            android:strokeWidth="8"
+            android:strokeLineCap="round"
+            android:pathData="M178,252 L265,252 M178,276 L242,276 M178,300 L225,300" />
+
+        <!-- Mango de la lupa (#3FB950) -->
+        <path
+            android:fillColor="#00000000"
+            android:strokeColor="#FF3FB950"
+            android:strokeWidth="14"
+            android:strokeLineCap="round"
+            android:pathData="M342,322 L368,348" />
+
+        <!-- Círculo de la lupa -->
+        <path
+            android:fillColor="#EE0D1117"
+            android:strokeColor="#FF3FB950"
+            android:strokeWidth="10"
+            android:pathData="M316,258 A38,38 0 1,1 315.9,258 Z" />
+
+        <!-- Pulso / onda dentro de la lupa -->
+        <path
+            android:fillColor="#00000000"
+            android:strokeColor="#FF3FB950"
+            android:strokeWidth="5"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:pathData="M294,300 L306,300 L313,282 L321,312 L328,290 L338,300" />
+    </group>
+</vector>

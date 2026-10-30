@@ -1,0 +1,3 @@
+-keep class com.hierynomus.** { *; }
+-dontwarn org.bouncycastle.**
+-dontwarn javax.naming.**
