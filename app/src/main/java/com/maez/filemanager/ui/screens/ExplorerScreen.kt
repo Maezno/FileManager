@@ -92,12 +92,19 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.maez.filemanager.model.ClipboardState
+import com.maez.filemanager.model.ConflictRequest
+import com.maez.filemanager.model.ConflictResolution
 import com.maez.filemanager.model.NetworkConnection
 import com.maez.filemanager.model.SortField
 import com.maez.filemanager.model.StorageProtocol
+import com.maez.filemanager.model.TransferJob
+import com.maez.filemanager.model.TransferStatus
 import com.maez.filemanager.model.VfsItem
+import com.maez.filemanager.model.formatBytes
 import com.maez.filemanager.services.ConnectionStorage
+import com.maez.filemanager.services.TransferManager
 import com.maez.filemanager.services.VfsManager
+import com.maez.filemanager.ui.components.AppProgressBar
 import com.maez.filemanager.ui.components.CardShape
 import com.maez.filemanager.ui.components.ControlShape
 import com.maez.filemanager.ui.components.EmptyState
@@ -128,6 +135,7 @@ import com.maez.filemanager.ui.theme.TextMuted
 import com.maez.filemanager.ui.theme.TextPrimary
 import com.maez.filemanager.ui.theme.TextSecondary
 import com.maez.filemanager.ui.theme.Violet
+import com.maez.filemanager.ui.theme.WarningAmber
 import com.maez.filemanager.viewmodel.MainViewModel
 
 data class BreadcrumbSegment(val label: String, val fullPath: String)
@@ -317,6 +325,7 @@ fun ExplorerScreenContent(
 
     var showSortMenu by remember { mutableStateOf(false) }
     var showCredentialsDialog by remember { mutableStateOf(false) }
+    var showTransfersSheet by remember { mutableStateOf(false) }
 
     val filteredItems = remember(items, quickFilter) {
         if (quickFilter.isBlank()) items
@@ -595,6 +604,61 @@ fun ExplorerScreenContent(
                             Icon(Icons.Default.Close, contentDescription = "Cancelar", tint = Danger, modifier = Modifier.size(18.dp))
                         }
                     }
+                }
+            }
+        }
+
+        // 4.1 Indicador de progreso de transferencias en segundo plano
+        val transferJobs by TransferManager.jobs.collectAsState()
+        val activeTransferJobs = remember(transferJobs) {
+            transferJobs.filter { it.status == TransferStatus.RUNNING || it.status == TransferStatus.QUEUED }
+        }
+
+        if (activeTransferJobs.isNotEmpty()) {
+            val primaryJob = activeTransferJobs.first()
+            GlassSurface(
+                shape = GlassChipShape,
+                borderColor = Violet.copy(alpha = 0.8f),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { showTransfersSheet = true }
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = null,
+                                tint = Violet,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                text = "${activeTransferJobs.size} transferencia${if (activeTransferJobs.size > 1) "s" else ""}: ${primaryJob.currentFileName.ifBlank { "Procesando..." }}",
+                                color = TextPrimary,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                        Text(
+                            text = "${(primaryJob.progress * 100).toInt()}% • ${primaryJob.speedFormatted}",
+                            color = Aqua,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    AppProgressBar(progress = primaryJob.progress * 100f)
                 }
             }
         }
@@ -1147,6 +1211,177 @@ fun ExplorerScreenContent(
                     Text("Cancelar", color = TextMuted)
                 }
             }
+        )
+    }
+
+    // Modal / Diálogo de Conflictos de Archivos
+    val activeConflict by TransferManager.activeConflict.collectAsState()
+    if (activeConflict != null) {
+        val conflict = activeConflict!!
+        var applyToAll by remember { mutableStateOf(false) }
+
+        GlassAlertDialog(
+            onDismissRequest = {
+                conflict.onResolve(ConflictResolution.SKIP, false)
+            },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconBubble(icon = Icons.Default.Info, tint = WarningAmber, size = 32.dp)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Conflicto de archivo", color = TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                }
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = "El archivo '${conflict.fileName}' ya existe en la ubicación de destino. ¿Cómo deseas proceder?",
+                        color = TextSecondary,
+                        fontSize = 13.sp
+                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { applyToAll = !applyToAll }
+                            .padding(vertical = 4.dp)
+                    ) {
+                        Switch(
+                            checked = applyToAll,
+                            onCheckedChange = { applyToAll = it }
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = "Aplicar a todos los conflictos",
+                            color = TextPrimary,
+                            fontSize = 12.sp
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    TextButton(onClick = { conflict.onResolve(ConflictResolution.KEEP_BOTH, applyToAll) }) {
+                        Text("Mantener ambos", color = Aqua, fontWeight = FontWeight.Bold)
+                    }
+                    TextButton(onClick = { conflict.onResolve(ConflictResolution.OVERWRITE, applyToAll) }) {
+                        Text("Reemplazar", color = Danger, fontWeight = FontWeight.Bold)
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { conflict.onResolve(ConflictResolution.SKIP, applyToAll) }) {
+                    Text("Omitir", color = TextMuted)
+                }
+            }
+        )
+    }
+
+    // Hoja / Diálogo de Lista de Transferencias Activas y Finalizadas
+    if (showTransfersSheet) {
+        val allJobs by TransferManager.jobs.collectAsState()
+        GlassAlertDialog(
+            onDismissRequest = { showTransfersSheet = false },
+            title = {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Transferencias", color = TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    if (allJobs.any { it.status == TransferStatus.COMPLETED || it.status == TransferStatus.ERROR || it.status == TransferStatus.CANCELLED }) {
+                        TextButton(onClick = { TransferManager.clearFinished() }) {
+                            Text("Limpiar", color = Violet, fontSize = 12.sp)
+                        }
+                    }
+                }
+            },
+            text = {
+                if (allJobs.isEmpty()) {
+                    Text("No hay transferencias activas ni recientes.", color = TextMuted, fontSize = 13.sp)
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(280.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(allJobs.size) { idx ->
+                            val job = allJobs[idx]
+                            GlassSurface(
+                                shape = GlassChipShape,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(10.dp),
+                                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = "${job.type.label}: ${job.currentFileName.ifBlank { "${job.totalFiles} elementos" }}",
+                                            color = TextPrimary,
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        if (job.status == TransferStatus.RUNNING || job.status == TransferStatus.QUEUED) {
+                                            IconButton(
+                                                onClick = { TransferManager.cancel(job.id) },
+                                                modifier = Modifier.size(24.dp)
+                                            ) {
+                                                Icon(Icons.Default.Close, contentDescription = "Cancelar", tint = Danger, modifier = Modifier.size(16.dp))
+                                            }
+                                        } else {
+                                            Text(
+                                                text = job.status.label,
+                                                color = when (job.status) {
+                                                    TransferStatus.COMPLETED -> Aqua
+                                                    TransferStatus.ERROR -> Danger
+                                                    TransferStatus.CANCELLED -> TextMuted
+                                                    else -> Violet
+                                                },
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+                                    }
+
+                                    if (job.status == TransferStatus.RUNNING || job.status == TransferStatus.QUEUED) {
+                                        AppProgressBar(progress = job.progress * 100f)
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Text(
+                                                text = "${job.currentIndex}/${job.totalFiles} • ${formatBytes(job.bytesTransferred)}/${formatBytes(job.totalBytes)}",
+                                                color = TextMuted,
+                                                fontSize = 11.sp
+                                            )
+                                            Text(
+                                                text = job.speedFormatted,
+                                                color = Aqua,
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.SemiBold
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showTransfersSheet = false }) {
+                    Text("Cerrar", color = Aqua)
+                }
+            },
+            dismissButton = null
         )
     }
 }

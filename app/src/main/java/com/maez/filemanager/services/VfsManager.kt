@@ -734,29 +734,36 @@ class VfsManager {
         targetParentPath: String,
         targetProtocol: StorageProtocol,
         targetConn: NetworkConnection?,
-        deleteSourceAfter: Boolean = false
+        deleteSourceAfter: Boolean = false,
+        onProgress: ((bytesIncrement: Long) -> Unit)? = null,
+        isCancelled: (() -> Boolean)? = null,
+        targetFileName: String = source.name
     ): Boolean = withContext(Dispatchers.IO) {
+        if (isCancelled?.invoke() == true) return@withContext false
         if (source.isDirectory) {
             try {
                 // 1. Crear la carpeta de destino
-                val created = createFolder(targetParentPath, source.name, targetProtocol, targetConn)
-                val newDirPath = if (targetParentPath == "/") "/${source.name}" else "${targetParentPath.trimEnd('/')}/${source.name}"
+                val created = createFolder(targetParentPath, targetFileName, targetProtocol, targetConn)
+                val newDirPath = if (targetParentPath == "/") "/$targetFileName" else "${targetParentPath.trimEnd('/')}/$targetFileName"
                 // 2. Listar los hijos de la carpeta origen
                 val children = listDirectory(source.path, source.protocol, sourceConn, showHidden = true)
                 // 3. Transferir recursivamente cada hijo
                 var allSuccess = true
                 for (child in children) {
+                    if (isCancelled?.invoke() == true) return@withContext false
                     val childSuccess = transferFile(
                         source = child,
                         sourceConn = sourceConn,
                         targetParentPath = newDirPath,
                         targetProtocol = targetProtocol,
                         targetConn = targetConn,
-                        deleteSourceAfter = deleteSourceAfter
+                        deleteSourceAfter = deleteSourceAfter,
+                        onProgress = onProgress,
+                        isCancelled = isCancelled
                     )
                     if (!childSuccess) allSuccess = false
                 }
-                if (deleteSourceAfter && allSuccess) {
+                if (deleteSourceAfter && allSuccess && isCancelled?.invoke() != true) {
                     deleteItem(source, sourceConn)
                 }
                 return@withContext allSuccess
@@ -767,35 +774,71 @@ class VfsManager {
         try {
             if (source.protocol == StorageProtocol.LOCAL && targetProtocol == StorageProtocol.LOCAL) {
                 val srcFile = File(source.path)
-                val dstFile = File(targetParentPath, source.name)
-                srcFile.inputStream().use { input ->
-                    dstFile.outputStream().use { output ->
-                        input.copyTo(output, 64 * 1024)
+                val dstFile = File(targetParentPath, targetFileName)
+                try {
+                    srcFile.inputStream().use { input ->
+                        dstFile.outputStream().use { output ->
+                            val buffer = ByteArray(64 * 1024)
+                            var read: Int
+                            while (input.read(buffer).also { read = it } >= 0) {
+                                if (isCancelled?.invoke() == true) {
+                                    throw kotlinx.coroutines.CancellationException("Cancelled")
+                                }
+                                output.write(buffer, 0, read)
+                                onProgress?.invoke(read.toLong())
+                            }
+                        }
                     }
+                    if (deleteSourceAfter) srcFile.delete()
+                    return@withContext true
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    if (dstFile.exists()) dstFile.delete()
+                    return@withContext false
+                } catch (e: Exception) {
+                    if (dstFile.exists()) dstFile.delete()
+                    return@withContext false
                 }
-                if (deleteSourceAfter) srcFile.delete()
-                return@withContext true
             }
 
-            val tempFile = File.createTempFile("vfs_transfer_", "_${source.name}")
+            val tempFile = File.createTempFile("vfs_transfer_", "_$targetFileName")
             try {
                 val localSourceFile = if (source.protocol == StorageProtocol.LOCAL) {
                     File(source.path)
                 } else {
-                    downloadToLocalFile(source, sourceConn, tempFile)
+                    downloadToLocalFile(source, sourceConn, tempFile, onProgress = onProgress, isCancelled = isCancelled)
+                    if (isCancelled?.invoke() == true) return@withContext false
                     tempFile
                 }
 
                 when (targetProtocol) {
                     StorageProtocol.LOCAL -> {
-                        val dst = File(targetParentPath, source.name)
-                        localSourceFile.copyTo(dst, overwrite = true)
+                        val dst = File(targetParentPath, targetFileName)
+                        try {
+                            localSourceFile.inputStream().use { input ->
+                                dst.outputStream().use { output ->
+                                    val buffer = ByteArray(64 * 1024)
+                                    var read: Int
+                                    while (input.read(buffer).also { read = it } >= 0) {
+                                        if (isCancelled?.invoke() == true) {
+                                            throw kotlinx.coroutines.CancellationException("Cancelled")
+                                        }
+                                        output.write(buffer, 0, read)
+                                        if (source.protocol == StorageProtocol.LOCAL) {
+                                            onProgress?.invoke(read.toLong())
+                                        }
+                                    }
+                                }
+                            }
+                        } catch (e: Exception) {
+                            if (dst.exists()) dst.delete()
+                            return@withContext false
+                        }
                     }
                     StorageProtocol.SMB -> {
                         val conn = targetConn ?: return@withContext false
                         val (shareName, subPath) = resolveSmbTarget(conn, targetParentPath)
                         if (shareName.isEmpty()) return@withContext false
-                        val remoteTarget = if (subPath.isEmpty()) source.name else "$subPath\\${source.name}"
+                        val remoteTarget = if (subPath.isEmpty()) targetFileName else "$subPath\\$targetFileName"
                         withSmbDiskShare(conn, shareName) { disk ->
                             val smbFile = disk.openFile(
                                 remoteTarget,
@@ -808,7 +851,17 @@ class VfsManager {
                             smbFile.use { rf ->
                                 rf.outputStream.use { out ->
                                     FileInputStream(localSourceFile).use { ins ->
-                                        ins.copyTo(out, 64 * 1024)
+                                        val buffer = ByteArray(64 * 1024)
+                                        var read: Int
+                                        while (ins.read(buffer).also { read = it } >= 0) {
+                                            if (isCancelled?.invoke() == true) {
+                                                throw kotlinx.coroutines.CancellationException("Cancelled")
+                                            }
+                                            out.write(buffer, 0, read)
+                                            if (source.protocol == StorageProtocol.LOCAL) {
+                                                onProgress?.invoke(read.toLong())
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -817,13 +870,17 @@ class VfsManager {
                     }
                     StorageProtocol.FTP -> {
                         val conn = targetConn ?: return@withContext false
-                        val remoteTarget = if (targetParentPath == "/") "/${source.name}" else "${targetParentPath.trimEnd('/')}/${source.name}"
+                        val remoteTarget = if (targetParentPath == "/") "/$targetFileName" else "${targetParentPath.trimEnd('/')}/$targetFileName"
                         withFtpClient(conn) { ftp ->
                             FileInputStream(localSourceFile).use { ins ->
                                 ftp.storeFile(remoteTarget, ins)
                             }
                         }
                     }
+                }
+
+                if (isCancelled?.invoke() == true) {
+                    return@withContext false
                 }
 
                 if (deleteSourceAfter) {
@@ -841,7 +898,9 @@ class VfsManager {
     suspend fun downloadToLocalFile(
         source: VfsItem,
         sourceConn: NetworkConnection?,
-        destFile: File
+        destFile: File,
+        onProgress: ((bytesIncrement: Long) -> Unit)? = null,
+        isCancelled: (() -> Boolean)? = null
     ): Boolean = withContext(Dispatchers.IO) {
         try {
             when (source.protocol) {
@@ -865,7 +924,15 @@ class VfsManager {
                         smbFile.use { rf ->
                             rf.inputStream.use { ins ->
                                 FileOutputStream(destFile).use { out ->
-                                    ins.copyTo(out, 64 * 1024)
+                                    val buffer = ByteArray(64 * 1024)
+                                    var read: Int
+                                    while (ins.read(buffer).also { read = it } >= 0) {
+                                        if (isCancelled?.invoke() == true) {
+                                            throw kotlinx.coroutines.CancellationException("Cancelled")
+                                        }
+                                        out.write(buffer, 0, read)
+                                        onProgress?.invoke(read.toLong())
+                                    }
                                 }
                             }
                         }

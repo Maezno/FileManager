@@ -9,6 +9,8 @@ import androidx.core.content.FileProvider
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.maez.filemanager.model.ClipboardState
+import com.maez.filemanager.model.ConflictRequest
+import com.maez.filemanager.model.ConflictResolution
 import com.maez.filemanager.model.DeviceSummary
 import com.maez.filemanager.model.DiscoveredHost
 import com.maez.filemanager.model.DuplicateFileEntry
@@ -19,10 +21,15 @@ import com.maez.filemanager.model.NetworkConnection
 import com.maez.filemanager.model.SearchSortField
 import com.maez.filemanager.model.SortField
 import com.maez.filemanager.model.StorageProtocol
+import com.maez.filemanager.model.TransferJob
+import com.maez.filemanager.model.TransferStatus
+import com.maez.filemanager.model.TransferType
 import com.maez.filemanager.model.VfsItem
 import com.maez.filemanager.model.formatBytes
 import com.maez.filemanager.services.ConnectionStorage
 import com.maez.filemanager.services.SmartSearchEngine
+import com.maez.filemanager.services.TransferManager
+import com.maez.filemanager.services.TransferService
 import com.maez.filemanager.services.VfsManager
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -265,6 +272,26 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         calculateLocalStorageStats()
         val initialLocal = connectionStorage.getTabLastPath("LOCAL_ROOT", defaultLocalRoot)
         loadDirectory(initialLocal, StorageProtocol.LOCAL, null, pushHistory = false, shortcutKey = "LOCAL_ROOT")
+
+        TransferManager.onTransferFinished = { job, success ->
+            viewModelScope.launch {
+                refreshCurrentDirectory()
+                val verb = if (job.type == TransferType.MOVE) "Movidos" else "Copiados"
+                if (success) {
+                    Toast.makeText(
+                        getApplication(),
+                        "$verb: ${job.totalFiles} archivos correctamente",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                } else if (job.status == TransferStatus.ERROR) {
+                    Toast.makeText(
+                        getApplication(),
+                        "Transferencia completada con algunos errores",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+        }
     }
 
     fun selectTab(index: Int) {
@@ -836,29 +863,27 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val targetProto = _currentProtocol.value
         val targetConn = _activeConnection.value
 
-        _isExplorerLoading.value = true
-        viewModelScope.launch {
-            var successCount = 0
-            for (src in clip.items) {
-                val srcConn = src.connectionId?.let { id -> _savedConnections.value.find { it.id == id } }
-                val ok = vfsManager.transferFile(
-                    source = src,
-                    sourceConn = srcConn,
-                    targetParentPath = targetPath,
-                    targetProtocol = targetProto,
-                    targetConn = targetConn,
-                    deleteSourceAfter = clip.isMove
-                )
-                if (ok) successCount++
-            }
-            if (clip.isMove) _clipboard.value = ClipboardState()
-            refreshCurrentDirectory()
-            Toast.makeText(
-                getApplication(),
-                "Transferidos $successCount de ${clip.items.size} archivos",
-                Toast.LENGTH_SHORT
-            ).show()
+        val job = TransferJob(
+            id = UUID.randomUUID().toString(),
+            type = if (clip.isMove) TransferType.MOVE else TransferType.COPY,
+            items = clip.items,
+            targetParentPath = targetPath,
+            targetProtocol = targetProto,
+            targetConnection = targetConn
+        )
+
+        TransferManager.enqueue(job)
+        TransferService.start(getApplication())
+
+        if (clip.isMove) {
+            _clipboard.value = ClipboardState()
         }
+
+        Toast.makeText(
+            getApplication(),
+            "Encolada transferencia de ${clip.items.size} archivos",
+            Toast.LENGTH_SHORT
+        ).show()
     }
 
     fun updateActiveConnectionCredentials(
