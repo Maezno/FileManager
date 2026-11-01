@@ -1,14 +1,19 @@
 package com.maez.filemanager.ui.screens
 
+import android.content.Context
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -17,39 +22,61 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Android
-import androidx.compose.material.icons.filled.Apps
-import androidx.compose.material.icons.filled.Archive
-import androidx.compose.material.icons.filled.AudioFile
+import androidx.compose.material.icons.automirrored.filled.CompareArrows
+import androidx.compose.material.icons.automirrored.filled.ManageSearch
+import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Category
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.Devices
+import androidx.compose.material.icons.filled.DoneAll
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.FindReplace
+import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.FolderOpen
-import androidx.compose.material.icons.filled.Image
-import androidx.compose.material.icons.filled.Monitor
-import androidx.compose.material.icons.filled.Movie
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Lan
+import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.ScreenRotation
+import androidx.compose.material.icons.filled.SdCard
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.Smartphone
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.Slider
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -59,38 +86,63 @@ import com.maez.filemanager.model.DuplicateFileEntry
 import com.maez.filemanager.model.FileCategory
 import com.maez.filemanager.model.MediaOrientation
 import com.maez.filemanager.model.MediaSearchItem
+import com.maez.filemanager.model.NetworkConnection
 import com.maez.filemanager.model.StorageProtocol
 import com.maez.filemanager.model.VfsItem
+import com.maez.filemanager.model.formatBytes
+import com.maez.filemanager.services.ConnectionStorage
 import com.maez.filemanager.services.VfsManager
 import com.maez.filemanager.ui.components.AppProgressBar
 import com.maez.filemanager.ui.components.CompactSearchField
-import com.maez.filemanager.ui.components.DropdownField
+import com.maez.filemanager.ui.components.ControlShape
 import com.maez.filemanager.ui.components.EmptyState
-import com.maez.filemanager.ui.components.FieldLabel
 import com.maez.filemanager.ui.components.FileThumbnailBox
+import com.maez.filemanager.ui.components.GlassAlertDialog
+import com.maez.filemanager.ui.components.GlassDropdownMenu
+import com.maez.filemanager.ui.components.GlassIconButton
+import com.maez.filemanager.ui.components.GlassSearchField
+import com.maez.filemanager.ui.components.GlassSegmentedControl
+import com.maez.filemanager.ui.components.GlassSurface
 import com.maez.filemanager.ui.components.IconBadge
+import com.maez.filemanager.ui.components.IconBubble
 import com.maez.filemanager.ui.components.PrimaryButton
+import com.maez.filemanager.ui.components.PrimaryGlassButton
 import com.maez.filemanager.ui.components.SecondaryButton
+import com.maez.filemanager.ui.components.SecondaryGlassButton
 import com.maez.filemanager.ui.components.SectionCard
 import com.maez.filemanager.ui.components.SegmentedTabs
 import com.maez.filemanager.ui.components.SelectChip
 import com.maez.filemanager.ui.components.SettingSwitchRow
-import com.maez.filemanager.ui.components.StatTile
 import com.maez.filemanager.ui.components.Tag
-import com.maez.filemanager.ui.components.appSliderColors
-import com.maez.filemanager.ui.theme.AccentBlueLight
-import com.maez.filemanager.ui.theme.AccentGreenLight
-import com.maez.filemanager.ui.theme.AccentPurple
+import com.maez.filemanager.ui.components.appTextFieldColors
+import com.maez.filemanager.ui.theme.Aqua
 import com.maez.filemanager.ui.theme.BgElevated
 import com.maez.filemanager.ui.theme.BorderDark
 import com.maez.filemanager.ui.theme.CardDark
+import com.maez.filemanager.ui.theme.Danger
 import com.maez.filemanager.ui.theme.DangerRed
 import com.maez.filemanager.ui.theme.DangerRedLight
 import com.maez.filemanager.ui.theme.FileManagerTheme
+import com.maez.filemanager.ui.theme.GlassBorder
+import com.maez.filemanager.ui.theme.GlassCardShape
+import com.maez.filemanager.ui.theme.GlassChipShape
+import com.maez.filemanager.ui.theme.GlassFill
+import com.maez.filemanager.ui.theme.InputDark
+import com.maez.filemanager.ui.theme.SelectedViolet
+import com.maez.filemanager.ui.theme.TextMuted
 import com.maez.filemanager.ui.theme.TextPrimary
 import com.maez.filemanager.ui.theme.TextSecondary
+import com.maez.filemanager.ui.theme.Violet
 import com.maez.filemanager.ui.theme.WarningAmber
 import com.maez.filemanager.viewmodel.MainViewModel
+
+data class FolderPickerState(
+    val title: String,
+    val initialPath: String,
+    val protocol: StorageProtocol,
+    val connection: NetworkConnection?,
+    val isFolderB: Boolean
+)
 
 @Composable
 fun SmartSearchScreen(viewModel: MainViewModel) {
@@ -103,8 +155,6 @@ fun SmartSearchScreen(viewModel: MainViewModel) {
     val searchWord by viewModel.searchWord.collectAsState()
     val selectedCategory by viewModel.selectedCategory.collectAsState()
     val selectedOrientation by viewModel.selectedOrientation.collectAsState()
-    val selectedMonth by viewModel.selectedMonth.collectAsState()
-    val selectedYear by viewModel.selectedYear.collectAsState()
     val minSizeMB by viewModel.minSizeMB.collectAsState()
 
     val isScanning by viewModel.isScanning.collectAsState()
@@ -116,6 +166,13 @@ fun SmartSearchScreen(viewModel: MainViewModel) {
     val deviceSummaries by viewModel.deviceSummaries.collectAsState()
     val selectedDeviceFilter by viewModel.selectedDeviceFilter.collectAsState()
     val duplicateResults by viewModel.duplicateResults.collectAsState()
+    val selectedDuplicatePaths by viewModel.selectedDuplicatePaths.collectAsState()
+
+    val savedConnections by viewModel.savedConnections.collectAsState()
+    val defaultLocalRoot = remember { viewModel.defaultLocalRoot }
+
+    var itemToDeleteConfirm by remember { mutableStateOf<MediaSearchItem?>(null) }
+    var showConfirmDeleteDuplicates by remember { mutableStateOf(false) }
 
     SmartSearchScreenContent(
         toolIndex = toolIndex,
@@ -126,8 +183,6 @@ fun SmartSearchScreen(viewModel: MainViewModel) {
         searchWord = searchWord,
         selectedCategory = selectedCategory,
         selectedOrientation = selectedOrientation,
-        selectedMonth = selectedMonth,
-        selectedYear = selectedYear,
         minSizeMB = minSizeMB,
         isScanning = isScanning,
         scanProgress = scanProgress,
@@ -137,15 +192,18 @@ fun SmartSearchScreen(viewModel: MainViewModel) {
         deviceSummaries = deviceSummaries,
         selectedDeviceFilter = selectedDeviceFilter,
         duplicateResults = duplicateResults,
+        selectedDuplicatePaths = selectedDuplicatePaths,
+        savedConnections = savedConnections,
+        defaultLocalRoot = defaultLocalRoot,
         vfsManager = viewModel.vfsManager,
         onSetToolIndex = { viewModel.setSearchToolIndex(it) },
+        onSetFolderAItem = { viewModel.setFolderAsSearchTarget(it, asFolderB = false) },
+        onSetFolderBItem = { viewModel.setFolderAsSearchTarget(it, asFolderB = true) },
         onSetCompareTwoFolders = { viewModel.setCompareTwoFolders(it) },
-        onSetRecursiveScan = { viewModel.setRecursiveScan(it) },
+        onSetDuplicateTargetShortcut = { viewModel.setDuplicateTargetShortcut(it) },
         onSetSearchWord = { viewModel.setSearchWord(it) },
         onSetSelectedCategory = { viewModel.setSelectedCategory(it) },
         onSetSelectedOrientation = { viewModel.setSelectedOrientation(it) },
-        onSetSelectedMonth = { viewModel.setSelectedMonth(it) },
-        onSetSelectedYear = { viewModel.setSelectedYear(it) },
         onSetMinSizeMB = { viewModel.setMinSizeMB(it) },
         onStartScan = { viewModel.startSmartScan() },
         onCancelScan = { viewModel.cancelSmartScan() },
@@ -160,11 +218,100 @@ fun SmartSearchScreen(viewModel: MainViewModel) {
             } ?: viewModel.activeConnection.value
             viewModel.loadDirectory(item.parentPath, item.protocol, conn)
         },
-        onDeleteItem = { viewModel.deleteItem(it.item) },
+        onDeleteItem = { itemToDeleteConfirm = it },
+        onToggleDuplicateSelection = { viewModel.toggleDuplicateSelection(it) },
+        onSelectDuplicateCopiesOnly = { viewModel.selectDuplicateCopiesOnly() },
+        onRequestDeleteDuplicates = { showConfirmDeleteDuplicates = true },
         onOpenDuplicate = { viewModel.openIntegratedPreview(it.item) },
         onShareDuplicate = { viewModel.shareItem(it.item) },
-        onDeleteDuplicate = { viewModel.deleteItem(it.item) }
+        onDeleteDuplicate = { itemToDeleteConfirm = MediaSearchItem(it.item) }
     )
+
+    // Diálogo de Confirmar Eliminación para Un Elemento
+    if (itemToDeleteConfirm != null) {
+        val item = itemToDeleteConfirm!!
+        GlassAlertDialog(
+            onDismissRequest = { itemToDeleteConfirm = null },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconBubble(icon = Icons.Default.Warning, tint = Danger, size = 32.dp)
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = "Confirmar eliminación",
+                        color = TextPrimary,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            },
+            text = {
+                Text(
+                    text = "¿Deseas eliminar permanentemente '${item.item.name}'? Esta acción liberará espacio pero no se puede deshacer.",
+                    color = TextMuted,
+                    fontSize = 13.sp,
+                    lineHeight = 16.sp
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val target = itemToDeleteConfirm
+                        itemToDeleteConfirm = null
+                        if (target != null) viewModel.deleteItem(target.item)
+                    }
+                ) {
+                    Text("Eliminar", color = Danger, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { itemToDeleteConfirm = null }) {
+                    Text("Cancelar", color = TextMuted)
+                }
+            }
+        )
+    }
+
+    // Diálogo de Confirmar Eliminación para Duplicados Seleccionados
+    if (showConfirmDeleteDuplicates) {
+        GlassAlertDialog(
+            onDismissRequest = { showConfirmDeleteDuplicates = false },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconBubble(icon = Icons.Default.Warning, tint = Danger, size = 32.dp)
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = "Confirmar eliminación de duplicados",
+                        color = TextPrimary,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            },
+            text = {
+                Text(
+                    text = "¿Deseas eliminar permanentemente los ${selectedDuplicatePaths.size} archivos duplicados seleccionados? Esta acción liberará almacenamiento en tu dispositivo y no se puede deshacer.",
+                    color = TextMuted,
+                    fontSize = 13.sp,
+                    lineHeight = 16.sp
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showConfirmDeleteDuplicates = false
+                        viewModel.deleteSelectedDuplicates()
+                    }
+                ) {
+                    Text("Eliminar", color = Danger, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showConfirmDeleteDuplicates = false }) {
+                    Text("Cancelar", color = TextMuted)
+                }
+            }
+        )
+    }
 }
 
 @Composable
@@ -177,8 +324,6 @@ fun SmartSearchScreenContent(
     searchWord: String,
     selectedCategory: FileCategory,
     selectedOrientation: MediaOrientation,
-    selectedMonth: String,
-    selectedYear: String,
     minSizeMB: Float,
     isScanning: Boolean,
     scanProgress: Float,
@@ -188,16 +333,19 @@ fun SmartSearchScreenContent(
     deviceSummaries: List<DeviceSummary>,
     selectedDeviceFilter: String?,
     duplicateResults: List<DuplicateFileEntry>,
+    selectedDuplicatePaths: Set<String>,
+    savedConnections: List<NetworkConnection> = emptyList(),
+    defaultLocalRoot: String = "/storage/emulated/0",
     modifier: Modifier = Modifier,
     vfsManager: VfsManager? = null,
     onSetToolIndex: (Int) -> Unit = {},
+    onSetFolderAItem: (VfsItem) -> Unit = {},
+    onSetFolderBItem: (VfsItem) -> Unit = {},
     onSetCompareTwoFolders: (Boolean) -> Unit = {},
-    onSetRecursiveScan: (Boolean) -> Unit = {},
+    onSetDuplicateTargetShortcut: (String) -> Unit = {},
     onSetSearchWord: (String) -> Unit = {},
     onSetSelectedCategory: (FileCategory) -> Unit = {},
     onSetSelectedOrientation: (MediaOrientation) -> Unit = {},
-    onSetSelectedMonth: (String) -> Unit = {},
-    onSetSelectedYear: (String) -> Unit = {},
     onSetMinSizeMB: (Float) -> Unit = {},
     onStartScan: () -> Unit = {},
     onCancelScan: () -> Unit = {},
@@ -207,10 +355,15 @@ fun SmartSearchScreenContent(
     onShareItem: (MediaSearchItem) -> Unit = {},
     onOpenParentFolder: (VfsItem) -> Unit = {},
     onDeleteItem: (MediaSearchItem) -> Unit = {},
+    onToggleDuplicateSelection: (String) -> Unit = {},
+    onSelectDuplicateCopiesOnly: () -> Unit = {},
+    onRequestDeleteDuplicates: () -> Unit = {},
     onOpenDuplicate: (DuplicateFileEntry) -> Unit = {},
     onShareDuplicate: (DuplicateFileEntry) -> Unit = {},
     onDeleteDuplicate: (DuplicateFileEntry) -> Unit = {}
 ) {
+    var folderPickerState by remember { mutableStateOf<FolderPickerState?>(null) }
+
     val filteredSearchResults = remember(
         searchResults,
         searchWord,
@@ -239,359 +392,583 @@ fun SmartSearchScreenContent(
         }
     }
 
-    LazyColumn(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        // 1. Selector segmentado
-        item {
-            SegmentedTabs(
-                options = listOf(
-                    "Buscador" to Icons.Default.Search,
-                    "Dispositivos" to Icons.Default.Devices,
-                    "Duplicados" to Icons.Default.ContentCopy
-                ),
-                selectedIndex = toolIndex,
-                onSelect = onSetToolIndex
-            )
-        }
-
-        // 2. Tarjeta de Configuración
-        item {
-            val sectionTitle = when (toolIndex) {
-                0 -> "Buscador Avanzado de Archivos"
-                1 -> "Estadísticas por Cámara y Dispositivo"
-                else -> "Detector de Archivos Duplicados"
-            }
-            val sectionIcon = when (toolIndex) {
-                0 -> Icons.Default.Search
-                1 -> Icons.Default.Devices
-                else -> Icons.Default.ContentCopy
-            }
-
-            SectionCard(
-                title = sectionTitle,
-                icon = sectionIcon,
-                subtitle = "Analiza carpetas de tu dispositivo, tarjetas SD o servidores SMB/FTP de red local."
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        text = "Carpeta A: ${folderA.path}",
-                        color = TextPrimary,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-
-                    if (toolIndex == 2) {
-                        SettingSwitchRow(
-                            title = "Comparar dos carpetas distintas (Carpeta A vs B)",
-                            subtitle = if (compareTwoFolders) "Carpeta B: ${folderB?.path ?: "Sin seleccionar"}" else "Busca duplicados dentro de la Carpeta A únicamente",
-                            checked = compareTwoFolders,
-                            onCheckedChange = onSetCompareTwoFolders
-                        )
-                    }
-
-                    SettingSwitchRow(
-                        title = "Escanear subcarpetas recursivamente",
-                        subtitle = if (isRecursive) "Incluye todo el árbol de directorios" else "Escanea solo el nivel raíz indicado",
-                        checked = isRecursive,
-                        onCheckedChange = onSetRecursiveScan
-                    )
-                }
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    if (isScanning) {
-                        PrimaryButton(
-                            text = "Detener Escaneo",
-                            icon = Icons.Default.Stop,
-                            onClick = onCancelScan,
-                            colors = listOf(DangerRed, DangerRedLight),
-                            modifier = Modifier.weight(1f)
-                        )
-                    } else {
-                        val btnText = when (toolIndex) {
-                            0 -> "Buscar Archivos"
-                            1 -> "Analizar Cámaras"
-                            else -> "Detectar Duplicados"
-                        }
-                        PrimaryButton(
-                            text = btnText,
-                            icon = Icons.Default.Search,
-                            onClick = onStartScan,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
-
-                if (isScanning) {
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        AppProgressBar(progress = scanProgress)
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(text = statusText, color = TextSecondary, fontSize = 11.sp)
-                            Text(text = metricsText, color = AccentGreenLight, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                        }
-                    }
-                }
-            }
-        }
-
-        // 3. Panel de Filtros Rápidos
-        if (toolIndex == 0) {
+    Box(modifier = modifier.fillMaxSize()) {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            // 1. Selector de Modo (Búsqueda Inteligente vs Limpiar Duplicados)
             item {
-                SectionCard(
-                    title = "Filtros de Búsqueda",
-                    icon = Icons.Default.Search,
-                    iconTint = AccentBlueLight
-                ) {
-                    CompactSearchField(
-                        value = searchWord,
-                        onValueChange = onSetSearchWord,
-                        placeholder = "Nombre, extensión o modelo de cámara..."
-                    )
-
-                    FieldLabel(text = "Tipo de Contenido")
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        val catIcons = listOf(
-                            FileCategory.ALL to (Icons.Default.Apps to AccentBlueLight),
-                            FileCategory.IMAGE to (Icons.Default.Image to AccentGreenLight),
-                            FileCategory.VIDEO to (Icons.Default.Movie to AccentPurple),
-                            FileCategory.AUDIO to (Icons.Default.AudioFile to WarningAmber),
-                            FileCategory.DOCUMENT to (Icons.Default.Description to AccentBlueLight),
-                            FileCategory.ARCHIVE to (Icons.Default.Archive to WarningAmber),
-                            FileCategory.APK to (Icons.Default.Android to AccentGreenLight)
-                        )
-                        for ((cat, style) in catIcons) {
-                            SelectChip(
-                                text = cat.label,
-                                icon = style.first,
-                                selected = selectedCategory == cat,
-                                onClick = { onSetSelectedCategory(cat) },
-                                accent = style.second
-                            )
-                        }
-                    }
-
-                    FieldLabel(text = "Orientación de Fotos y Videos")
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        SelectChip(
-                            text = "Todas",
-                            selected = selectedOrientation == MediaOrientation.ALL,
-                            onClick = { onSetSelectedOrientation(MediaOrientation.ALL) },
-                            modifier = Modifier.weight(1f)
-                        )
-                        SelectChip(
-                            text = "Vertical",
-                            icon = Icons.Default.Smartphone,
-                            selected = selectedOrientation == MediaOrientation.VERTICAL,
-                            onClick = { onSetSelectedOrientation(MediaOrientation.VERTICAL) },
-                            accent = AccentGreenLight,
-                            modifier = Modifier.weight(1f)
-                        )
-                        SelectChip(
-                            text = "Horizontal",
-                            icon = Icons.Default.ScreenRotation,
-                            selected = selectedOrientation == MediaOrientation.HORIZONTAL,
-                            onClick = { onSetSelectedOrientation(MediaOrientation.HORIZONTAL) },
-                            accent = AccentPurple,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        val months = listOf("Todos", "01 - Ene", "02 - Feb", "03 - Mar", "04 - Abr", "05 - May", "06 - Jun", "07 - Jul", "08 - Ago", "09 - Sep", "10 - Oct", "11 - Nov", "12 - Dic")
-                        DropdownField(
-                            label = "Mes",
-                            value = selectedMonth,
-                            options = months,
-                            optionLabel = { it },
-                            onSelect = onSetSelectedMonth,
-                            modifier = Modifier.weight(1f)
-                        )
-                        val years = listOf("Todos", "2026", "2025", "2024", "2023", "2022", "2021", "2020")
-                        DropdownField(
-                            label = "Año",
-                            value = selectedYear,
-                            options = years,
-                            optionLabel = { it },
-                            onSelect = onSetSelectedYear,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        FieldLabel(
-                            text = "Tamaño mínimo de archivo",
-                            trailing = if (minSizeMB == 0f) "Cualquier tamaño" else "≥ ${minSizeMB.toInt()} MB"
-                        )
-                        Slider(
-                            value = minSizeMB,
-                            onValueChange = onSetMinSizeMB,
-                            valueRange = 0f..500f,
-                            colors = appSliderColors()
-                        )
-                    }
-                }
+                GlassSegmentedControl(
+                    options = listOf(
+                        "Búsqueda Inteligente" to Icons.Default.Search,
+                        "Limpiar Duplicados" to Icons.Default.ContentCopy
+                    ),
+                    selectedIndex = toolIndex,
+                    onSelect = onSetToolIndex
+                )
             }
-        }
 
-        // 4. Muestra de Resultados según Herramienta
-        when (toolIndex) {
-            0 -> {
+            if (toolIndex == 0) {
                 item {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 4.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Text(
-                            text = "RESULTADOS HALLADOS (${filteredSearchResults.size})",
-                            color = AccentGreenLight,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 11.sp,
-                            letterSpacing = 0.8.sp
+                        GlassSearchField(
+                            value = searchWord,
+                            onValueChange = onSetSearchWord,
+                            placeholder = "Buscar por nombre o formato...",
+                            height = 48.dp,
+                            modifier = Modifier.weight(1f)
                         )
-                        if (filteredSearchResults.isNotEmpty()) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                SecondaryButton(text = "Exportar CSV", icon = Icons.Default.Description, onClick = { onExportCsv(true) }, tint = AccentBlueLight)
+
+                        StorageSelectorIconDropdown(
+                            currentFolder = folderA,
+                            savedConnections = savedConnections,
+                            defaultLocalRoot = defaultLocalRoot,
+                            onSelectFolder = onSetFolderAItem,
+                            isFolderB = false,
+                            onRequestPicker = { item, isFolderB ->
+                                val conn = savedConnections.find { it.id == item.connectionId }
+                                folderPickerState = FolderPickerState(
+                                    title = "Seleccionar Carpeta A en ${item.name}",
+                                    initialPath = item.path.ifBlank { "/" },
+                                    protocol = item.protocol,
+                                    connection = conn,
+                                    isFolderB = isFolderB
+                                )
+                            }
+                        )
+
+                        val categoryOptions = listOf(
+                            FileCategory.ALL,
+                            FileCategory.IMAGE,
+                            FileCategory.VIDEO,
+                            FileCategory.AUDIO,
+                            FileCategory.DOCUMENT,
+                            FileCategory.APK
+                        )
+                        IconOnlyDropdownFilter(
+                            icon = Icons.Default.Category,
+                            title = "Tipo de archivo",
+                            value = selectedCategory,
+                            options = categoryOptions,
+                            optionLabel = { it.label },
+                            onSelect = onSetSelectedCategory,
+                            activeColor = Aqua
+                        )
+
+                        val orientationOptions = listOf(
+                            MediaOrientation.ALL,
+                            MediaOrientation.VERTICAL,
+                            MediaOrientation.HORIZONTAL
+                        )
+                        val orientLabels = mapOf(
+                            MediaOrientation.ALL to "Todas",
+                            MediaOrientation.VERTICAL to "Vertical",
+                            MediaOrientation.HORIZONTAL to "Horizontal"
+                        )
+                        IconOnlyDropdownFilter(
+                            icon = Icons.Default.ScreenRotation,
+                            title = "Orientación de imagen",
+                            value = selectedOrientation,
+                            options = orientationOptions,
+                            optionLabel = { orientLabels[it] ?: "Todas" },
+                            onSelect = onSetSelectedOrientation,
+                            activeColor = Violet
+                        )
+                    }
+                }
+
+                // Fila de Acciones de Escaneo
+                item {
+                    if (isScanning) {
+                        GlassSurface(
+                            shape = GlassCardShape,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(text = statusText, color = TextMuted, fontSize = 12.sp, modifier = Modifier.weight(1f))
+                                    SecondaryButton(
+                                        text = "Detener",
+                                        icon = Icons.Default.Stop,
+                                        onClick = onCancelScan,
+                                        tint = Danger
+                                    )
+                                }
+                                AppProgressBar(progress = scanProgress)
+                            }
+                        }
+                    } else {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            PrimaryGlassButton(
+                                text = "Escanear carpeta",
+                                icon = Icons.AutoMirrored.Filled.ManageSearch,
+                                onClick = onStartScan,
+                                modifier = Modifier.weight(1f)
+                            )
+                            if (searchResults.isNotEmpty()) {
+                                SecondaryGlassButton(
+                                    text = "Exportar CSV",
+                                    icon = Icons.Default.Description,
+                                    onClick = { onExportCsv(true) },
+                                    tint = Violet
+                                )
                             }
                         }
                     }
                 }
 
-                if (filteredSearchResults.isEmpty()) {
+                if (metricsText.isNotEmpty() && !isScanning) {
+                    item {
+                        Text(
+                            text = metricsText,
+                            color = Aqua,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.padding(horizontal = 2.dp)
+                        )
+                    }
+                }
+
+                // Lista de Resultados
+                if (filteredSearchResults.isEmpty() && !isScanning) {
                     item {
                         EmptyState(
                             icon = Icons.Default.Search,
-                            title = "Sin resultados de búsqueda",
-                            message = "Pulsa 'Buscar Archivos' para escanear la carpeta A seleccionada o ajusta los criterios de filtro."
+                            title = if (searchResults.isEmpty()) "Aún no hay resultados de búsqueda" else "Sin coincidencias con los filtros",
+                            message = if (searchResults.isEmpty()) "Ingresa tus criterios y pulsa 'Escanear carpeta' para iniciar la búsqueda en el almacenamiento." else "Intenta ajustar los filtros de tipo, orientación o cámara arriba."
                         )
                     }
                 } else {
-                    items(filteredSearchResults, key = { "${it.item.protocol}:${it.item.path}" }) { entry ->
+                    items(filteredSearchResults, key = { it.item.path }) { entry ->
                         MediaSearchResultCard(
                             entry = entry,
                             vfsManager = vfsManager,
-                            onOpen = { onOpenItem(entry) },
+                            onClick = { onOpenItem(entry) },
                             onShare = { onShareItem(entry) },
-                            onOpenParentFolder = { onOpenParentFolder(entry.item) },
+                            onOpenFolder = { onOpenParentFolder(entry.item) },
                             onDelete = { onDeleteItem(entry) }
                         )
                     }
                 }
-            }
-
-            1 -> {
+            } else {
                 item {
-                    Text(
-                        text = "RESUMEN DE DISPOSITIVOS DE ORIGEN (${deviceSummaries.size})",
-                        color = AccentPurple,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 11.sp,
-                        letterSpacing = 0.8.sp,
-                        modifier = Modifier.padding(top = 4.dp)
-                    )
-                }
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            StorageSelectorIconDropdown(
+                                currentFolder = folderA,
+                                savedConnections = savedConnections,
+                                defaultLocalRoot = defaultLocalRoot,
+                                onSelectFolder = onSetFolderAItem,
+                                isFolderB = false,
+                                onRequestPicker = { item, isFolderB ->
+                                    val conn = savedConnections.find { it.id == item.connectionId }
+                                    folderPickerState = FolderPickerState(
+                                        title = "Seleccionar Carpeta A en ${item.name}",
+                                        initialPath = item.path.ifBlank { "/" },
+                                        protocol = item.protocol,
+                                        connection = conn,
+                                        isFolderB = isFolderB
+                                    )
+                                }
+                            )
 
-                if (deviceSummaries.isEmpty()) {
-                    item {
-                        EmptyState(
-                            icon = Icons.Default.Devices,
-                            title = "Sin datos de dispositivos",
-                            message = "Pulsa 'Analizar Cámaras' para leer la metainformación EXIF/media de fotos y videos."
-                        )
-                    }
-                } else {
-                    item {
-                        SelectChip(
-                            text = "Mostrar Todos (${searchResults.size} archivos)",
-                            selected = selectedDeviceFilter == null,
-                            onClick = { onSelectDeviceFilter(null) },
-                            accent = AccentGreenLight,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-                    items(deviceSummaries, key = { it.deviceModel }) { summary ->
-                        DeviceSummaryCard(
-                            summary = summary,
-                            isSelected = selectedDeviceFilter == summary.deviceModel,
-                            onClick = {
-                                if (selectedDeviceFilter == summary.deviceModel) {
-                                    onSelectDeviceFilter(null)
-                                } else {
-                                    onSelectDeviceFilter(summary.deviceModel)
+                            GlassSurface(
+                                shape = GlassChipShape,
+                                fillColor = GlassFill,
+                                blur = false,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable { onSetCompareTwoFolders(!compareTwoFolders) }
+                                    .padding(horizontal = 10.dp, vertical = 8.dp)
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        text = if (compareTwoFolders) "Modo: Carpeta A vs B" else "Modo: Solo Carpeta A",
+                                        color = TextPrimary,
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
                                 }
                             }
-                        )
-                    }
-                }
-            }
+                        }
 
-            2 -> {
-                item {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 4.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "DUPLICADOS DETECTADOS (${duplicateResults.size})",
-                            color = WarningAmber,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 11.sp,
-                            letterSpacing = 0.8.sp
-                        )
-                        if (duplicateResults.isNotEmpty()) {
-                            SecondaryButton(text = "Reporte CSV", icon = Icons.Default.Description, onClick = { onExportCsv(false) }, tint = WarningAmber)
+                        if (compareTwoFolders) {
+                            GlassSurface(
+                                shape = GlassChipShape,
+                                fillColor = GlassFill,
+                                blur = false,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 4.dp, vertical = 2.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Text("B:", color = WarningAmber, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                        Spacer(Modifier.width(6.dp))
+                                        Text(
+                                            text = folderB?.name ?: "Elegir B",
+                                            color = if (folderB != null) TextPrimary else TextMuted,
+                                            fontSize = 12.sp,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                    }
+                                    StorageSelectorIconDropdown(
+                                        currentFolder = folderB ?: folderA,
+                                        savedConnections = savedConnections,
+                                        defaultLocalRoot = defaultLocalRoot,
+                                        onSelectFolder = onSetFolderBItem,
+                                        isFolderB = true,
+                                        onRequestPicker = { item, isFolderB ->
+                                            val conn = savedConnections.find { it.id == item.connectionId }
+                                            folderPickerState = FolderPickerState(
+                                                title = "Seleccionar Carpeta B en ${item.name}",
+                                                initialPath = item.path.ifBlank { "/" },
+                                                protocol = item.protocol,
+                                                connection = conn,
+                                                isFolderB = true
+                                            )
+                                        }
+                                    )
+                                }
+                            }
                         }
                     }
                 }
 
-                if (duplicateResults.isEmpty()) {
-                    item {
-                        EmptyState(
-                            icon = Icons.Default.ContentCopy,
-                            title = "Sin duplicados encontrados",
-                            message = "Pulsa 'Detectar Duplicados' para comparar contenido hash exacto de los archivos."
-                        )
-                    }
-                } else {
-                    items(duplicateResults, key = { "${it.groupId}:${it.item.path}" }) { dup ->
-                        DuplicateFileCard(
-                            entry = dup,
-                            vfsManager = vfsManager,
-                            onOpen = { onOpenDuplicate(dup) },
-                            onShare = { onShareDuplicate(dup) },
-                            onDelete = { onDeleteDuplicate(dup) }
+                // Botón Principal de Búsqueda
+                item {
+                    if (isScanning) {
+                        GlassSurface(
+                            shape = GlassCardShape,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(text = statusText, color = TextMuted, fontSize = 12.sp, modifier = Modifier.weight(1f))
+                                    SecondaryButton(
+                                        text = "Detener",
+                                        icon = Icons.Default.Stop,
+                                        onClick = onCancelScan,
+                                        tint = Danger
+                                    )
+                                }
+                                AppProgressBar(progress = scanProgress)
+                            }
+                        }
+                    } else {
+                        PrimaryGlassButton(
+                            text = "Buscar archivos repetidos",
+                            icon = Icons.Default.FindReplace,
+                            onClick = onStartScan,
+                            modifier = Modifier.fillMaxWidth()
                         )
                     }
                 }
+
+                if (duplicateResults.isNotEmpty() && !isScanning) {
+                    item {
+                        val wastedBytes = duplicateResults.filter { !it.isPrimary }.sumOf { it.item.sizeBytes }
+                        val groupCount = duplicateResults.map { it.groupId }.distinct().size
+
+                        GlassSurface(
+                            shape = GlassCardShape,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "$groupCount grupos de duplicados",
+                                        color = TextPrimary,
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        text = "${formatBytes(wastedBytes)} ocupados",
+                                        color = WarningAmber,
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    SecondaryGlassButton(
+                                        text = "Marcar copias sobrantes",
+                                        icon = Icons.Default.DoneAll,
+                                        onClick = onSelectDuplicateCopiesOnly,
+                                        modifier = Modifier.weight(1f),
+                                        tint = Violet
+                                    )
+                                    PrimaryGlassButton(
+                                        text = "Eliminar (${selectedDuplicatePaths.size})",
+                                        icon = Icons.Default.Delete,
+                                        onClick = onRequestDeleteDuplicates,
+                                        enabled = selectedDuplicatePaths.isNotEmpty()
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Lista de Duplicados
+                if (duplicateResults.isEmpty() && !isScanning) {
+                    item {
+                        EmptyState(
+                            icon = Icons.Default.ContentCopy,
+                            title = "Sin duplicados analizados",
+                            message = "Selecciona una ubicación y pulsa 'Buscar archivos repetidos' para detectar copias exactas por contenido."
+                        )
+                    }
+                } else {
+                    items(duplicateResults, key = { "${it.groupId}_${it.item.path}" }) { entry ->
+                        val isSelected = entry.item.path in selectedDuplicatePaths
+                        DuplicateFileCard(
+                            entry = entry,
+                            isSelected = isSelected,
+                            vfsManager = vfsManager,
+                            onClick = { onOpenDuplicate(entry) },
+                            onToggleSelect = { onToggleDuplicateSelection(entry.item.path) },
+                            onShare = { onShareDuplicate(entry) },
+                            onDelete = { onDeleteDuplicate(entry) }
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    // Diálogo Selector de Carpetas
+    if (folderPickerState != null && vfsManager != null) {
+        val state = folderPickerState!!
+        FolderPickerDialog(
+            title = state.title,
+            initialPath = state.initialPath,
+            protocol = state.protocol,
+            connection = state.connection,
+            vfsManager = vfsManager,
+            onFolderSelected = { selectedSubfolder ->
+                if (state.isFolderB) {
+                    onSetFolderBItem(selectedSubfolder)
+                } else {
+                    onSetFolderAItem(selectedSubfolder)
+                }
+                folderPickerState = null
+            },
+            onDismiss = { folderPickerState = null }
+        )
+    }
+}
+
+@Composable
+private fun StorageSelectorIconDropdown(
+    currentFolder: VfsItem,
+    savedConnections: List<NetworkConnection>,
+    defaultLocalRoot: String,
+    onSelectFolder: (VfsItem) -> Unit,
+    isFolderB: Boolean,
+    onRequestPicker: (VfsItem, Boolean) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Box {
+        GlassIconButton(
+            icon = when (currentFolder.protocol) {
+                StorageProtocol.LOCAL -> Icons.Default.PhoneAndroid
+                StorageProtocol.SMB -> Icons.Default.Lan
+                StorageProtocol.FTP -> Icons.Default.Lan
+            },
+            onClick = { expanded = true },
+            tint = Violet,
+            contentDescription = "Elegir ubicación"
+        )
+
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            shape = RoundedCornerShape(16.dp),
+            containerColor = CardDark,
+            border = BorderStroke(1.dp, GlassBorder)
+        ) {
+            DropdownMenuItem(
+                text = { Text("Almacenamiento interno", color = TextPrimary, fontSize = 13.sp) },
+                leadingIcon = { Icon(Icons.Default.PhoneAndroid, contentDescription = null, tint = Aqua) },
+                onClick = {
+                    expanded = false
+                    val rootItem = VfsItem(
+                        path = defaultLocalRoot,
+                        name = "Almacenamiento Interno",
+                        parentPath = "/",
+                        isDirectory = true,
+                        protocol = StorageProtocol.LOCAL
+                    )
+                    onSelectFolder(rootItem)
+                }
+            )
+
+            val downloadsItem = VfsItem(
+                path = "$defaultLocalRoot/Download",
+                name = "Descargas",
+                parentPath = defaultLocalRoot,
+                isDirectory = true,
+                protocol = StorageProtocol.LOCAL
+            )
+            DropdownMenuItem(
+                text = { Text("Carpeta Descargas", color = TextPrimary, fontSize = 13.sp) },
+                leadingIcon = { Icon(Icons.Default.Download, contentDescription = null, tint = Violet) },
+                onClick = {
+                    expanded = false
+                    onSelectFolder(downloadsItem)
+                }
+            )
+
+            val cameraItem = VfsItem(
+                path = "$defaultLocalRoot/DCIM/Camera",
+                name = "Cámara",
+                parentPath = "$defaultLocalRoot/DCIM",
+                isDirectory = true,
+                protocol = StorageProtocol.LOCAL
+            )
+            DropdownMenuItem(
+                text = { Text("Carpeta Cámara (DCIM)", color = TextPrimary, fontSize = 13.sp) },
+                leadingIcon = { Icon(Icons.Default.CameraAlt, contentDescription = null, tint = Aqua) },
+                onClick = {
+                    expanded = false
+                    onSelectFolder(cameraItem)
+                }
+            )
+
+            if (savedConnections.isNotEmpty()) {
+                HorizontalDivider(color = GlassBorder)
+                savedConnections.forEach { conn ->
+                    DropdownMenuItem(
+                        text = { Text("${conn.name} (${conn.protocol.name})", color = TextPrimary, fontSize = 13.sp) },
+                        leadingIcon = { Icon(Icons.Default.Lan, contentDescription = null, tint = Violet) },
+                        onClick = {
+                            expanded = false
+                            val netItem = VfsItem(
+                                path = conn.initialPath.ifBlank { "/" },
+                                name = conn.name,
+                                parentPath = "/",
+                                isDirectory = true,
+                                protocol = conn.protocol,
+                                connectionId = conn.id
+                            )
+                            onSelectFolder(netItem)
+                        }
+                    )
+                }
+            }
+
+            HorizontalDivider(color = GlassBorder)
+            DropdownMenuItem(
+                text = { Text("Elegir subcarpeta específica...", color = Aqua, fontSize = 13.sp, fontWeight = FontWeight.Bold) },
+                leadingIcon = { Icon(Icons.Default.FolderOpen, contentDescription = null, tint = Aqua) },
+                onClick = {
+                    expanded = false
+                    onRequestPicker(currentFolder, isFolderB)
+                }
+            )
+        }
+    }
+}
+
+@Composable
+private fun <T> IconOnlyDropdownFilter(
+    icon: ImageVector,
+    title: String,
+    value: T,
+    options: List<T>,
+    optionLabel: (T) -> String,
+    onSelect: (T) -> Unit,
+    activeColor: Color = Aqua
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Box {
+        GlassIconButton(
+            icon = icon,
+            onClick = { expanded = true },
+            tint = activeColor,
+            contentDescription = title
+        )
+
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            shape = RoundedCornerShape(16.dp),
+            containerColor = CardDark,
+            border = BorderStroke(1.dp, GlassBorder)
+        ) {
+            options.forEach { opt ->
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = optionLabel(opt),
+                            color = if (opt == value) activeColor else TextPrimary,
+                            fontSize = 13.sp,
+                            fontWeight = if (opt == value) FontWeight.Bold else FontWeight.Normal
+                        )
+                    },
+                    onClick = {
+                        onSelect(opt)
+                        expanded = false
+                    }
+                )
             }
         }
     }
@@ -601,24 +978,22 @@ fun SmartSearchScreenContent(
 private fun MediaSearchResultCard(
     entry: MediaSearchItem,
     vfsManager: VfsManager? = null,
-    onOpen: () -> Unit = {},
+    onClick: () -> Unit = {},
     onShare: () -> Unit = {},
-    onOpenParentFolder: () -> Unit = {},
+    onOpenFolder: () -> Unit = {},
     onDelete: () -> Unit = {}
 ) {
-    Surface(
-        color = CardDark,
-        shape = RoundedCornerShape(12.dp),
-        border = BorderStroke(1.dp, BorderDark),
+    GlassSurface(
+        shape = GlassChipShape,
+        blur = false,
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .clickable { onOpen() }
+            .clickable { onClick() }
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 10.dp, vertical = 8.dp),
+                .padding(horizontal = 12.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             FileThumbnailBox(
@@ -628,7 +1003,7 @@ private fun MediaSearchResultCard(
                 showBadge = true,
                 modifier = Modifier.size(48.dp)
             )
-            Spacer(Modifier.width(10.dp))
+            Spacer(Modifier.width(12.dp))
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(3.dp)
@@ -642,7 +1017,7 @@ private fun MediaSearchResultCard(
                         text = entry.item.name,
                         color = TextPrimary,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 13.sp,
+                        fontSize = 14.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f)
@@ -650,9 +1025,9 @@ private fun MediaSearchResultCard(
                     Spacer(Modifier.width(6.dp))
                     Text(
                         text = entry.item.sizeFormatted,
-                        color = AccentBlueLight,
+                        color = Aqua,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 11.sp
+                        fontSize = 12.sp
                     )
                 }
 
@@ -664,15 +1039,15 @@ private fun MediaSearchResultCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     if (entry.deviceModel.isNotBlank() && entry.deviceModel != "Desconocido") {
-                        Tag(text = entry.deviceModel, color = AccentBlueLight)
+                        Tag(text = entry.deviceModel, color = Violet)
                     }
                     if (entry.orientation == "Vertical") {
-                        Tag(text = "Vertical", color = AccentGreenLight)
+                        Tag(text = "Vertical", color = Aqua)
                     } else if (entry.orientation == "Horizontal") {
-                        Tag(text = "Horizontal", color = AccentPurple)
+                        Tag(text = "Horizontal", color = Violet)
                     }
                     if (entry.resolution.isNotBlank()) {
-                        Tag(text = entry.resolution, color = TextSecondary)
+                        Tag(text = entry.resolution, color = TextMuted)
                     }
                 }
 
@@ -683,21 +1058,21 @@ private fun MediaSearchResultCard(
                 ) {
                     Text(
                         text = "${entry.item.protocol.name} • ${entry.item.parentPath}",
-                        color = TextSecondary,
-                        fontSize = 10.sp,
+                        color = TextMuted,
+                        fontSize = 11.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f)
                     )
                     Row {
-                        IconButton(onClick = onShare, modifier = Modifier.size(26.dp)) {
-                            Icon(Icons.Default.Share, contentDescription = "Compartir", tint = AccentGreenLight, modifier = Modifier.size(15.dp))
+                        IconButton(onClick = onShare, modifier = Modifier.size(28.dp)) {
+                            Icon(Icons.Default.Share, contentDescription = "Compartir", tint = Violet, modifier = Modifier.size(16.dp))
                         }
-                        IconButton(onClick = onOpenParentFolder, modifier = Modifier.size(26.dp)) {
-                            Icon(Icons.Default.FolderOpen, contentDescription = "Ir a la carpeta", tint = AccentBlueLight, modifier = Modifier.size(15.dp))
+                        IconButton(onClick = onOpenFolder, modifier = Modifier.size(28.dp)) {
+                            Icon(Icons.Default.FolderOpen, contentDescription = "Ir a carpeta", tint = Aqua, modifier = Modifier.size(16.dp))
                         }
-                        IconButton(onClick = onDelete, modifier = Modifier.size(26.dp)) {
-                            Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = DangerRedLight, modifier = Modifier.size(15.dp))
+                        IconButton(onClick = onDelete, modifier = Modifier.size(28.dp)) {
+                            Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = Danger, modifier = Modifier.size(16.dp))
                         }
                     }
                 }
@@ -707,18 +1082,22 @@ private fun MediaSearchResultCard(
 }
 
 @Composable
-private fun DeviceSummaryCard(
-    summary: DeviceSummary,
+private fun DuplicateFileCard(
+    entry: DuplicateFileEntry,
     isSelected: Boolean,
-    onClick: () -> Unit = {}
+    vfsManager: VfsManager? = null,
+    onClick: () -> Unit = {},
+    onToggleSelect: () -> Unit = {},
+    onShare: () -> Unit = {},
+    onDelete: () -> Unit = {}
 ) {
-    Surface(
-        color = if (isSelected) BgElevated else CardDark,
-        shape = RoundedCornerShape(12.dp),
-        border = BorderStroke(1.dp, if (isSelected) AccentGreenLight else BorderDark),
+    GlassSurface(
+        shape = GlassChipShape,
+        fillColor = if (isSelected) SelectedViolet else GlassFill,
+        borderColor = if (entry.isPrimary) Aqua.copy(alpha = 0.5f) else WarningAmber.copy(alpha = 0.6f),
+        blur = false,
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
             .clickable { onClick() }
     ) {
         Row(
@@ -728,72 +1107,16 @@ private fun DeviceSummaryCard(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                IconBadge(
-                    icon = Icons.Default.CameraAlt,
-                    tint = if (isSelected) AccentGreenLight else AccentBlueLight,
-                    size = 34
+            IconButton(onClick = onToggleSelect, modifier = Modifier.size(28.dp)) {
+                Icon(
+                    imageVector = if (isSelected) Icons.Default.CheckCircle else Icons.Default.Check,
+                    contentDescription = "Marcar duplicado",
+                    tint = if (isSelected) Aqua else TextMuted,
+                    modifier = Modifier.size(18.dp)
                 )
-                Spacer(Modifier.width(10.dp))
-                Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                    Text(
-                        text = summary.deviceModel,
-                        color = TextPrimary,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 13.sp,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                            Icon(Icons.Default.Smartphone, contentDescription = null, tint = AccentGreenLight, modifier = Modifier.size(13.dp))
-                            Text("Vert: ${summary.verticalCount}", color = TextSecondary, fontSize = 11.sp)
-                        }
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                            Icon(Icons.Default.Monitor, contentDescription = null, tint = AccentPurple, modifier = Modifier.size(13.dp))
-                            Text("Horiz: ${summary.horizontalCount}", color = TextSecondary, fontSize = 11.sp)
-                        }
-                    }
-                }
             }
-            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Tag(text = "${summary.totalCount} arch.", color = AccentBlueLight)
-                Tag(text = "${summary.pctVertical} Vert.", color = AccentGreenLight)
-            }
-        }
-    }
-}
+            Spacer(Modifier.width(6.dp))
 
-@Composable
-private fun DuplicateFileCard(
-    entry: DuplicateFileEntry,
-    vfsManager: VfsManager? = null,
-    onOpen: () -> Unit = {},
-    onShare: () -> Unit = {},
-    onDelete: () -> Unit = {}
-) {
-    Surface(
-        color = CardDark,
-        shape = RoundedCornerShape(12.dp),
-        border = BorderStroke(
-            1.dp,
-            if (entry.isPrimary) AccentGreenLight.copy(alpha = 0.5f) else WarningAmber.copy(alpha = 0.6f)
-        ),
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .clickable { onOpen() }
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 10.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
             FileThumbnailBox(
                 item = entry.item,
                 vfsManager = vfsManager,
@@ -804,15 +1127,9 @@ private fun DuplicateFileCard(
             Spacer(Modifier.width(10.dp))
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Icon(
-                        imageVector = if (entry.isPrimary) Icons.Default.Star else Icons.Default.Warning,
-                        contentDescription = null,
-                        tint = if (entry.isPrimary) AccentGreenLight else WarningAmber,
-                        modifier = Modifier.size(13.dp)
-                    )
                     Text(
                         text = "[Grupo #${entry.groupId} • ${entry.sourceLabel}] ${if (entry.isPrimary) "Original" else "Copia Duplicada"}",
-                        color = if (entry.isPrimary) AccentGreenLight else WarningAmber,
+                        color = if (entry.isPrimary) Aqua else WarningAmber,
                         fontWeight = FontWeight.Bold,
                         fontSize = 11.sp
                     )
@@ -827,8 +1144,8 @@ private fun DuplicateFileCard(
                 )
                 Text(
                     text = "${entry.item.protocol.name} • ${entry.item.parentPath} • ${entry.item.sizeFormatted}",
-                    color = TextSecondary,
-                    fontSize = 10.sp,
+                    color = TextMuted,
+                    fontSize = 11.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -836,11 +1153,11 @@ private fun DuplicateFileCard(
 
             Row {
                 IconButton(onClick = onShare, modifier = Modifier.size(28.dp)) {
-                    Icon(Icons.Default.Share, contentDescription = "Compartir", tint = AccentBlueLight, modifier = Modifier.size(16.dp))
+                    Icon(Icons.Default.Share, contentDescription = "Compartir", tint = Violet, modifier = Modifier.size(16.dp))
                 }
                 if (!entry.isPrimary) {
                     IconButton(onClick = onDelete, modifier = Modifier.size(28.dp)) {
-                        Icon(Icons.Default.Delete, contentDescription = "Eliminar duplicado", tint = DangerRedLight, modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.Delete, contentDescription = "Eliminar duplicado", tint = Danger, modifier = Modifier.size(16.dp))
                     }
                 }
             }
@@ -848,7 +1165,136 @@ private fun DuplicateFileCard(
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF121418)
+@Composable
+private fun FolderPickerDialog(
+    title: String,
+    initialPath: String,
+    protocol: StorageProtocol,
+    connection: NetworkConnection?,
+    vfsManager: VfsManager,
+    onFolderSelected: (VfsItem) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var currentPath by remember { mutableStateOf(initialPath.ifBlank { "/" }) }
+    var folderItems by remember { mutableStateOf<List<VfsItem>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(true) }
+    var errorMsg by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(currentPath) {
+        isLoading = true
+        errorMsg = null
+        try {
+            val list = vfsManager.listDirectory(
+                path = currentPath,
+                protocol = protocol,
+                connection = connection
+            )
+            folderItems = list.filter { it.isDirectory }
+            isLoading = false
+        } catch (e: Exception) {
+            errorMsg = e.localizedMessage ?: "Error al listar directorios"
+            isLoading = false
+        }
+    }
+
+    GlassAlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(text = title, color = TextPrimary, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                Text(text = currentPath, color = TextMuted, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(280.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                if (currentPath != "/" && currentPath != "/storage/emulated/0") {
+                    Surface(
+                        onClick = {
+                            val parent = currentPath.substringBeforeLast('/', "/")
+                            currentPath = if (parent.isBlank()) "/" else parent
+                        },
+                        color = GlassFill,
+                        shape = GlassChipShape,
+                        border = BorderStroke(1.dp, GlassBorder),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.ArrowUpward, contentDescription = null, tint = Violet, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text(".. (Subir carpeta)", color = Violet, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+
+                if (isLoading) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = Aqua, strokeWidth = 3.dp, modifier = Modifier.size(32.dp))
+                    }
+                } else if (errorMsg != null) {
+                    Text(text = errorMsg!!, color = Danger, fontSize = 12.sp)
+                } else if (folderItems.isEmpty()) {
+                    Text("No hay subcarpetas en este nivel", color = TextMuted, fontSize = 12.sp, modifier = Modifier.padding(12.dp))
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        items(folderItems, key = { it.path }) { item ->
+                            Surface(
+                                onClick = { currentPath = item.path },
+                                color = GlassFill,
+                                shape = GlassChipShape,
+                                border = BorderStroke(1.dp, GlassBorder),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(10.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(Icons.Default.Folder, contentDescription = null, tint = Aqua, modifier = Modifier.size(18.dp))
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(item.name, color = TextPrimary, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    val selectedItem = VfsItem(
+                        path = currentPath,
+                        name = currentPath.substringAfterLast('/', currentPath),
+                        parentPath = currentPath.substringBeforeLast('/', "/"),
+                        isDirectory = true,
+                        protocol = protocol,
+                        connectionId = connection?.id
+                    )
+                    onFolderSelected(selectedItem)
+                }
+            ) {
+                Text("Usar esta carpeta")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancelar", color = TextMuted)
+            }
+        }
+    )
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFF120B26)
 @Composable
 fun SmartSearchScreenPreview() {
     val sampleFolder = VfsItem(
@@ -870,8 +1316,6 @@ fun SmartSearchScreenPreview() {
             searchWord = "",
             selectedCategory = FileCategory.ALL,
             selectedOrientation = MediaOrientation.ALL,
-            selectedMonth = "Todos",
-            selectedYear = "Todos",
             minSizeMB = 0f,
             isScanning = false,
             scanProgress = 0f,
@@ -895,12 +1339,13 @@ fun SmartSearchScreenPreview() {
             ),
             deviceSummaries = emptyList(),
             selectedDeviceFilter = null,
-            duplicateResults = emptyList()
+            duplicateResults = emptyList(),
+            selectedDuplicatePaths = emptySet()
         )
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF121418)
+@Preview(showBackground = true, backgroundColor = 0xFF120B26)
 @Composable
 fun MediaSearchResultCardPreview() {
     FileManagerTheme {
@@ -923,7 +1368,7 @@ fun MediaSearchResultCardPreview() {
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF121418)
+@Preview(showBackground = true, backgroundColor = 0xFF120B26)
 @Composable
 fun DuplicateFileCardPreview() {
     FileManagerTheme {
@@ -941,7 +1386,8 @@ fun DuplicateFileCardPreview() {
                 ),
                 isPrimary = false,
                 sourceLabel = "Carpeta B"
-            )
+            ),
+            isSelected = false
         )
     }
 }

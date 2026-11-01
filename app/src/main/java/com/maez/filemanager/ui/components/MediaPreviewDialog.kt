@@ -54,6 +54,8 @@ import com.maez.filemanager.ui.theme.CardDark
 import com.maez.filemanager.ui.theme.ConsoleBg
 import com.maez.filemanager.ui.theme.DangerRedLight
 import com.maez.filemanager.ui.theme.FileManagerTheme
+import com.maez.filemanager.ui.theme.PopupBorder
+import com.maez.filemanager.ui.theme.PopupSurface
 import com.maez.filemanager.ui.theme.TextPrimary
 import com.maez.filemanager.ui.theme.TextSecondary
 import kotlinx.coroutines.Dispatchers
@@ -95,10 +97,11 @@ fun MediaPreviewDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
+        DialogWindowBlur()
         Surface(
-            color = CardDark,
+            color = PopupSurface,
             shape = RoundedCornerShape(20.dp),
-            border = BorderStroke(1.dp, BorderDark),
+            border = BorderStroke(1.dp, PopupBorder),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp)

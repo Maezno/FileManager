@@ -29,7 +29,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -52,7 +51,11 @@ import com.maez.filemanager.model.StorageProtocol
 import com.maez.filemanager.ui.components.AppProgressBar
 import com.maez.filemanager.ui.components.ControlShape
 import com.maez.filemanager.ui.components.EmptyState
+import com.maez.filemanager.ui.components.GlassAlertDialog
+import com.maez.filemanager.ui.components.GlassIconButton
+import com.maez.filemanager.ui.components.GlassSurface
 import com.maez.filemanager.ui.components.IconBadge
+import com.maez.filemanager.ui.components.IconBubble
 import com.maez.filemanager.ui.components.PrimaryButton
 import com.maez.filemanager.ui.components.SecondaryButton
 import com.maez.filemanager.ui.components.SectionCard
@@ -60,16 +63,16 @@ import com.maez.filemanager.ui.components.SelectChip
 import com.maez.filemanager.ui.components.SettingSwitchRow
 import com.maez.filemanager.ui.components.Tag
 import com.maez.filemanager.ui.components.appTextFieldColors
-import com.maez.filemanager.ui.theme.AccentBlue
-import com.maez.filemanager.ui.theme.AccentBlueLight
-import com.maez.filemanager.ui.theme.AccentGreenLight
-import com.maez.filemanager.ui.theme.AccentPurple
-import com.maez.filemanager.ui.theme.BorderDark
+import com.maez.filemanager.ui.theme.Aqua
+import com.maez.filemanager.ui.theme.BgElevated
 import com.maez.filemanager.ui.theme.CardDark
-import com.maez.filemanager.ui.theme.DangerRedLight
+import com.maez.filemanager.ui.theme.Danger
 import com.maez.filemanager.ui.theme.FileManagerTheme
+import com.maez.filemanager.ui.theme.GlassCardShape
+import com.maez.filemanager.ui.theme.TextMuted
 import com.maez.filemanager.ui.theme.TextPrimary
 import com.maez.filemanager.ui.theme.TextSecondary
+import com.maez.filemanager.ui.theme.Violet
 import com.maez.filemanager.viewmodel.MainViewModel
 
 @Composable
@@ -179,26 +182,25 @@ fun NetworkScreenContent(
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // 1. Cabecera con estilo SectionCard compacto
+        // 1. Cabecera con estilo GlassCard
         item {
             SectionCard(
-                title = "Red Local SMB & FTP",
+                title = "Red local SMB y FTP",
                 icon = Icons.Default.Lan,
                 subtitle = "Explora carpetas compartidas de Windows/NAS (SMBv2/v3) y servidores FTP sin descargar archivos enteros.",
-                iconTint = AccentBlueLight
+                iconTint = Violet
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     PrimaryButton(
-                        text = "Añadir Servidor",
+                        text = "Añadir servidor",
                         icon = Icons.Default.Add,
                         onClick = { openNewConnectionDialog(StorageProtocol.SMB) },
-                        colors = listOf(AccentBlue, AccentBlueLight),
                         modifier = Modifier.weight(1f)
                     )
 
@@ -207,7 +209,7 @@ fun NetworkScreenContent(
                         icon = Icons.Default.Radar,
                         onClick = onScanLan,
                         enabled = !isDiscovering,
-                        tint = AccentGreenLight,
+                        tint = Aqua,
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -224,15 +226,14 @@ fun NetworkScreenContent(
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    modifier = Modifier.padding(top = 2.dp)
+                    modifier = Modifier.padding(top = 4.dp)
                 ) {
-                    Icon(Icons.Default.WifiFind, contentDescription = null, tint = AccentGreenLight, modifier = Modifier.size(15.dp))
+                    Icon(Icons.Default.WifiFind, contentDescription = null, tint = Aqua, modifier = Modifier.size(16.dp))
                     Text(
-                        text = "EQUIPOS DETECTADOS EN TU RED WI-FI (${discoveredHosts.size})",
-                        color = AccentGreenLight,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 11.sp,
-                        letterSpacing = 0.8.sp
+                        text = "equipos detectados en tu red wi-fi (${discoveredHosts.size})",
+                        color = Aqua,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 13.sp
                     )
                 }
             }
@@ -265,15 +266,14 @@ fun NetworkScreenContent(
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
-                modifier = Modifier.padding(top = 2.dp)
+                modifier = Modifier.padding(top = 4.dp)
             ) {
-                Icon(Icons.Default.Bookmark, contentDescription = null, tint = AccentBlueLight, modifier = Modifier.size(15.dp))
+                Icon(Icons.Default.Bookmark, contentDescription = null, tint = Violet, modifier = Modifier.size(16.dp))
                 Text(
-                    text = "MIS SERVIDORES GUARDADOS (${savedConnections.size})",
-                    color = AccentBlueLight,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 11.sp,
-                    letterSpacing = 0.8.sp
+                    text = "servidores guardados (${savedConnections.size})",
+                    color = Violet,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 13.sp
                 )
             }
         }
@@ -283,7 +283,7 @@ fun NetworkScreenContent(
                 EmptyState(
                     icon = Icons.Default.Lan,
                     title = "Sin servidores guardados",
-                    message = "Pulsa 'Escanear Wi-Fi' para detectar los equipos de tu red local automáticamente o 'Añadir Servidor' para configurar uno."
+                    message = "Pulsa 'Escanear Wi-Fi' para detectar los equipos de tu red local automáticamente o 'Añadir servidor' para configurar uno."
                 )
             }
         } else {
@@ -300,9 +300,8 @@ fun NetworkScreenContent(
 
     // Modal para Crear / Editar Conexión SMB o FTP
     if (showDialog) {
-        AlertDialog(
+        GlassAlertDialog(
             onDismissRequest = { showDialog = false },
-            containerColor = CardDark,
             title = {
                 Text(
                     text = if (editingId == null) "Configurar Servidor de Red" else "Editar Servidor",
@@ -320,7 +319,7 @@ fun NetworkScreenContent(
                                 formProtocol = StorageProtocol.SMB
                                 if (formPort == "21" || formPort == "2121") formPort = "445"
                             },
-                            accent = AccentBlueLight,
+                            accent = Violet,
                             modifier = Modifier.weight(1f)
                         )
                         SelectChip(
@@ -330,7 +329,7 @@ fun NetworkScreenContent(
                                 formProtocol = StorageProtocol.FTP
                                 if (formPort == "445") formPort = "21"
                             },
-                            accent = AccentGreenLight,
+                            accent = Aqua,
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -444,34 +443,32 @@ private fun SavedConnectionCard(
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
-    Surface(
-        color = CardDark,
-        shape = RoundedCornerShape(14.dp),
-        border = BorderStroke(1.dp, BorderDark),
+    GlassSurface(
+        shape = GlassCardShape,
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                    IconBadge(icon = Icons.Default.Computer, tint = AccentPurple, size = 36)
-                    Spacer(Modifier.width(10.dp))
+                    IconBubble(icon = Icons.Default.Computer, tint = Violet, size = 42.dp)
+                    Spacer(Modifier.width(12.dp))
                     Column {
                         Text(
                             text = conn.name,
                             color = TextPrimary,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp,
+                            fontSize = 16.sp,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
                         Text(
                             text = conn.displayAddress,
-                            color = AccentBlueLight,
-                            fontSize = 11.sp,
+                            color = Aqua,
+                            fontSize = 12.sp,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -480,21 +477,17 @@ private fun SavedConnectionCard(
                         } else {
                             "Usuario: ${conn.username}"
                         }
-                        Text(text = userText, color = TextSecondary, fontSize = 11.sp)
+                        Text(text = userText, color = TextMuted, fontSize = 12.sp)
                     }
                 }
-                Row {
-                    IconButton(onClick = onEdit, modifier = Modifier.size(32.dp)) {
-                        Icon(Icons.Default.Edit, contentDescription = "Editar", tint = AccentBlueLight, modifier = Modifier.size(18.dp))
-                    }
-                    IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
-                        Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = DangerRedLight, modifier = Modifier.size(18.dp))
-                    }
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    GlassIconButton(icon = Icons.Default.Edit, onClick = onEdit, tint = Violet, contentDescription = "Editar")
+                    GlassIconButton(icon = Icons.Default.Delete, onClick = onDelete, tint = Danger, contentDescription = "Eliminar")
                 }
             }
 
             PrimaryButton(
-                text = "Conectar y Explorar Archivos",
+                text = "Conectar y explorar",
                 icon = Icons.Default.FolderOpen,
                 onClick = onConnect,
                 modifier = Modifier.fillMaxWidth()
@@ -509,10 +502,8 @@ private fun DiscoveredHostCard(
     onConfigureSmb: () -> Unit,
     onConfigureFtp: () -> Unit
 ) {
-    Surface(
-        color = CardDark,
-        shape = RoundedCornerShape(14.dp),
-        border = BorderStroke(1.dp, AccentGreenLight.copy(alpha = 0.55f)),
+    GlassSurface(
+        shape = GlassCardShape,
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
@@ -528,7 +519,7 @@ private fun DiscoveredHostCard(
                     .weight(1f)
                     .padding(end = 8.dp)
             ) {
-                IconBadge(icon = Icons.Default.Computer, tint = AccentGreenLight, size = 38)
+                IconBubble(icon = Icons.Default.Computer, tint = Aqua, size = 38.dp)
                 Spacer(Modifier.width(10.dp))
                 Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                     Text(
@@ -543,9 +534,9 @@ private fun DiscoveredHostCard(
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Tag(text = host.ip, color = AccentBlueLight)
-                        if (host.supportsSmb) Tag(text = "SMB", color = AccentPurple)
-                        if (host.supportsFtp) Tag(text = "FTP", color = AccentGreenLight)
+                        Tag(text = host.ip, color = Violet)
+                        if (host.supportsSmb) Tag(text = "SMB", color = Violet)
+                        if (host.supportsFtp) Tag(text = "FTP", color = Aqua)
                     }
                 }
             }
@@ -559,7 +550,7 @@ private fun DiscoveredHostCard(
                         text = "SMB",
                         icon = Icons.Default.Add,
                         onClick = onConfigureSmb,
-                        tint = AccentBlueLight
+                        tint = Violet
                     )
                 }
                 if (host.supportsFtp) {
@@ -567,7 +558,7 @@ private fun DiscoveredHostCard(
                         text = "FTP",
                         icon = Icons.Default.Add,
                         onClick = onConfigureFtp,
-                        tint = AccentGreenLight
+                        tint = Aqua
                     )
                 }
             }
@@ -575,7 +566,40 @@ private fun DiscoveredHostCard(
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF121418)
+@Preview(showBackground = true, backgroundColor = 0xFF120B26)
+@Composable
+fun NetworkScreenPreview() {
+    FileManagerTheme {
+        NetworkScreenContent(
+            savedConnections = listOf(
+                NetworkConnection(
+                    id = "1",
+                    name = "Servidor NAS Oficina",
+                    protocol = StorageProtocol.SMB,
+                    host = "192.168.1.100",
+                    port = 445,
+                    shareName = "Archivos",
+                    username = "admin"
+                )
+            ),
+            discoveredHosts = listOf(
+                DiscoveredHost(
+                    ip = "192.168.1.50",
+                    hostname = "PC-DESK-MAEZ",
+                    openPorts = listOf(445, 21)
+                )
+            ),
+            isDiscovering = false,
+            lanProgress = 0f,
+            onScanLan = {},
+            onConnect = {},
+            onSaveConnection = { _, _, _, _, _, _, _, _, _, _ -> },
+            onDeleteConnection = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFF120B26)
 @Composable
 fun DiscoveredHostCardPreview() {
     FileManagerTheme {
@@ -592,3 +616,4 @@ fun DiscoveredHostCardPreview() {
         }
     }
 }
+

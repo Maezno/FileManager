@@ -39,6 +39,12 @@ android {
         compose = true
     }
 
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+        }
+    }
+
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
@@ -67,6 +73,9 @@ dependencies {
     implementation(libs.smbj)
     implementation(libs.jcifs.ng)
     implementation(libs.commons.net)
+
+    // Glassmorphism Blur
+    implementation(libs.haze)
 
     debugImplementation(libs.androidx.ui.tooling)
 }

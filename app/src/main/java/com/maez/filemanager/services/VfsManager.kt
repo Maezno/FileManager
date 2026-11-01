@@ -736,7 +736,34 @@ class VfsManager {
         targetConn: NetworkConnection?,
         deleteSourceAfter: Boolean = false
     ): Boolean = withContext(Dispatchers.IO) {
-        if (source.isDirectory) return@withContext false
+        if (source.isDirectory) {
+            try {
+                // 1. Crear la carpeta de destino
+                val created = createFolder(targetParentPath, source.name, targetProtocol, targetConn)
+                val newDirPath = if (targetParentPath == "/") "/${source.name}" else "${targetParentPath.trimEnd('/')}/${source.name}"
+                // 2. Listar los hijos de la carpeta origen
+                val children = listDirectory(source.path, source.protocol, sourceConn, showHidden = true)
+                // 3. Transferir recursivamente cada hijo
+                var allSuccess = true
+                for (child in children) {
+                    val childSuccess = transferFile(
+                        source = child,
+                        sourceConn = sourceConn,
+                        targetParentPath = newDirPath,
+                        targetProtocol = targetProtocol,
+                        targetConn = targetConn,
+                        deleteSourceAfter = deleteSourceAfter
+                    )
+                    if (!childSuccess) allSuccess = false
+                }
+                if (deleteSourceAfter && allSuccess) {
+                    deleteItem(source, sourceConn)
+                }
+                return@withContext allSuccess
+            } catch (_: Exception) {
+                return@withContext false
+            }
+        }
         try {
             if (source.protocol == StorageProtocol.LOCAL && targetProtocol == StorageProtocol.LOCAL) {
                 val srcFile = File(source.path)

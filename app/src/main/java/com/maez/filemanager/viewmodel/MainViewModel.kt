@@ -91,6 +91,27 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _showHiddenFiles = MutableStateFlow(false)
     val showHiddenFiles: StateFlow<Boolean> = _showHiddenFiles.asStateFlow()
 
+    private val _confirmBeforeDelete = MutableStateFlow(connectionStorage.getConfirmBeforeDelete())
+    val confirmBeforeDelete: StateFlow<Boolean> = _confirmBeforeDelete.asStateFlow()
+
+    private val _autoClearRemoteCache = MutableStateFlow(connectionStorage.getAutoClearRemoteCache())
+    val autoClearRemoteCache: StateFlow<Boolean> = _autoClearRemoteCache.asStateFlow()
+
+    private val _blurEnabled = MutableStateFlow(connectionStorage.getBlurEnabled())
+    val blurEnabled: StateFlow<Boolean> = _blurEnabled.asStateFlow()
+
+    private val _tabMemoryTimeoutMinutes = MutableStateFlow(connectionStorage.getTabMemoryTimeoutMinutes())
+    val tabMemoryTimeoutMinutes: StateFlow<Int> = _tabMemoryTimeoutMinutes.asStateFlow()
+
+    private val _remoteCacheSizeBytes = MutableStateFlow(0L)
+    val remoteCacheSizeBytes: StateFlow<Long> = _remoteCacheSizeBytes.asStateFlow()
+
+    private val _localTotalBytes = MutableStateFlow(0L)
+    val localTotalBytes: StateFlow<Long> = _localTotalBytes.asStateFlow()
+
+    private val _localFreeBytes = MutableStateFlow(0L)
+    val localFreeBytes: StateFlow<Long> = _localFreeBytes.asStateFlow()
+
     private val _clipboard = MutableStateFlow(ClipboardState())
     val clipboard: StateFlow<ClipboardState> = _clipboard.asStateFlow()
 
@@ -185,6 +206,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _duplicateResults = MutableStateFlow<List<DuplicateFileEntry>>(emptyList())
     val duplicateResults: StateFlow<List<DuplicateFileEntry>> = _duplicateResults.asStateFlow()
 
+    private val _selectedDuplicatePaths = MutableStateFlow<Set<String>>(emptySet())
+    val selectedDuplicatePaths: StateFlow<Set<String>> = _selectedDuplicatePaths.asStateFlow()
+
     private var scanJob: Job? = null
 
     // ─────────────────────────────────────────────────────────────────────────────
@@ -204,8 +228,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val lanScanProgress: StateFlow<Float> = _lanScanProgress.asStateFlow()
 
     init {
+        _showHiddenFiles.value = connectionStorage.getShowHiddenFiles()
+        _isGridView.value = connectionStorage.getDefaultGridView()
         _savedConnections.value = connectionStorage.loadConnections()
         _rememberedTabPaths.value = connectionStorage.loadAllValidTabPaths()
+        updateRemoteCacheSize()
+        calculateLocalStorageStats()
         val initialLocal = connectionStorage.getTabLastPath("LOCAL_ROOT", defaultLocalRoot)
         loadDirectory(initialLocal, StorageProtocol.LOCAL, null, pushHistory = false, shortcutKey = "LOCAL_ROOT")
     }
@@ -388,12 +416,95 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun toggleGridView() {
-        _isGridView.value = !_isGridView.value
+        val newValue = !_isGridView.value
+        _isGridView.value = newValue
+        connectionStorage.setDefaultGridView(newValue)
     }
 
     fun toggleHiddenFiles() {
-        _showHiddenFiles.value = !_showHiddenFiles.value
+        val newValue = !_showHiddenFiles.value
+        _showHiddenFiles.value = newValue
+        connectionStorage.setShowHiddenFiles(newValue)
         refreshCurrentDirectory()
+    }
+
+    fun setConfirmBeforeDelete(value: Boolean) {
+        _confirmBeforeDelete.value = value
+        connectionStorage.setConfirmBeforeDelete(value)
+    }
+
+    fun setAutoClearRemoteCache(value: Boolean) {
+        _autoClearRemoteCache.value = value
+        connectionStorage.setAutoClearRemoteCache(value)
+    }
+
+    fun setBlurEnabled(value: Boolean) {
+        _blurEnabled.value = value
+        connectionStorage.setBlurEnabled(value)
+    }
+
+    fun setTabMemoryTimeoutMinutes(value: Int) {
+        _tabMemoryTimeoutMinutes.value = value
+        connectionStorage.setTabMemoryTimeoutMinutes(value)
+        _rememberedTabPaths.value = connectionStorage.loadAllValidTabPaths()
+    }
+
+    fun updateRemoteCacheSize() {
+        viewModelScope.launch {
+            val cacheDir = File(getApplication<Application>().cacheDir, "remote_preview")
+            var size = 0L
+            if (cacheDir.exists() && cacheDir.isDirectory) {
+                cacheDir.walkTopDown().forEach { f ->
+                    if (f.isFile) size += f.length()
+                }
+            }
+            _remoteCacheSizeBytes.value = size
+        }
+    }
+
+    fun calculateLocalStorageStats() {
+        try {
+            val stat = android.os.StatFs(defaultLocalRoot)
+            val blockSize = stat.blockSizeLong
+            val totalBlocks = stat.blockCountLong
+            val availableBlocks = stat.availableBlocksLong
+            _localTotalBytes.value = totalBlocks * blockSize
+            _localFreeBytes.value = availableBlocks * blockSize
+        } catch (_: Exception) {
+            _localTotalBytes.value = 0L
+            _localFreeBytes.value = 0L
+        }
+    }
+
+    fun clearRemotePreviewCache() {
+        viewModelScope.launch {
+            val cacheDir = File(getApplication<Application>().cacheDir, "remote_preview")
+            var freed = 0L
+            if (cacheDir.exists() && cacheDir.isDirectory) {
+                cacheDir.listFiles()?.forEach { f ->
+                    if (f.isFile) {
+                        freed += f.length()
+                        f.delete()
+                    }
+                }
+            }
+            updateRemoteCacheSize()
+            val freedText = formatBytes(freed)
+            Toast.makeText(getApplication(), "Caché de vistas previas limpiada ($freedText liberados)", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        if (_autoClearRemoteCache.value) {
+            try {
+                val cacheDir = File(getApplication<Application>().cacheDir, "remote_preview")
+                if (cacheDir.exists() && cacheDir.isDirectory) {
+                    cacheDir.deleteRecursively()
+                }
+            } catch (_: Exception) {
+            }
+        }
     }
 
     private fun sortItems(items: List<VfsItem>): List<VfsItem> {
@@ -786,7 +897,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             connectionId = _activeConnection.value?.id
         )
         _compareTwoFolders.value = true
-        _searchToolIndex.value = 2
+        _searchToolIndex.value = 1
         _selectedTab.value = 1
         Toast.makeText(getApplication(), "Carpeta B fijada para comparar: ${_currentPath.value}", Toast.LENGTH_SHORT).show()
     }
@@ -795,11 +906,68 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (asFolderB) {
             _folderB.value = folder
             _compareTwoFolders.value = true
-            _searchToolIndex.value = 2
+            _searchToolIndex.value = 1
         } else {
             _folderA.value = folder
         }
         _selectedTab.value = 1
+    }
+
+    fun setDuplicateTargetShortcut(folderType: String) {
+        val (targetDir, label) = when (folderType) {
+            "DOWNLOADS" -> File(defaultLocalRoot, "Download") to "Descargas"
+            "CAMERA" -> {
+                val cam = File(defaultLocalRoot, "DCIM/Camera")
+                if (cam.exists()) cam to "Fotos y Cámara" else File(defaultLocalRoot, "DCIM") to "Fotos y Cámara"
+            }
+            "INTERNAL" -> File(defaultLocalRoot) to "Todo el Almacenamiento"
+            else -> File(defaultLocalRoot) to "Almacenamiento Interno"
+        }
+        if (!targetDir.exists()) targetDir.mkdirs()
+        _folderA.value = VfsItem(
+            path = targetDir.absolutePath,
+            name = label,
+            parentPath = "",
+            isDirectory = true,
+            protocol = StorageProtocol.LOCAL
+        )
+    }
+
+    fun toggleDuplicateSelection(path: String) {
+        val current = _selectedDuplicatePaths.value.toMutableSet()
+        if (current.contains(path)) current.remove(path) else current.add(path)
+        _selectedDuplicatePaths.value = current
+    }
+
+    fun selectDuplicateCopiesOnly() {
+        val copyPaths = _duplicateResults.value
+            .filter { !it.isPrimary }
+            .map { it.item.path }
+            .toSet()
+        _selectedDuplicatePaths.value = copyPaths
+    }
+
+    fun clearDuplicateSelection() {
+        _selectedDuplicatePaths.value = emptySet()
+    }
+
+    fun deleteSelectedDuplicates() {
+        val toDelete = _duplicateResults.value.filter { it.item.path in _selectedDuplicatePaths.value }
+        if (toDelete.isEmpty()) return
+        viewModelScope.launch {
+            var count = 0
+            val connMap = _savedConnections.value.associateBy { it.id }
+            for (entry in toDelete) {
+                val conn = entry.item.connectionId?.let { connMap[it] }
+                val ok = vfsManager.deleteItem(entry.item, conn)
+                if (ok) {
+                    count++
+                    _duplicateResults.value = _duplicateResults.value.filterNot { it.item.path == entry.item.path }
+                }
+            }
+            _selectedDuplicatePaths.value = emptySet()
+            Toast.makeText(getApplication(), "Se eliminaron $count archivos duplicados", Toast.LENGTH_SHORT).show()
+        }
     }
 
     fun setCompareTwoFolders(enabled: Boolean) {
@@ -862,7 +1030,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 }
 
                 if (filesA.isEmpty()) {
-                    _scanStatusText.value = "No se encontraron archivos en la Carpeta A."
+                    _scanStatusText.value = "No se encontraron archivos en la carpeta indicada."
                     _isScanning.value = false
                     return@launch
                 }
@@ -872,7 +1040,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 val minBytes = (_minSizeMB.value * 1024L * 1024L).toLong()
 
                 when (_searchToolIndex.value) {
-                    0, 1 -> {
+                    0 -> {
                         val results = searchEngine.analyzeFiles(
                             files = filesA,
                             connectionMap = connMap,
@@ -895,10 +1063,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         val hCount = results.count { it.orientation == "Horizontal" }
                         val totalSize = results.sumOf { it.item.sizeBytes }
                         _scanStatusText.value = "Análisis completado."
-                        _scanMetricsText.value = "${results.size} archivos (${formatBytes(totalSize)}) • $vCount Vert. • $hCount Horiz. • ${summaries.size} orígenes"
+                        _scanMetricsText.value = "${results.size} archivos (${formatBytes(totalSize)}) • $vCount Vert. • $hCount Horiz. • ${summaries.size} cámaras"
                     }
 
-                    2 -> {
+                    1 -> {
                         var filesB: List<VfsItem>? = null
                         if (_compareTwoFolders.value && _folderB.value != null) {
                             val targetB = _folderB.value!!
@@ -923,6 +1091,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         }
 
                         _duplicateResults.value = dups
+                        _selectedDuplicatePaths.value = emptySet()
                         val groups = dups.map { it.groupId }.distinct().size
                         val wastedBytes = dups.filter { !it.isPrimary }.sumOf { it.item.sizeBytes }
                         _scanStatusText.value = "Búsqueda de duplicados finalizada."

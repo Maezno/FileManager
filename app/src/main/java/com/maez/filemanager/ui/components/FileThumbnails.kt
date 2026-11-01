@@ -298,19 +298,19 @@ fun FileThumbnailBox(
             )
         }
 
-        if (showBadge && !item.isDirectory && item.extension.isNotBlank()) {
+        if (showBadge && !item.isDirectory && item.extension.isNotBlank() && bitmap == null) {
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .padding(5.dp)
-                    .clip(RoundedCornerShape(5.dp))
-                    .background(Color.Black.copy(alpha = 0.72f))
-                    .padding(horizontal = 5.dp, vertical = 2.dp)
+                    .padding(2.dp)
+                    .clip(RoundedCornerShape(3.dp))
+                    .background(Color.Black.copy(alpha = 0.75f))
+                    .padding(horizontal = 3.dp, vertical = 1.dp)
             ) {
                 Text(
-                    text = if (item.sizeBytes == 0L) "0 B" else item.extension.uppercase().take(4),
+                    text = if (item.sizeBytes == 0L) "0B" else item.extension.uppercase().take(4),
                     color = if (item.sizeBytes == 0L) DangerRedLight else Color.White,
-                    fontSize = 9.sp,
+                    fontSize = 7.5.sp,
                     fontWeight = FontWeight.Bold
                 )
             }
