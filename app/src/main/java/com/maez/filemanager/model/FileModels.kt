@@ -56,6 +56,13 @@ enum class SortField(val label: String) {
     TYPE("Tipo")
 }
 
+enum class SearchSortField(val label: String) {
+    DATE("Fecha"),
+    SIZE("Tamaño"),
+    NAME("Nombre"),
+    TYPE("Tipo")
+}
+
 data class VfsItem(
     val path: String,
     val name: String,

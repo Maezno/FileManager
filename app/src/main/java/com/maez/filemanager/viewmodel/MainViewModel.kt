@@ -16,6 +16,7 @@ import com.maez.filemanager.model.FileCategory
 import com.maez.filemanager.model.MediaOrientation
 import com.maez.filemanager.model.MediaSearchItem
 import com.maez.filemanager.model.NetworkConnection
+import com.maez.filemanager.model.SearchSortField
 import com.maez.filemanager.model.SortField
 import com.maez.filemanager.model.StorageProtocol
 import com.maez.filemanager.model.VfsItem
@@ -25,8 +26,11 @@ import com.maez.filemanager.services.SmartSearchEngine
 import com.maez.filemanager.services.VfsManager
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.io.File
 import java.util.Locale
@@ -196,6 +200,31 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _searchResults = MutableStateFlow<List<MediaSearchItem>>(emptyList())
     val searchResults: StateFlow<List<MediaSearchItem>> = _searchResults.asStateFlow()
+
+    private val _searchSortField = MutableStateFlow(SearchSortField.DATE)
+    val searchSortField: StateFlow<SearchSortField> = _searchSortField.asStateFlow()
+
+    private val _searchSortAscending = MutableStateFlow(false)
+    val searchSortAscending: StateFlow<Boolean> = _searchSortAscending.asStateFlow()
+
+    private val _selectedSearchPaths = MutableStateFlow<Set<String>>(emptySet())
+    val selectedSearchPaths: StateFlow<Set<String>> = _selectedSearchPaths.asStateFlow()
+
+    val sortedSearchResults: StateFlow<List<MediaSearchItem>> = combine(
+        _searchResults,
+        _searchSortField,
+        _searchSortAscending
+    ) { results, field, ascending ->
+        val comparator = when (field) {
+            SearchSortField.DATE -> compareBy<MediaSearchItem> { it.item.lastModified }
+            SearchSortField.SIZE -> compareBy<MediaSearchItem> { it.item.sizeBytes }
+            SearchSortField.NAME -> compareBy<MediaSearchItem> { it.item.name.lowercase(Locale.ROOT) }
+            SearchSortField.TYPE -> compareBy<MediaSearchItem> { it.item.category.label }
+                .thenBy { it.item.name.lowercase(Locale.ROOT) }
+        }
+        val directed = if (ascending) comparator else comparator.reversed()
+        results.sortedWith(directed)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private val _deviceSummaries = MutableStateFlow<List<DeviceSummary>>(emptyList())
     val deviceSummaries: StateFlow<List<DeviceSummary>> = _deviceSummaries.asStateFlow()
@@ -860,8 +889,60 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     // MÉTODOS DEL BUSCADOR INTELIGENTE & DUPLICADOS
     // ─────────────────────────────────────────────────────────────────────────────
 
+    fun setSearchSort(field: SearchSortField, ascending: Boolean) {
+        _searchSortField.value = field
+        _searchSortAscending.value = ascending
+    }
+
+    fun toggleSearchSelection(path: String) {
+        val current = _selectedSearchPaths.value.toMutableSet()
+        if (current.contains(path)) current.remove(path) else current.add(path)
+        _selectedSearchPaths.value = current
+    }
+
+    fun selectAllSearchResults() {
+        val allPaths = sortedSearchResults.value.map { it.item.path }.toSet()
+        _selectedSearchPaths.value = allPaths
+    }
+
+    fun clearSearchSelection() {
+        _selectedSearchPaths.value = emptySet()
+    }
+
+    fun deleteSelectedSearchResults() {
+        val toDelete = _searchResults.value.filter { it.item.path in _selectedSearchPaths.value }
+        if (toDelete.isEmpty()) return
+        viewModelScope.launch {
+            var count = 0
+            val connMap = _savedConnections.value.associateBy { it.id }
+            for (entry in toDelete) {
+                val conn = entry.item.connectionId?.let { connMap[it] }
+                val ok = vfsManager.deleteItem(entry.item, conn)
+                if (ok) {
+                    count++
+                    _searchResults.value = _searchResults.value.filterNot { it.item.path == entry.item.path }
+                }
+            }
+            _selectedSearchPaths.value = emptySet()
+            Toast.makeText(getApplication(), "Se eliminaron $count archivos", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    fun shareSelectedSearchResults() {
+        val selectedItems = _searchResults.value
+            .filter { it.item.path in _selectedSearchPaths.value }
+            .map { it.item }
+        if (selectedItems.isEmpty()) {
+            Toast.makeText(getApplication(), "Selecciona al menos un archivo para compartir", Toast.LENGTH_SHORT).show()
+            return
+        }
+        shareItems(selectedItems)
+    }
+
     fun setSearchToolIndex(index: Int) {
         _searchToolIndex.value = index
+        _selectedSearchPaths.value = emptySet()
+        _selectedDuplicatePaths.value = emptySet()
     }
 
     fun setCurrentFolderAsSearchFolderA() {
@@ -1008,6 +1089,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun startSmartScan() {
         if (_isScanning.value) return
+        _selectedSearchPaths.value = emptySet()
+        _selectedDuplicatePaths.value = emptySet()
         val targetA = _folderA.value
         val connMap = _savedConnections.value.associateBy { it.id }
         val connA = targetA.connectionId?.let { connMap[it] }

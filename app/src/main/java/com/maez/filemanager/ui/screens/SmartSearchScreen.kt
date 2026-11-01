@@ -2,9 +2,11 @@ package com.maez.filemanager.ui.screens
 
 import android.content.Context
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -24,11 +26,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.CompareArrows
 import androidx.compose.material.icons.automirrored.filled.ManageSearch
+import androidx.compose.material.icons.automirrored.filled.Sort
+import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Description
@@ -42,9 +47,11 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Lan
 import androidx.compose.material.icons.filled.PhoneAndroid
+import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material.icons.filled.ScreenRotation
 import androidx.compose.material.icons.filled.SdCard
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.SelectAll
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Storage
@@ -87,6 +94,7 @@ import com.maez.filemanager.model.FileCategory
 import com.maez.filemanager.model.MediaOrientation
 import com.maez.filemanager.model.MediaSearchItem
 import com.maez.filemanager.model.NetworkConnection
+import com.maez.filemanager.model.SearchSortField
 import com.maez.filemanager.model.StorageProtocol
 import com.maez.filemanager.model.VfsItem
 import com.maez.filemanager.model.formatBytes
@@ -162,7 +170,10 @@ fun SmartSearchScreen(viewModel: MainViewModel) {
     val statusText by viewModel.scanStatusText.collectAsState()
     val metricsText by viewModel.scanMetricsText.collectAsState()
 
-    val searchResults by viewModel.searchResults.collectAsState()
+    val searchResults by viewModel.sortedSearchResults.collectAsState()
+    val searchSortField by viewModel.searchSortField.collectAsState()
+    val searchSortAscending by viewModel.searchSortAscending.collectAsState()
+    val selectedSearchPaths by viewModel.selectedSearchPaths.collectAsState()
     val deviceSummaries by viewModel.deviceSummaries.collectAsState()
     val selectedDeviceFilter by viewModel.selectedDeviceFilter.collectAsState()
     val duplicateResults by viewModel.duplicateResults.collectAsState()
@@ -173,6 +184,7 @@ fun SmartSearchScreen(viewModel: MainViewModel) {
 
     var itemToDeleteConfirm by remember { mutableStateOf<MediaSearchItem?>(null) }
     var showConfirmDeleteDuplicates by remember { mutableStateOf(false) }
+    var showConfirmDeleteSelectedSearch by remember { mutableStateOf(false) }
 
     SmartSearchScreenContent(
         toolIndex = toolIndex,
@@ -184,6 +196,9 @@ fun SmartSearchScreen(viewModel: MainViewModel) {
         selectedCategory = selectedCategory,
         selectedOrientation = selectedOrientation,
         minSizeMB = minSizeMB,
+        searchSortField = searchSortField,
+        searchSortAscending = searchSortAscending,
+        selectedSearchPaths = selectedSearchPaths,
         isScanning = isScanning,
         scanProgress = scanProgress,
         statusText = statusText,
@@ -205,6 +220,12 @@ fun SmartSearchScreen(viewModel: MainViewModel) {
         onSetSelectedCategory = { viewModel.setSelectedCategory(it) },
         onSetSelectedOrientation = { viewModel.setSelectedOrientation(it) },
         onSetMinSizeMB = { viewModel.setMinSizeMB(it) },
+        onSetSearchSort = { field, asc -> viewModel.setSearchSort(field, asc) },
+        onToggleSearchSelection = { viewModel.toggleSearchSelection(it) },
+        onSelectAllSearchResults = { viewModel.selectAllSearchResults() },
+        onClearSearchSelection = { viewModel.clearSearchSelection() },
+        onRequestDeleteSelectedSearch = { showConfirmDeleteSelectedSearch = true },
+        onShareSelectedSearch = { viewModel.shareSelectedSearchResults() },
         onStartScan = { viewModel.startSmartScan() },
         onCancelScan = { viewModel.cancelSmartScan() },
         onExportCsv = { viewModel.exportCsvReport(it) },
@@ -312,6 +333,50 @@ fun SmartSearchScreen(viewModel: MainViewModel) {
             }
         )
     }
+
+    // Diálogo de Confirmar Eliminación para Resultados de Búsqueda Seleccionados
+    if (showConfirmDeleteSelectedSearch) {
+        val selectedItems = searchResults.filter { it.item.path in selectedSearchPaths }
+        val totalBytesToFree = selectedItems.sumOf { it.item.sizeBytes }
+        GlassAlertDialog(
+            onDismissRequest = { showConfirmDeleteSelectedSearch = false },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconBubble(icon = Icons.Default.Warning, tint = Danger, size = 32.dp)
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = "Confirmar eliminación",
+                        color = TextPrimary,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            },
+            text = {
+                Text(
+                    text = "¿Deseas eliminar permanentemente los ${selectedSearchPaths.size} archivos seleccionados? Se liberarán ${formatBytes(totalBytesToFree)} en tu dispositivo y esta acción no se puede deshacer.",
+                    color = TextMuted,
+                    fontSize = 13.sp,
+                    lineHeight = 16.sp
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showConfirmDeleteSelectedSearch = false
+                        viewModel.deleteSelectedSearchResults()
+                    }
+                ) {
+                    Text("Eliminar", color = Danger, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showConfirmDeleteSelectedSearch = false }) {
+                    Text("Cancelar", color = TextMuted)
+                }
+            }
+        )
+    }
 }
 
 @Composable
@@ -325,6 +390,9 @@ fun SmartSearchScreenContent(
     selectedCategory: FileCategory,
     selectedOrientation: MediaOrientation,
     minSizeMB: Float,
+    searchSortField: SearchSortField = SearchSortField.DATE,
+    searchSortAscending: Boolean = false,
+    selectedSearchPaths: Set<String> = emptySet(),
     isScanning: Boolean,
     scanProgress: Float,
     statusText: String,
@@ -347,6 +415,12 @@ fun SmartSearchScreenContent(
     onSetSelectedCategory: (FileCategory) -> Unit = {},
     onSetSelectedOrientation: (MediaOrientation) -> Unit = {},
     onSetMinSizeMB: (Float) -> Unit = {},
+    onSetSearchSort: (SearchSortField, Boolean) -> Unit = { _, _ -> },
+    onToggleSearchSelection: (String) -> Unit = {},
+    onSelectAllSearchResults: () -> Unit = {},
+    onClearSearchSelection: () -> Unit = {},
+    onRequestDeleteSelectedSearch: () -> Unit = {},
+    onShareSelectedSearch: () -> Unit = {},
     onStartScan: () -> Unit = {},
     onCancelScan: () -> Unit = {},
     onExportCsv: (Boolean) -> Unit = {},
@@ -481,6 +555,73 @@ fun SmartSearchScreenContent(
                             onSelect = onSetSelectedOrientation,
                             activeColor = Violet
                         )
+
+                        // Selector de Orden
+                        val sortOptions = listOf(
+                            SearchSortField.DATE,
+                            SearchSortField.SIZE,
+                            SearchSortField.NAME,
+                            SearchSortField.TYPE
+                        )
+                        IconOnlyDropdownFilter(
+                            icon = Icons.AutoMirrored.Filled.Sort,
+                            title = "Ordenar por",
+                            value = searchSortField,
+                            options = sortOptions,
+                            optionLabel = { it.label },
+                            onSelect = { onSetSearchSort(it, searchSortAscending) },
+                            activeColor = Aqua
+                        )
+
+                        // Alternar Ascendente / Descendente
+                        GlassIconButton(
+                            icon = if (searchSortAscending) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward,
+                            onClick = { onSetSearchSort(searchSortField, !searchSortAscending) },
+                            tint = Aqua,
+                            contentDescription = if (searchSortAscending) "Ascendente" else "Descendente"
+                        )
+                    }
+                }
+
+                // Fila de Chips de Archivos Pesados y Tamaño
+                item {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Pesados:",
+                            color = TextMuted,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        val heavySizes = listOf(100f, 500f, 1000f)
+                        val heavyLabels = listOf("> 100 MB", "> 500 MB", "> 1 GB")
+                        heavySizes.forEachIndexed { idx, sizeMB ->
+                            val isSelected = minSizeMB == sizeMB
+                            SelectChip(
+                                text = heavyLabels[idx],
+                                selected = isSelected,
+                                onClick = {
+                                    val newSize = if (isSelected) 0f else sizeMB
+                                    onSetMinSizeMB(newSize)
+                                    onSetSearchSort(SearchSortField.SIZE, false)
+                                },
+                                accent = WarningAmber
+                            )
+                        }
+
+                        Spacer(Modifier.width(4.dp))
+                        // Estado actual de orden visible
+                        Text(
+                            text = "${searchSortField.label} ${if (searchSortAscending) "↑" else "↓"}",
+                            color = Aqua,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
                     }
                 }
 
@@ -547,6 +688,96 @@ fun SmartSearchScreenContent(
                     }
                 }
 
+                // Resumen de archivos y tamaño
+                if (filteredSearchResults.isNotEmpty() && !isScanning) {
+                    item {
+                        val totalBytes = filteredSearchResults.sumOf { it.item.sizeBytes }
+                        Text(
+                            text = "${filteredSearchResults.size} archivos · ${formatBytes(totalBytes)} en total",
+                            color = TextMuted,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.padding(horizontal = 2.dp)
+                        )
+                    }
+                }
+
+                // Barra de Acciones de Selección Múltiple (Búsqueda)
+                if (selectedSearchPaths.isNotEmpty() && !isScanning) {
+                    item {
+                        val selectedItems = filteredSearchResults.filter { it.item.path in selectedSearchPaths }
+                        val selectedBytes = selectedItems.sumOf { it.item.sizeBytes }
+
+                        GlassSurface(
+                            shape = GlassCardShape,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "${selectedSearchPaths.size} seleccionados",
+                                        color = TextPrimary,
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        text = "${formatBytes(selectedBytes)} seleccionados",
+                                        color = WarningAmber,
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    SecondaryGlassButton(
+                                        text = if (selectedSearchPaths.size == filteredSearchResults.size) "Deseleccionar" else "Todo",
+                                        icon = Icons.Default.SelectAll,
+                                        onClick = {
+                                            if (selectedSearchPaths.size == filteredSearchResults.size) {
+                                                onClearSearchSelection()
+                                            } else {
+                                                onSelectAllSearchResults()
+                                            }
+                                        },
+                                        modifier = Modifier.weight(1f),
+                                        tint = Aqua
+                                    )
+                                    SecondaryGlassButton(
+                                        text = "Compartir",
+                                        icon = Icons.Default.Share,
+                                        onClick = onShareSelectedSearch,
+                                        modifier = Modifier.weight(1f),
+                                        tint = Violet
+                                    )
+                                    PrimaryGlassButton(
+                                        text = "Eliminar",
+                                        icon = Icons.Default.Delete,
+                                        onClick = onRequestDeleteSelectedSearch,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    SecondaryButton(
+                                        text = "Cancelar",
+                                        icon = Icons.Default.Close,
+                                        onClick = onClearSearchSelection,
+                                        tint = TextMuted
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
                 // Lista de Resultados
                 if (filteredSearchResults.isEmpty() && !isScanning) {
                     item {
@@ -558,10 +789,26 @@ fun SmartSearchScreenContent(
                     }
                 } else {
                     items(filteredSearchResults, key = { it.item.path }) { entry ->
+                        val isSelected = entry.item.path in selectedSearchPaths
+                        val isSelectionMode = selectedSearchPaths.isNotEmpty()
                         MediaSearchResultCard(
                             entry = entry,
+                            isSelected = isSelected,
+                            isSelectionMode = isSelectionMode,
                             vfsManager = vfsManager,
-                            onClick = { onOpenItem(entry) },
+                            onClick = {
+                                if (isSelectionMode) {
+                                    onToggleSearchSelection(entry.item.path)
+                                } else {
+                                    onOpenItem(entry)
+                                }
+                            },
+                            onLongClick = {
+                                onToggleSearchSelection(entry.item.path)
+                            },
+                            onToggleSelect = {
+                                onToggleSearchSelection(entry.item.path)
+                            },
                             onShare = { onShareItem(entry) },
                             onOpenFolder = { onOpenParentFolder(entry.item) },
                             onDelete = { onDeleteItem(entry) }
@@ -974,21 +1221,31 @@ private fun <T> IconOnlyDropdownFilter(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun MediaSearchResultCard(
     entry: MediaSearchItem,
+    isSelected: Boolean = false,
+    isSelectionMode: Boolean = false,
     vfsManager: VfsManager? = null,
     onClick: () -> Unit = {},
+    onLongClick: () -> Unit = {},
+    onToggleSelect: () -> Unit = {},
     onShare: () -> Unit = {},
     onOpenFolder: () -> Unit = {},
     onDelete: () -> Unit = {}
 ) {
     GlassSurface(
         shape = GlassChipShape,
+        fillColor = if (isSelected) SelectedViolet else GlassFill,
+        borderColor = if (isSelected) Aqua.copy(alpha = 0.6f) else GlassBorder,
         blur = false,
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick() }
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick
+            )
     ) {
         Row(
             modifier = Modifier
@@ -996,6 +1253,18 @@ private fun MediaSearchResultCard(
                 .padding(horizontal = 12.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            if (isSelectionMode) {
+                IconButton(onClick = onToggleSelect, modifier = Modifier.size(28.dp)) {
+                    Icon(
+                        imageVector = if (isSelected) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
+                        contentDescription = "Seleccionar",
+                        tint = if (isSelected) Aqua else TextMuted,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+                Spacer(Modifier.width(6.dp))
+            }
+
             FileThumbnailBox(
                 item = entry.item,
                 vfsManager = vfsManager,
@@ -1064,15 +1333,17 @@ private fun MediaSearchResultCard(
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f)
                     )
-                    Row {
-                        IconButton(onClick = onShare, modifier = Modifier.size(28.dp)) {
-                            Icon(Icons.Default.Share, contentDescription = "Compartir", tint = Violet, modifier = Modifier.size(16.dp))
-                        }
-                        IconButton(onClick = onOpenFolder, modifier = Modifier.size(28.dp)) {
-                            Icon(Icons.Default.FolderOpen, contentDescription = "Ir a carpeta", tint = Aqua, modifier = Modifier.size(16.dp))
-                        }
-                        IconButton(onClick = onDelete, modifier = Modifier.size(28.dp)) {
-                            Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = Danger, modifier = Modifier.size(16.dp))
+                    if (!isSelectionMode) {
+                        Row {
+                            IconButton(onClick = onShare, modifier = Modifier.size(28.dp)) {
+                                Icon(Icons.Default.Share, contentDescription = "Compartir", tint = Violet, modifier = Modifier.size(16.dp))
+                            }
+                            IconButton(onClick = onOpenFolder, modifier = Modifier.size(28.dp)) {
+                                Icon(Icons.Default.FolderOpen, contentDescription = "Ir a carpeta", tint = Aqua, modifier = Modifier.size(16.dp))
+                            }
+                            IconButton(onClick = onDelete, modifier = Modifier.size(28.dp)) {
+                                Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = Danger, modifier = Modifier.size(16.dp))
+                            }
                         }
                     }
                 }
