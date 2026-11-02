@@ -1,5 +1,6 @@
 package com.maez.filemanager
 
+import com.maez.filemanager.ui.theme.Motion
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -145,13 +146,8 @@ class MainActivity : ComponentActivity() {
                             AnimatedContent(
                                 targetState = selectedTab,
                                 transitionSpec = {
-                                    if (targetState > initialState) {
-                                        (slideInHorizontally(animationSpec = tween(220)) { width -> (width * 0.15f).toInt() } + fadeIn(tween(220)))
-                                            .togetherWith(slideOutHorizontally(animationSpec = tween(180)) { width -> (-width * 0.15f).toInt() } + fadeOut(tween(180)))
-                                    } else {
-                                        (slideInHorizontally(animationSpec = tween(220)) { width -> (-width * 0.15f).toInt() } + fadeIn(tween(220)))
-                                            .togetherWith(slideOutHorizontally(animationSpec = tween(180)) { width -> (width * 0.15f).toInt() } + fadeOut(tween(180)))
-                                    }
+                                    val forward = targetState > initialState
+                                    Motion.tabEnter(forward).togetherWith(Motion.tabExit(forward))
                                 },
                                 label = "TabScreenTransition"
                             ) { targetTab ->
@@ -173,8 +169,8 @@ class MainActivity : ComponentActivity() {
 
                             AnimatedVisibility(
                                 visible = previewItem != null,
-                                enter = fadeIn(tween(200)) + scaleIn(tween(200, delayMillis = 50), initialScale = 0.92f),
-                                exit = fadeOut(tween(180)) + scaleOut(tween(180), targetScale = 0.92f)
+                                enter = Motion.dialogEnter,
+                                exit = Motion.dialogExit
                             ) {
                                 previewItem?.let { item ->
                                     MediaPreviewDialog(

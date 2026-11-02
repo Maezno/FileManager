@@ -1,5 +1,6 @@
 package com.maez.filemanager.ui.components
 
+import com.maez.filemanager.ui.theme.Motion
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
@@ -70,6 +71,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -413,9 +420,9 @@ fun SegmentedTabs(
         ) {
             options.forEachIndexed { index, (label, icon) ->
                 val selected = index == selectedIndex
-                val bg = if (selected) Color(0xFF232938) else Color.Transparent
-                val border = if (selected) Color(0xFF4F46E5) else Color.Transparent
-                val fg = if (selected) Color(0xFFF3F4F6) else TextMuted
+                val bg by animateColorAsState(if (selected) Color(0xFF232938) else Color.Transparent, animationSpec = Motion.fade(), label = "segBg")
+                val border by animateColorAsState(if (selected) Color(0xFF4F46E5) else Color.Transparent, animationSpec = Motion.fade(), label = "segBorder")
+                val fg by animateColorAsState(if (selected) Color(0xFFF3F4F6) else TextMuted, animationSpec = Motion.fade(), label = "segFg")
 
                 Box(
                     modifier = Modifier
@@ -463,8 +470,8 @@ fun SelectChip(
     accent: Color = Violet,
     onClear: (() -> Unit)? = null
 ) {
-    val bg = if (selected) SelectedViolet else GlassTint
-    val border = if (selected) SelectedVioletBorder else GlassBorder
+    val bg by animateColorAsState(if (selected) SelectedViolet else GlassTint, animationSpec = Motion.fade(), label = "chipBg")
+    val border by animateColorAsState(if (selected) SelectedVioletBorder else GlassBorder, animationSpec = Motion.fade(), label = "chipBorder")
 
     GlassSurface(
         shape = GlassChipShape,
@@ -522,7 +529,9 @@ fun GlassSearchField(
     onValueChange: (String) -> Unit,
     placeholder: String,
     modifier: Modifier = Modifier,
-    height: Dp = 48.dp
+    height: Dp = 48.dp,
+    focusRequester: FocusRequester? = null,
+    onClose: (() -> Unit)? = null
 ) {
     var isFocused by remember { mutableStateOf(false) }
     val borderColor = if (isFocused) Aqua else GlassBorder
@@ -573,16 +582,17 @@ fun GlassSearchField(
                     cursorBrush = SolidColor(Aqua),
                     modifier = Modifier
                         .fillMaxWidth()
+                        .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
                         .onFocusChanged { isFocused = it.isFocused }
                 )
             }
-            if (value.isNotEmpty()) {
+            if (value.isNotEmpty() || onClose != null) {
                 Spacer(Modifier.width(6.dp))
                 Box(
                     modifier = Modifier
                         .size(22.dp)
                         .clip(CircleShape)
-                        .clickable { onValueChange("") },
+                        .clickable { if (value.isNotEmpty()) onValueChange("") else onClose?.invoke() },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -697,7 +707,7 @@ fun <T> DropdownField(
     icon: ImageVector? = null
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val borderColor by animateColorAsState(if (expanded) Aqua else GlassBorder, label = "ddBorder")
+    val borderColor by animateColorAsState(if (expanded) Aqua else GlassBorder, animationSpec = Motion.fade(), label = "ddBorder")
 
     Column(modifier = modifier) {
         GlassSurface(
@@ -754,7 +764,7 @@ fun <T> DropdownField(
             }
         }
 
-        AnimatedVisibility(visible = expanded) {
+        AnimatedVisibility(visible = expanded, enter = Motion.panelEnter, exit = Motion.panelExit) {
             GlassSurface(
 
                 fillColor = GlassTint,
@@ -1003,10 +1013,7 @@ fun GlassBottomBar(
 
                 val indicatorOffset by animateDpAsState(
                     targetValue = getTabOffset(selectedTab),
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioLowBouncy,
-                        stiffness = Spring.StiffnessMediumLow
-                    ),
+                    animationSpec = Motion.indicator(),
                     label = "indicatorOffset"
                 )
 
@@ -1028,8 +1035,8 @@ fun GlassBottomBar(
                     items.forEach { item ->
                         val selected = item.index == selectedTab
                         val tabItemWidth = if (selected) activeWidth else baseInactiveWidth
-                        val iconColor by animateColorAsState(if (selected) Aqua else TextMuted, label = "iconColor")
-                        val textColor by animateColorAsState(if (selected) Color.White else TextMuted, label = "textColor")
+                        val iconColor by animateColorAsState(if (selected) Aqua else TextMuted, animationSpec = Motion.fade(), label = "iconColor")
+                        val textColor by animateColorAsState(if (selected) Color.White else TextMuted, animationSpec = Motion.fade(), label = "textColor")
 
                         Box(
                             modifier = Modifier
@@ -1052,8 +1059,8 @@ fun GlassBottomBar(
                                 )
                                 AnimatedVisibility(
                                     visible = selected,
-                                    enter = fadeIn() + expandHorizontally(),
-                                    exit = fadeOut() + shrinkHorizontally()
+                                    enter = Motion.inlineEnter,
+                                    exit = Motion.inlineExit
                                 ) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Spacer(Modifier.width(4.dp))
@@ -1128,5 +1135,48 @@ fun EmptyStatePreview() {
             title = "Carpeta vacía",
             message = "No hay archivos en esta ubicación."
         )
+    }
+}
+
+/**
+ * Mantener pulsado y arrastrar para seleccionar varios elementos de una lista.
+ * Escucha en el pase Initial para adelantarse a los clics y long-press de cada tarjeta,
+ * y consume el arrastre para que la lista no haga scroll mientras se selecciona.
+ */
+fun Modifier.dragToSelect(
+    keyAt: (Offset) -> Any?,
+    onSelectionStart: (Any) -> Unit,
+    onDragOver: (startKey: Any, currentKey: Any) -> Unit
+): Modifier = pointerInput(Unit) {
+    awaitEachGesture {
+        val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+        val endedEarly = withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) {
+            while (true) {
+                val change = awaitPointerEvent(PointerEventPass.Initial).changes
+                    .firstOrNull { it.id == down.id } ?: return@withTimeoutOrNull true
+                if (!change.pressed) return@withTimeoutOrNull true
+                if ((change.position - down.position).getDistance() > viewConfiguration.touchSlop) {
+                    return@withTimeoutOrNull true
+                }
+            }
+            @Suppress("UNREACHABLE_CODE")
+            true
+        }
+        if (endedEarly != null) return@awaitEachGesture
+
+        val startKey = keyAt(down.position) ?: return@awaitEachGesture
+        onSelectionStart(startKey)
+        var lastKey: Any = startKey
+        while (true) {
+            val change = awaitPointerEvent(PointerEventPass.Initial).changes
+                .firstOrNull { it.id == down.id } ?: break
+            change.consume()
+            if (!change.pressed) break
+            val key = keyAt(change.position)
+            if (key != null && key != lastKey) {
+                lastKey = key
+                onDragOver(startKey, key)
+            }
+        }
     }
 }

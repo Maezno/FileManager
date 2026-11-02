@@ -1,6 +1,24 @@
 package com.maez.filemanager.ui.screens
 
+import com.maez.filemanager.ui.theme.Motion
 import android.content.Context
+import com.maez.filemanager.ui.components.dragToSelect
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.expandVertically
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.material.icons.filled.Tune
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -437,6 +455,14 @@ fun SmartSearchScreenContent(
     onDeleteDuplicate: (DuplicateFileEntry) -> Unit = {}
 ) {
     var folderPickerState by remember { mutableStateOf<FolderPickerState?>(null) }
+    var searchExpanded by remember { mutableStateOf(false) }
+    var filtersExpanded by remember { mutableStateOf(false) }
+    val filtersTransition = remember { Motion.panelFrom(TransformOrigin(1f, 0f)) }
+    val activeFilterCount = listOf(
+        selectedCategory != FileCategory.ALL,
+        selectedOrientation != MediaOrientation.ALL,
+        minSizeMB > 0f
+    ).count { it }
 
     val filteredSearchResults = remember(
         searchResults,
@@ -466,11 +492,42 @@ fun SmartSearchScreenContent(
         }
     }
 
+    val resultsListState = rememberLazyListState()
+    val latestResults by rememberUpdatedState(filteredSearchResults)
+    val latestSelected by rememberUpdatedState(selectedSearchPaths)
+    var dragSelectTarget by remember { mutableStateOf(true) }
+
     Box(modifier = modifier.fillMaxSize()) {
         LazyColumn(
+            state = resultsListState,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .padding(horizontal = 16.dp, vertical = 12.dp)
+                .dragToSelect(
+                    // Solo las tarjetas de resultados tienen como clave la ruta del archivo
+                    keyAt = { offset ->
+                        resultsListState.layoutInfo.visibleItemsInfo
+                            .firstOrNull { offset.y >= it.offset && offset.y <= it.offset + it.size }
+                            ?.key
+                            ?.takeIf { key -> latestResults.any { it.item.path == key } }
+                    },
+                    onSelectionStart = { key ->
+                        val path = key as String
+                        dragSelectTarget = path !in latestSelected
+                        onToggleSearchSelection(path)
+                    },
+                    onDragOver = { startKey, currentKey ->
+                        val paths = latestResults.map { it.item.path }
+                        val a = paths.indexOf(startKey)
+                        val b = paths.indexOf(currentKey)
+                        if (a >= 0 && b >= 0) {
+                            for (i in minOf(a, b)..maxOf(a, b)) {
+                                val isSel = paths[i] in latestSelected
+                                if (isSel != dragSelectTarget) onToggleSearchSelection(paths[i])
+                            }
+                        }
+                    }
+                ),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             // 1. Selector de Modo (Búsqueda Inteligente vs Limpiar Duplicados)
@@ -487,141 +544,185 @@ fun SmartSearchScreenContent(
 
             if (toolIndex == 0) {
                 item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        GlassSearchField(
-                            value = searchWord,
-                            onValueChange = onSetSearchWord,
-                            placeholder = "Buscar por nombre o formato...",
-                            height = 48.dp,
-                            modifier = Modifier.weight(1f)
-                        )
+                    val focusRequester = remember { FocusRequester() }
+                    val showSearchField = searchExpanded || searchWord.isNotBlank()
 
-                        StorageSelectorIconDropdown(
-                            currentFolder = folderA,
-                            savedConnections = savedConnections,
-                            defaultLocalRoot = defaultLocalRoot,
-                            onSelectFolder = onSetFolderAItem,
-                            isFolderB = false,
-                            onRequestPicker = { item, isFolderB ->
-                                val conn = savedConnections.find { it.id == item.connectionId }
-                                folderPickerState = FolderPickerState(
-                                    title = "Seleccionar Carpeta A en ${item.name}",
-                                    initialPath = item.path.ifBlank { "/" },
-                                    protocol = item.protocol,
-                                    connection = conn,
-                                    isFolderB = isFolderB
-                                )
-                            }
-                        )
-
-                        val categoryOptions = listOf(
-                            FileCategory.ALL,
-                            FileCategory.IMAGE,
-                            FileCategory.VIDEO,
-                            FileCategory.AUDIO,
-                            FileCategory.DOCUMENT,
-                            FileCategory.APK
-                        )
-                        IconOnlyDropdownFilter(
-                            icon = Icons.Default.Category,
-                            title = "Tipo de archivo",
-                            value = selectedCategory,
-                            options = categoryOptions,
-                            optionLabel = { it.label },
-                            onSelect = onSetSelectedCategory,
-                            activeColor = Aqua
-                        )
-
-                        val orientationOptions = listOf(
-                            MediaOrientation.ALL,
-                            MediaOrientation.VERTICAL,
-                            MediaOrientation.HORIZONTAL
-                        )
-                        val orientLabels = mapOf(
-                            MediaOrientation.ALL to "Todas",
-                            MediaOrientation.VERTICAL to "Vertical",
-                            MediaOrientation.HORIZONTAL to "Horizontal"
-                        )
-                        IconOnlyDropdownFilter(
-                            icon = Icons.Default.ScreenRotation,
-                            title = "Orientación de imagen",
-                            value = selectedOrientation,
-                            options = orientationOptions,
-                            optionLabel = { orientLabels[it] ?: "Todas" },
-                            onSelect = onSetSelectedOrientation,
-                            activeColor = Violet
-                        )
-
-                        // Selector de Orden
-                        val sortOptions = listOf(
-                            SearchSortField.DATE,
-                            SearchSortField.SIZE,
-                            SearchSortField.NAME,
-                            SearchSortField.TYPE
-                        )
-                        IconOnlyDropdownFilter(
-                            icon = Icons.AutoMirrored.Filled.Sort,
-                            title = "Ordenar por",
-                            value = searchSortField,
-                            options = sortOptions,
-                            optionLabel = { it.label },
-                            onSelect = { onSetSearchSort(it, searchSortAscending) },
-                            activeColor = Aqua
-                        )
-
-                        // Alternar Ascendente / Descendente
-                        GlassIconButton(
-                            icon = if (searchSortAscending) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward,
-                            onClick = { onSetSearchSort(searchSortField, !searchSortAscending) },
-                            tint = Aqua,
-                            contentDescription = if (searchSortAscending) "Ascendente" else "Descendente"
-                        )
-                    }
-                }
-
-                // Fila de Chips de Archivos Pesados y Tamaño
-                item {
+                    // Barra principal: ubicación + lupa (se expande a campo de búsqueda) + filtros
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                            .animateContentSize(animationSpec = Motion.elastic()),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Text(
-                            text = "Pesados:",
-                            color = TextMuted,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        val heavySizes = listOf(100f, 500f, 1000f)
-                        val heavyLabels = listOf("> 100 MB", "> 500 MB", "> 1 GB")
-                        heavySizes.forEachIndexed { idx, sizeMB ->
-                            val isSelected = minSizeMB == sizeMB
-                            SelectChip(
-                                text = heavyLabels[idx],
-                                selected = isSelected,
-                                onClick = {
-                                    val newSize = if (isSelected) 0f else sizeMB
-                                    onSetMinSizeMB(newSize)
-                                    onSetSearchSort(SearchSortField.SIZE, false)
-                                },
-                                accent = WarningAmber
+                        if (showSearchField) {
+                            GlassSearchField(
+                                value = searchWord,
+                                onValueChange = onSetSearchWord,
+                                placeholder = "Filtrar por nombre, carpeta o cámara...",
+                                height = 48.dp,
+                                focusRequester = focusRequester,
+                                onClose = { searchExpanded = false },
+                                modifier = Modifier.weight(1f)
+                            )
+                            LaunchedEffect(searchExpanded) {
+                                if (searchExpanded) focusRequester.requestFocus()
+                            }
+                        } else {
+                            StorageSelectorIconDropdown(
+                                currentFolder = folderA,
+                                savedConnections = savedConnections,
+                                defaultLocalRoot = defaultLocalRoot,
+                                onSelectFolder = onSetFolderAItem,
+                                isFolderB = false,
+                                showLabel = true,
+                                modifier = Modifier.weight(1f),
+                                onRequestPicker = { item, isFolderB ->
+                                    val conn = savedConnections.find { it.id == item.connectionId }
+                                    folderPickerState = FolderPickerState(
+                                        title = "Seleccionar Carpeta A en ${item.name}",
+                                        initialPath = item.path.ifBlank { "/" },
+                                        protocol = item.protocol,
+                                        connection = conn,
+                                        isFolderB = isFolderB
+                                    )
+                                }
+                            )
+                            GlassIconButton(
+                                icon = Icons.Default.Search,
+                                onClick = { searchExpanded = true },
+                                tint = Aqua,
+                                contentDescription = "Buscar"
                             )
                         }
 
-                        Spacer(Modifier.width(4.dp))
-                        // Estado actual de orden visible
-                        Text(
-                            text = "${searchSortField.label} ${if (searchSortAscending) "↑" else "↓"}",
-                            color = Aqua,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
+                        Box {
+                            GlassIconButton(
+                                icon = Icons.Default.Tune,
+                                onClick = { filtersExpanded = !filtersExpanded },
+                                tint = if (activeFilterCount > 0 || filtersExpanded) Aqua else TextMuted,
+                                contentDescription = "Filtros y orden"
+                            )
+                            if (activeFilterCount > 0) {
+                                Box(
+                                    modifier = Modifier
+                                        .align(Alignment.TopEnd)
+                                        .padding(4.dp)
+                                        .size(16.dp)
+                                        .clip(CircleShape)
+                                        .background(Aqua),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = activeFilterCount.toString(),
+                                        color = Color.Black,
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Panel de filtros desplegable, con etiquetas legibles
+                item {
+                    AnimatedVisibility(
+                        visible = filtersExpanded,
+                        // Se despliega hacia abajo desde el botón de filtros (arriba a la derecha)
+                        enter = filtersTransition.first,
+                        exit = filtersTransition.second
+                    ) {
+                        GlassSurface(
+                            shape = GlassCardShape,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                FilterChipRow(label = "Tipo") {
+                                    listOf(
+                                        FileCategory.ALL,
+                                        FileCategory.IMAGE,
+                                        FileCategory.VIDEO,
+                                        FileCategory.AUDIO,
+                                        FileCategory.DOCUMENT,
+                                        FileCategory.APK
+                                    ).forEach { cat ->
+                                        SelectChip(
+                                            text = cat.label,
+                                            selected = selectedCategory == cat,
+                                            onClick = { onSetSelectedCategory(cat) },
+                                            accent = Aqua
+                                        )
+                                    }
+                                }
+
+                                FilterChipRow(label = "Orientación") {
+                                    listOf(
+                                        MediaOrientation.ALL to "Todas",
+                                        MediaOrientation.VERTICAL to "Vertical",
+                                        MediaOrientation.HORIZONTAL to "Horizontal"
+                                    ).forEach { (orient, label) ->
+                                        SelectChip(
+                                            text = label,
+                                            selected = selectedOrientation == orient,
+                                            onClick = { onSetSelectedOrientation(orient) },
+                                            accent = Violet
+                                        )
+                                    }
+                                }
+
+                                FilterChipRow(label = "Tamaño") {
+                                    listOf(0f to "Cualquiera", 100f to "> 100 MB", 500f to "> 500 MB", 1000f to "> 1 GB")
+                                        .forEach { (sizeMB, label) ->
+                                            SelectChip(
+                                                text = label,
+                                                selected = minSizeMB == sizeMB,
+                                                onClick = {
+                                                    onSetMinSizeMB(sizeMB)
+                                                    if (sizeMB > 0f) onSetSearchSort(SearchSortField.SIZE, false)
+                                                },
+                                                accent = WarningAmber
+                                            )
+                                        }
+                                }
+
+                                FilterChipRow(label = "Ordenar (toca de nuevo para invertir)") {
+                                    listOf(
+                                        SearchSortField.DATE,
+                                        SearchSortField.SIZE,
+                                        SearchSortField.NAME,
+                                        SearchSortField.TYPE
+                                    ).forEach { field ->
+                                        val isCurrent = searchSortField == field
+                                        SelectChip(
+                                            text = if (isCurrent) "${field.label} ${if (searchSortAscending) "↑" else "↓"}" else field.label,
+                                            selected = isCurrent,
+                                            onClick = {
+                                                if (isCurrent) onSetSearchSort(field, !searchSortAscending)
+                                                else onSetSearchSort(field, false)
+                                            },
+                                            accent = Aqua
+                                        )
+                                    }
+                                }
+
+                                if (activeFilterCount > 0) {
+                                    SecondaryButton(
+                                        text = "Quitar filtros",
+                                        icon = Icons.Default.Close,
+                                        onClick = {
+                                            onSetSelectedCategory(FileCategory.ALL)
+                                            onSetSelectedOrientation(MediaOrientation.ALL)
+                                            onSetMinSizeMB(0f)
+                                        },
+                                        tint = TextMuted
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -664,14 +765,6 @@ fun SmartSearchScreenContent(
                                 onClick = onStartScan,
                                 modifier = Modifier.weight(1f)
                             )
-                            if (searchResults.isNotEmpty()) {
-                                SecondaryGlassButton(
-                                    text = "Exportar CSV",
-                                    icon = Icons.Default.Description,
-                                    onClick = { onExportCsv(true) },
-                                    tint = Violet
-                                )
-                            }
                         }
                     }
                 }
@@ -703,77 +796,83 @@ fun SmartSearchScreenContent(
                 }
 
                 // Barra de Acciones de Selección Múltiple (Búsqueda)
-                if (selectedSearchPaths.isNotEmpty() && !isScanning) {
-                    item {
-                        val selectedItems = filteredSearchResults.filter { it.item.path in selectedSearchPaths }
-                        val selectedBytes = selectedItems.sumOf { it.item.sizeBytes }
+                item {
+                    AnimatedVisibility(
+                        visible = selectedSearchPaths.isNotEmpty() && !isScanning,
+                        enter = Motion.panelEnter,
+                        exit = Motion.panelExit
+                    ) {
+                        Column {
+                                val selectedItems = filteredSearchResults.filter { it.item.path in selectedSearchPaths }
+                                val selectedBytes = selectedItems.sumOf { it.item.sizeBytes }
 
-                        GlassSurface(
-                            shape = GlassCardShape,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(12.dp),
-                                verticalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
+                                GlassSurface(
+                                    shape = GlassCardShape,
+                                    modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    Text(
-                                        text = "${selectedSearchPaths.size} seleccionados",
-                                        color = TextPrimary,
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                    Text(
-                                        text = "${formatBytes(selectedBytes)} seleccionados",
-                                        color = WarningAmber,
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
+                                    Column(
+                                        modifier = Modifier.padding(12.dp),
+                                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                text = "${selectedSearchPaths.size} seleccionados",
+                                                color = TextPrimary,
+                                                fontSize = 14.sp,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                            Text(
+                                                text = "${formatBytes(selectedBytes)} seleccionados",
+                                                color = WarningAmber,
+                                                fontSize = 13.sp,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
 
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    SecondaryGlassButton(
-                                        text = if (selectedSearchPaths.size == filteredSearchResults.size) "Deseleccionar" else "Todo",
-                                        icon = Icons.Default.SelectAll,
-                                        onClick = {
-                                            if (selectedSearchPaths.size == filteredSearchResults.size) {
-                                                onClearSearchSelection()
-                                            } else {
-                                                onSelectAllSearchResults()
-                                            }
-                                        },
-                                        modifier = Modifier.weight(1f),
-                                        tint = Aqua
-                                    )
-                                    SecondaryGlassButton(
-                                        text = "Compartir",
-                                        icon = Icons.Default.Share,
-                                        onClick = onShareSelectedSearch,
-                                        modifier = Modifier.weight(1f),
-                                        tint = Violet
-                                    )
-                                    PrimaryGlassButton(
-                                        text = "Eliminar",
-                                        icon = Icons.Default.Delete,
-                                        onClick = onRequestDeleteSelectedSearch,
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                    SecondaryButton(
-                                        text = "Cancelar",
-                                        icon = Icons.Default.Close,
-                                        onClick = onClearSearchSelection,
-                                        tint = TextMuted
-                                    )
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            SecondaryGlassButton(
+                                                text = if (selectedSearchPaths.size == filteredSearchResults.size) "Deseleccionar" else "Todo",
+                                                icon = Icons.Default.SelectAll,
+                                                onClick = {
+                                                    if (selectedSearchPaths.size == filteredSearchResults.size) {
+                                                        onClearSearchSelection()
+                                                    } else {
+                                                        onSelectAllSearchResults()
+                                                    }
+                                                },
+                                                modifier = Modifier.weight(1f),
+                                                tint = Aqua
+                                            )
+                                            SecondaryGlassButton(
+                                                text = "Compartir",
+                                                icon = Icons.Default.Share,
+                                                onClick = onShareSelectedSearch,
+                                                modifier = Modifier.weight(1f),
+                                                tint = Violet
+                                            )
+                                            PrimaryGlassButton(
+                                                text = "Eliminar",
+                                                icon = Icons.Default.Delete,
+                                                onClick = onRequestDeleteSelectedSearch,
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                            SecondaryButton(
+                                                text = "Cancelar",
+                                                icon = Icons.Default.Close,
+                                                onClick = onClearSearchSelection,
+                                                tint = TextMuted
+                                            )
+                                        }
+                                    }
                                 }
-                            }
                         }
                     }
                 }
@@ -784,7 +883,7 @@ fun SmartSearchScreenContent(
                         EmptyState(
                             icon = Icons.Default.Search,
                             title = if (searchResults.isEmpty()) "Aún no hay resultados de búsqueda" else "Sin coincidencias con los filtros",
-                            message = if (searchResults.isEmpty()) "Ingresa tus criterios y pulsa 'Escanear carpeta' para iniciar la búsqueda en el almacenamiento." else "Intenta ajustar los filtros de tipo, orientación o cámara arriba."
+                            message = if (searchResults.isEmpty()) "Elige dónde buscar y pulsa 'Escanear carpeta'. Después usa la lupa y los filtros para encontrar lo que necesites." else "Prueba con otra palabra o quita filtros desde el botón de filtros."
                         )
                     }
                 } else {
@@ -803,9 +902,8 @@ fun SmartSearchScreenContent(
                                     onOpenItem(entry)
                                 }
                             },
-                            onLongClick = {
-                                onToggleSearchSelection(entry.item.path)
-                            },
+                            // El long-press lo gestiona dragToSelect en la lista
+                            onLongClick = {},
                             onToggleSelect = {
                                 onToggleSearchSelection(entry.item.path)
                             },
@@ -1066,21 +1164,59 @@ private fun StorageSelectorIconDropdown(
     defaultLocalRoot: String,
     onSelectFolder: (VfsItem) -> Unit,
     isFolderB: Boolean,
-    onRequestPicker: (VfsItem, Boolean) -> Unit
+    onRequestPicker: (VfsItem, Boolean) -> Unit,
+    showLabel: Boolean = false,
+    modifier: Modifier = Modifier
 ) {
     var expanded by remember { mutableStateOf(false) }
+    val locationIcon = when (currentFolder.protocol) {
+        StorageProtocol.LOCAL -> Icons.Default.PhoneAndroid
+        StorageProtocol.SMB -> Icons.Default.Lan
+        StorageProtocol.FTP -> Icons.Default.Lan
+    }
 
-    Box {
-        GlassIconButton(
-            icon = when (currentFolder.protocol) {
-                StorageProtocol.LOCAL -> Icons.Default.PhoneAndroid
-                StorageProtocol.SMB -> Icons.Default.Lan
-                StorageProtocol.FTP -> Icons.Default.Lan
-            },
-            onClick = { expanded = true },
-            tint = Violet,
-            contentDescription = "Elegir ubicación"
-        )
+    Box(modifier = modifier) {
+        if (showLabel) {
+            // Muestra dónde se buscará para no tener que adivinarlo por el icono
+            GlassSurface(
+                shape = GlassChipShape,
+                fillColor = GlassFill,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+                    .clip(GlassChipShape)
+                    .clickable { expanded = true }
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(locationIcon, contentDescription = null, tint = Violet, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Buscar en", color = TextMuted, fontSize = 10.sp)
+                        Text(
+                            text = currentFolder.name,
+                            color = TextPrimary,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    Icon(Icons.Default.KeyboardArrowDown, contentDescription = "Cambiar ubicación", tint = TextMuted, modifier = Modifier.size(18.dp))
+                }
+            }
+        } else {
+            GlassIconButton(
+                icon = locationIcon,
+                onClick = { expanded = true },
+                tint = Violet,
+                contentDescription = "Elegir ubicación"
+            )
+        }
 
         DropdownMenu(
             expanded = expanded,
@@ -1168,6 +1304,21 @@ private fun StorageSelectorIconDropdown(
                     onRequestPicker(currentFolder, isFolderB)
                 }
             )
+        }
+    }
+}
+
+@Composable
+private fun FilterChipRow(label: String, content: @Composable () -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(text = label, color = TextMuted, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            content()
         }
     }
 }

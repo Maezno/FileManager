@@ -1,5 +1,6 @@
 package com.maez.filemanager.ui.screens
 
+import com.maez.filemanager.ui.theme.Motion
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -57,6 +58,21 @@ import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.material.icons.filled.Tune
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.shrinkHorizontally
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.material.icons.filled.Storage
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.material.icons.filled.SelectAll
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
@@ -113,6 +129,7 @@ import com.maez.filemanager.ui.components.GlassAlertDialog
 import com.maez.filemanager.ui.components.GlassDropdownMenu
 import com.maez.filemanager.ui.components.GlassIconButton
 import com.maez.filemanager.ui.components.GlassSearchField
+import com.maez.filemanager.ui.components.dragToSelect
 import com.maez.filemanager.ui.components.GlassSurface
 import com.maez.filemanager.ui.components.IconBadge
 import com.maez.filemanager.ui.components.IconBubble
@@ -180,6 +197,8 @@ fun ExplorerScreen(
     val isLoading by viewModel.isExplorerLoading.collectAsState()
     val errorText by viewModel.explorerError.collectAsState()
     val quickFilter by viewModel.quickFilterQuery.collectAsState()
+    val deepSearchResults by viewModel.deepSearchResults.collectAsState()
+    val isDeepSearching by viewModel.isDeepSearching.collectAsState()
     val sortField by viewModel.sortField.collectAsState()
     val sortAsc by viewModel.sortAscending.collectAsState()
     val isGrid by viewModel.isGridView.collectAsState()
@@ -198,6 +217,8 @@ fun ExplorerScreen(
         isLoading = isLoading,
         errorText = errorText,
         quickFilter = quickFilter,
+        deepSearchResults = deepSearchResults,
+        isDeepSearching = isDeepSearching,
         sortField = sortField,
         sortAsc = sortAsc,
         isGrid = isGrid,
@@ -216,7 +237,7 @@ fun ExplorerScreen(
         onNavigateToPath = { viewModel.loadDirectory(it, currentProtocol, activeConnection) },
         onRefreshDirectory = { viewModel.refreshCurrentDirectory() },
         onCreateFolder = { viewModel.createNewFolder(it) },
-        onSetFolderA = { viewModel.setCurrentFolderAsSearchFolderA() },
+        onSetFolderA = { viewModel.startHeavySearchFromCurrentFolder() },
         onSetFolderB = { viewModel.setCurrentFolderAsSearchFolderB() },
         onClearSelection = { viewModel.clearSelection() },
         onSelectAll = { viewModel.selectAllCurrent(it) },
@@ -266,6 +287,8 @@ fun ExplorerScreenContent(
     isLoading: Boolean,
     errorText: String?,
     quickFilter: String,
+    deepSearchResults: List<VfsItem>? = null,
+    isDeepSearching: Boolean = false,
     sortField: SortField,
     sortAsc: Boolean,
     isGrid: Boolean,
@@ -327,9 +350,16 @@ fun ExplorerScreenContent(
     var showCredentialsDialog by remember { mutableStateOf(false) }
     var showTransfersSheet by remember { mutableStateOf(false) }
 
-    val filteredItems = remember(items, quickFilter) {
-        if (quickFilter.isBlank()) items
-        else items.filter { it.name.contains(quickFilter, ignoreCase = true) }
+    var searchExpanded by remember { mutableStateOf(false) }
+    val searchFocusRequester = remember { FocusRequester() }
+
+    // Con texto: primero coincidencias de la carpeta actual y, al terminar el índice, también las de subcarpetas
+    val filteredItems = remember(items, quickFilter, deepSearchResults) {
+        when {
+            quickFilter.isBlank() -> items
+            deepSearchResults != null -> deepSearchResults
+            else -> items.filter { it.name.contains(quickFilter, ignoreCase = true) }
+        }
     }
 
     val now = System.currentTimeMillis()
@@ -485,14 +515,14 @@ fun ExplorerScreenContent(
                     }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
-                    GlassIconButton(icon = Icons.Default.Search, onClick = onSetFolderA, tint = Violet, contentDescription = "Buscar aquí (A)")
+                    GlassIconButton(icon = Icons.Default.Storage, onClick = onSetFolderA, tint = WarningAmber, contentDescription = "Buscar archivos pesados aquí")
                     GlassIconButton(icon = Icons.AutoMirrored.Filled.CompareArrows, onClick = onSetFolderB, tint = Aqua, contentDescription = "Comparar Dups (B)")
                 }
             }
         }
 
         // 3. Barra de Selección Múltiple
-        if (isSelectionMode) {
+        AnimatedVisibility(visible = isSelectionMode, enter = Motion.panelEnter, exit = Motion.panelExit) {
             GlassSurface(
                 shape = GlassChipShape,
                 borderColor = Violet,
@@ -557,7 +587,7 @@ fun ExplorerScreenContent(
         }
 
         // 4. Portapapeles flotante
-        if (clipboard.items.isNotEmpty()) {
+        AnimatedVisibility(visible = clipboard.items.isNotEmpty(), enter = Motion.panelEnter, exit = Motion.panelExit) {
             GlassSurface(
                 shape = GlassChipShape,
                 borderColor = Aqua,
@@ -663,71 +693,125 @@ fun ExplorerScreenContent(
             }
         }
 
-        // 5. Barra compacta de herramientas con GlassSearchField y GlassIconButton
+        // 5. Barra de herramientas: la lupa se expande empujando los iconos, que se agrupan en un botón
+        val showSearch = searchExpanded || quickFilter.isNotBlank()
+        val collapseSearch = {
+            onSetQuickFilter("")
+            searchExpanded = false
+        }
         Row(
             modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            GlassSearchField(
-                value = quickFilter,
-                onValueChange = onSetQuickFilter,
-                placeholder = "Filtrar en esta carpeta...",
-                height = 48.dp,
-                modifier = Modifier.weight(1f)
-            )
-
-            Box {
-                GlassIconButton(
-                    icon = Icons.AutoMirrored.Filled.Sort,
-                    onClick = { showSortMenu = true },
-                    tint = Violet,
-                    contentDescription = "Ordenar"
-                )
-                GlassDropdownMenu(
-                    expanded = showSortMenu,
-                    onDismissRequest = { showSortMenu = false }
-                ) {
-                    SortField.entries.forEach { field ->
-                        DropdownMenuItem(
-                            text = {
-                                val arrow = if (sortField == field) (if (sortAsc) " ↑" else " ↓") else ""
-                                Text("Ordenar por ${field.label}$arrow", color = TextPrimary, fontSize = 13.sp)
-                            },
-                            onClick = {
-                                val nextAsc = if (sortField == field) !sortAsc else true
-                                onSetSorting(field, nextAsc)
-                                showSortMenu = false
-                            }
+            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                Box(modifier = Modifier.animateContentSize(animationSpec = Motion.elastic())) {
+                    if (showSearch) {
+                        GlassSearchField(
+                            value = quickFilter,
+                            onValueChange = onSetQuickFilter,
+                            placeholder = "Buscar aquí y en subcarpetas...",
+                            height = 48.dp,
+                            focusRequester = searchFocusRequester,
+                            onClose = { collapseSearch() },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        LaunchedEffect(searchExpanded) {
+                            if (searchExpanded) searchFocusRequester.requestFocus()
+                        }
+                    } else {
+                        GlassIconButton(
+                            icon = Icons.Default.Search,
+                            onClick = { searchExpanded = true },
+                            tint = Aqua,
+                            contentDescription = "Buscar"
                         )
                     }
                 }
             }
 
-            GlassIconButton(
-                icon = Icons.Default.Refresh,
-                onClick = onRefreshDirectory,
-                tint = TextMuted,
-                contentDescription = "Actualizar"
-            )
+            // Iconos agrupados mientras se busca: tocar el botón los devuelve a su sitio
+            AnimatedVisibility(
+                visible = showSearch,
+                enter = Motion.popEnter + Motion.inlineEnter,
+                exit = Motion.popExit + Motion.inlineExit
+            ) {
+                GlassIconButton(
+                    icon = Icons.Default.Tune,
+                    onClick = { collapseSearch() },
+                    tint = Violet,
+                    contentDescription = "Mostrar herramientas",
+                    modifier = Modifier.padding(start = 8.dp)
+                )
+            }
 
-            GlassIconButton(
-                icon = Icons.Default.CreateNewFolder,
-                onClick = { showNewFolderDialog = true },
-                tint = Aqua,
-                contentDescription = "Nueva carpeta"
-            )
+            AnimatedVisibility(
+                visible = !showSearch,
+                enter = Motion.inlineEnter,
+                exit = Motion.inlineExit
+            ) {
+                Row(
+                    modifier = Modifier.padding(start = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box {
+                        GlassIconButton(
+                            icon = Icons.AutoMirrored.Filled.Sort,
+                            onClick = { showSortMenu = true },
+                            tint = Violet,
+                            contentDescription = "Ordenar"
+                        )
+                        GlassDropdownMenu(
+                            expanded = showSortMenu,
+                            onDismissRequest = { showSortMenu = false }
+                        ) {
+                            SortField.entries.forEach { field ->
+                                DropdownMenuItem(
+                                    text = {
+                                        val arrow = if (sortField == field) (if (sortAsc) " ↑" else " ↓") else ""
+                                        Text("Ordenar por ${field.label}$arrow", color = TextPrimary, fontSize = 13.sp)
+                                    },
+                                    onClick = {
+                                        val nextAsc = if (sortField == field) !sortAsc else true
+                                        onSetSorting(field, nextAsc)
+                                        showSortMenu = false
+                                    }
+                                )
+                            }
+                        }
+                    }
 
-            GlassIconButton(
-                icon = if (isGrid) Icons.AutoMirrored.Filled.ViewList else Icons.Default.GridView,
-                onClick = onToggleGridView,
-                tint = Violet,
-                contentDescription = "Cambiar vista"
-            )
+                    GlassIconButton(
+                        icon = Icons.Default.Refresh,
+                        onClick = onRefreshDirectory,
+                        tint = TextMuted,
+                        contentDescription = "Actualizar"
+                    )
+
+                    GlassIconButton(
+                        icon = Icons.Default.CreateNewFolder,
+                        onClick = { showNewFolderDialog = true },
+                        tint = Aqua,
+                        contentDescription = "Nueva carpeta"
+                    )
+
+                    GlassIconButton(
+                        icon = if (isGrid) Icons.AutoMirrored.Filled.ViewList else Icons.Default.GridView,
+                        onClick = onToggleGridView,
+                        tint = Violet,
+                        contentDescription = "Cambiar vista"
+                    )
+                }
+            }
         }
 
         Text(
-            text = "${filteredItems.size} elementos",
+            text = when {
+                quickFilter.isBlank() -> "${filteredItems.size} elementos"
+                isDeepSearching -> "${filteredItems.size} en esta carpeta · buscando en subcarpetas..."
+                deepSearchResults != null -> "${filteredItems.size} resultados (incluye subcarpetas)"
+                else -> "${filteredItems.size} resultados en esta carpeta"
+            },
             color = TextMuted,
             fontSize = 12.sp,
             modifier = Modifier.padding(start = 4.dp, top = 2.dp)
@@ -776,85 +860,47 @@ fun ExplorerScreenContent(
                 EmptyState(
                     icon = Icons.Default.Folder,
                     title = if (quickFilter.isBlank()) "Carpeta vacía" else "Sin coincidencias",
-                    message = if (quickFilter.isBlank()) "No hay elementos en esta ubicación." else "Prueba con otra palabra clave en el filtro rápido."
+                    message = if (quickFilter.isBlank()) "No hay elementos en esta ubicación." else if (isDeepSearching) "Buscando en subcarpetas..." else "No hay archivos ni carpetas con ese nombre aquí ni en subcarpetas."
                 )
             }
         } else {
             val lazyListState = rememberLazyListState()
             val lazyGridState = rememberLazyGridState()
 
-            var isDraggingSelection by remember { mutableStateOf(false) }
-            var dragStartIndex by remember { mutableIntStateOf(-1) }
             var initialSelectionState by remember { mutableStateOf(false) }
 
             val updatedItems by rememberUpdatedState(filteredItems)
             val updatedSelectedPaths by rememberUpdatedState(selectedPaths)
 
-            val dragGestureModifier = Modifier.pointerInput(filteredItems, isGrid) {
-                detectDragGesturesAfterLongPress(
-                    onDragStart = { offset ->
-                        val hitIndex = if (isGrid) {
-                            val layoutInfo = lazyGridState.layoutInfo
-                            layoutInfo.visibleItemsInfo.firstOrNull {
-                                offset.x >= it.offset.x && offset.x <= (it.offset.x + it.size.width) &&
-                                    offset.y >= it.offset.y && offset.y <= (it.offset.y + it.size.height)
-                            }?.index
-                        } else {
-                            val layoutInfo = lazyListState.layoutInfo
-                            layoutInfo.visibleItemsInfo.firstOrNull {
-                                offset.y >= it.offset && offset.y <= (it.offset + it.size)
-                            }?.index
-                        }
-
-                        if (hitIndex != null && hitIndex in updatedItems.indices) {
-                            isDraggingSelection = true
-                            dragStartIndex = hitIndex
-                            val startItem = updatedItems[hitIndex]
-                            initialSelectionState = startItem.path !in updatedSelectedPaths
-                            onToggleSelectPath(startItem)
-                        }
-                    },
-                    onDrag = { change, _ ->
-                        if (isDraggingSelection && dragStartIndex != -1) {
-                            val offset = change.position
-                            val currentIndex = if (isGrid) {
-                                val layoutInfo = lazyGridState.layoutInfo
-                                layoutInfo.visibleItemsInfo.firstOrNull {
-                                    offset.x >= it.offset.x && offset.x <= (it.offset.x + it.size.width) &&
-                                        offset.y >= it.offset.y && offset.y <= (it.offset.y + it.size.height)
-                                }?.index
-                            } else {
-                                val layoutInfo = lazyListState.layoutInfo
-                                layoutInfo.visibleItemsInfo.firstOrNull {
-                                    offset.y >= it.offset && offset.y <= (it.offset + it.size)
-                                }?.index
-                            }
-
-                            if (currentIndex != null && currentIndex in updatedItems.indices) {
-                                val minIdx = minOf(dragStartIndex, currentIndex)
-                                val maxIdx = maxOf(dragStartIndex, currentIndex)
-                                for (i in minIdx..maxIdx) {
-                                    val item = updatedItems[i]
-                                    val currentlySel = item.path in updatedSelectedPaths
-                                    if (initialSelectionState && !currentlySel) {
-                                        onToggleSelectPath(item)
-                                    } else if (!initialSelectionState && currentlySel) {
-                                        onToggleSelectPath(item)
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    onDragEnd = {
-                        isDraggingSelection = false
-                        dragStartIndex = -1
-                    },
-                    onDragCancel = {
-                        isDraggingSelection = false
-                        dragStartIndex = -1
+            val dragGestureModifier = Modifier.dragToSelect(
+                keyAt = { offset ->
+                    if (isGrid) {
+                        lazyGridState.layoutInfo.visibleItemsInfo.firstOrNull {
+                            offset.x >= it.offset.x && offset.x <= (it.offset.x + it.size.width) &&
+                                offset.y >= it.offset.y && offset.y <= (it.offset.y + it.size.height)
+                        }?.key
+                    } else {
+                        lazyListState.layoutInfo.visibleItemsInfo.firstOrNull {
+                            offset.y >= it.offset && offset.y <= (it.offset + it.size)
+                        }?.key
                     }
-                )
-            }
+                },
+                onSelectionStart = { key ->
+                    val startItem = updatedItems.firstOrNull { it.path == key } ?: return@dragToSelect
+                    initialSelectionState = startItem.path !in updatedSelectedPaths
+                    onToggleSelectPath(startItem)
+                },
+                onDragOver = { startKey, currentKey ->
+                    val startIdx = updatedItems.indexOfFirst { it.path == startKey }
+                    val currentIdx = updatedItems.indexOfFirst { it.path == currentKey }
+                    if (startIdx >= 0 && currentIdx >= 0) {
+                        for (i in minOf(startIdx, currentIdx)..maxOf(startIdx, currentIdx)) {
+                            val item = updatedItems[i]
+                            if ((item.path in updatedSelectedPaths) != initialSelectionState) onToggleSelectPath(item)
+                        }
+                    }
+                }
+            )
 
             if (isGrid) {
                 LazyVerticalGrid(
@@ -876,7 +922,7 @@ fun ExplorerScreenContent(
                             vfsManager = vfsManager,
                             connection = activeConnection,
                             onClick = { onItemClick(item) },
-                            onLongClick = { onItemLongClick(item) },
+                            onLongClick = {}, // Lo gestiona dragToSelect
                             onToggleSelect = { onToggleSelectPath(item) },
                             onOpenExternal = { onOpenExternal(item) },
                             onShare = { onShareItem(item) },
@@ -917,7 +963,7 @@ fun ExplorerScreenContent(
                             vfsManager = vfsManager,
                             connection = activeConnection,
                             onClick = { onItemClick(item) },
-                            onLongClick = { onItemLongClick(item) },
+                            onLongClick = {}, // Lo gestiona dragToSelect
                             onToggleSelect = { onToggleSelectPath(item) },
                             onOpenExternal = { onOpenExternal(item) },
                             onShare = { onShareItem(item) },

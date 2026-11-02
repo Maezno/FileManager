@@ -31,7 +31,9 @@ import com.maez.filemanager.services.SmartSearchEngine
 import com.maez.filemanager.services.TransferManager
 import com.maez.filemanager.services.TransferService
 import com.maez.filemanager.services.VfsManager
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -42,6 +44,9 @@ import kotlinx.coroutines.launch
 import java.io.File
 import java.util.Locale
 import java.util.UUID
+
+private const val DEFAULT_HEAVY_MB = 100f
+private const val DEEP_SEARCH_LIMIT = 500
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -89,6 +94,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _quickFilterQuery = MutableStateFlow("")
     val quickFilterQuery: StateFlow<String> = _quickFilterQuery.asStateFlow()
+
+    // Búsqueda rápida en subcarpetas desde el explorador (índice en memoria por carpeta)
+    private val _deepSearchResults = MutableStateFlow<List<VfsItem>?>(null)
+    val deepSearchResults: StateFlow<List<VfsItem>?> = _deepSearchResults.asStateFlow()
+
+    private val _isDeepSearching = MutableStateFlow(false)
+    val isDeepSearching: StateFlow<Boolean> = _isDeepSearching.asStateFlow()
+
+    private var deepSearchJob: Job? = null
+    private var deepIndexKey: String? = null
+    private var deepIndex: List<VfsItem> = emptyList()
 
     private val _sortField = MutableStateFlow(SortField.NAME)
     val sortField: StateFlow<SortField> = _sortField.asStateFlow()
@@ -180,7 +196,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _selectedYear = MutableStateFlow("Todos")
     val selectedYear: StateFlow<String> = _selectedYear.asStateFlow()
 
-    private val _minSizeMB = MutableStateFlow(0f)
+    private val _minSizeMB = MutableStateFlow(DEFAULT_HEAVY_MB)
     val minSizeMB: StateFlow<Float> = _minSizeMB.asStateFlow()
 
     val monthsList = listOf(
@@ -205,7 +221,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _searchResults = MutableStateFlow<List<MediaSearchItem>>(emptyList())
     val searchResults: StateFlow<List<MediaSearchItem>> = _searchResults.asStateFlow()
 
-    private val _searchSortField = MutableStateFlow(SearchSortField.DATE)
+    private val _searchSortField = MutableStateFlow(SearchSortField.SIZE)
     val searchSortField: StateFlow<SearchSortField> = _searchSortField.asStateFlow()
 
     private val _searchSortAscending = MutableStateFlow(false)
@@ -327,6 +343,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             else -> _activeShortcutKey.value.takeIf { !it.startsWith("NET_") } ?: "LOCAL_ROOT"
         }
         _activeShortcutKey.value = resolvedShortcut
+        if (_currentPath.value != path || _currentProtocol.value != protocol) resetDeepSearch()
         _currentPath.value = path
         _currentProtocol.value = protocol
         _activeConnection.value = connection
@@ -460,6 +477,61 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setQuickFilter(query: String) {
         _quickFilterQuery.value = query
+        deepSearchJob?.cancel()
+        val q = query.trim()
+        if (q.length < 2) {
+            _deepSearchResults.value = null
+            _isDeepSearching.value = false
+            return
+        }
+        deepSearchJob = viewModelScope.launch {
+            delay(250) // Espera a que el usuario deje de escribir
+            val key = "${_currentProtocol.value}|${_activeConnection.value?.id}|${_currentPath.value}"
+            if (deepIndexKey != key) {
+                _isDeepSearching.value = true
+                try {
+                    deepIndex = vfsManager.collectFilesRecursive(
+                        rootPath = _currentPath.value,
+                        protocol = _currentProtocol.value,
+                        connection = _activeConnection.value,
+                        recursive = true,
+                        includeDirectories = true
+                    )
+                    deepIndexKey = key
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (_: Exception) {
+                    deepIndex = emptyList()
+                    deepIndexKey = null
+                } finally {
+                    _isDeepSearching.value = false
+                }
+            }
+            _deepSearchResults.value = sortItems(
+                deepIndex.filter { it.name.contains(q, ignoreCase = true) }
+            ).take(DEEP_SEARCH_LIMIT)
+        }
+    }
+
+    private fun resetDeepSearch() {
+        deepSearchJob?.cancel()
+        deepIndexKey = null
+        deepIndex = emptyList()
+        _deepSearchResults.value = null
+        _isDeepSearching.value = false
+        _quickFilterQuery.value = ""
+    }
+
+    /** Abre el buscador avanzado en la carpeta actual priorizando archivos pesados y lanza el escaneo. */
+    fun startHeavySearchFromCurrentFolder() {
+        setCurrentFolderAsSearchFolderA()
+        _searchToolIndex.value = 0
+        _selectedCategory.value = FileCategory.ALL
+        _selectedOrientation.value = MediaOrientation.ALL
+        if (_minSizeMB.value <= 0f) _minSizeMB.value = DEFAULT_HEAVY_MB
+        _searchSortField.value = SearchSortField.SIZE
+        _searchSortAscending.value = false
+        startSmartScan()
     }
 
     fun setSorting(field: SortField, ascending: Boolean = _sortAscending.value) {
