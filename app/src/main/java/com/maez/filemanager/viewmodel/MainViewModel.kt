@@ -108,9 +108,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _autoClearRemoteCache = MutableStateFlow(connectionStorage.getAutoClearRemoteCache())
     val autoClearRemoteCache: StateFlow<Boolean> = _autoClearRemoteCache.asStateFlow()
 
-    private val _blurEnabled = MutableStateFlow(connectionStorage.getBlurEnabled())
-    val blurEnabled: StateFlow<Boolean> = _blurEnabled.asStateFlow()
-
     private val _tabMemoryTimeoutMinutes = MutableStateFlow(connectionStorage.getTabMemoryTimeoutMinutes())
     val tabMemoryTimeoutMinutes: StateFlow<Int> = _tabMemoryTimeoutMinutes.asStateFlow()
 
@@ -492,11 +489,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun setAutoClearRemoteCache(value: Boolean) {
         _autoClearRemoteCache.value = value
         connectionStorage.setAutoClearRemoteCache(value)
-    }
-
-    fun setBlurEnabled(value: Boolean) {
-        _blurEnabled.value = value
-        connectionStorage.setBlurEnabled(value)
     }
 
     fun setTabMemoryTimeoutMinutes(value: Int) {
@@ -903,7 +895,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             username = username,
             password = password,
             anonymous = anonymous,
-            initialPath = active.initialPath
+            initialPath = active.initialPath,
+            useTls = active.useTls
         )
         val updated = _savedConnections.value.find { it.id == active.id } ?: return
         _activeConnection.value = updated
@@ -1176,8 +1169,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
                     1 -> {
                         var filesB: List<VfsItem>? = null
-                        if (_compareTwoFolders.value && _folderB.value != null) {
-                            val targetB = _folderB.value!!
+                        val folderBSnapshot = _folderB.value
+                        if (_compareTwoFolders.value && folderBSnapshot != null) {
+                            val targetB = folderBSnapshot
                             val connB = targetB.connectionId?.let { connMap[it] }
                             _scanStatusText.value = "Recolectando archivos en Carpeta B (${targetB.path})..."
                             filesB = vfsManager.collectFilesRecursive(
@@ -1264,9 +1258,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         username: String,
         password: String,
         anonymous: Boolean,
-        initialPath: String
+        initialPath: String,
+        useTls: Boolean = false
     ) {
-        val cleanHost = host.trim().removePrefix("smb://").removePrefix("ftp://").trim('/')
+        val cleanHost = host.trim().removePrefix("smb://").removePrefix("ftp://").removePrefix("ftps://").trim('/')
         if (cleanHost.isEmpty()) return
 
         val existingLastUsed = existingId?.let { id -> _savedConnections.value.find { it.id == id }?.lastUsedAt } ?: 0L
@@ -1281,6 +1276,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             password = password,
             anonymous = anonymous,
             initialPath = if (initialPath.isBlank()) "/" else initialPath.trim(),
+            useTls = protocol == StorageProtocol.FTP && useTls,
             lastUsedAt = existingLastUsed
         )
 

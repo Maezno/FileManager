@@ -89,7 +89,7 @@ fun NetworkScreen(viewModel: MainViewModel) {
         lanProgress = lanProgress,
         onScanLan = { viewModel.scanLocalNetworkForServers() },
         onConnect = { viewModel.connectAndBrowseNetwork(it) },
-        onSaveConnection = { existingId, name, protocol, host, port, shareName, username, password, anonymous, initialPath ->
+        onSaveConnection = { existingId, name, protocol, host, port, shareName, username, password, anonymous, initialPath, useTls ->
             viewModel.saveNetworkConnection(
                 existingId = existingId,
                 name = name,
@@ -100,7 +100,8 @@ fun NetworkScreen(viewModel: MainViewModel) {
                 username = username,
                 password = password,
                 anonymous = anonymous,
-                initialPath = initialPath
+                initialPath = initialPath,
+                useTls = useTls
             )
         },
         onDeleteConnection = { viewModel.deleteNetworkConnection(it) }
@@ -125,7 +126,8 @@ fun NetworkScreenContent(
         username: String,
         password: String,
         anonymous: Boolean,
-        initialPath: String
+        initialPath: String,
+        useTls: Boolean
     ) -> Unit,
     onDeleteConnection: (NetworkConnection) -> Unit,
     modifier: Modifier = Modifier
@@ -141,6 +143,7 @@ fun NetworkScreenContent(
     var formPass by remember { mutableStateOf("") }
     var formAnon by remember { mutableStateOf(false) }
     var formPath by remember { mutableStateOf("/") }
+    var formTls by remember { mutableStateOf(false) }
 
     fun openNewConnectionDialog(
         presetProtocol: StorageProtocol = StorageProtocol.SMB,
@@ -162,6 +165,7 @@ fun NetworkScreenContent(
         formPass = ""
         formAnon = false
         formPath = "/"
+        formTls = false
         showDialog = true
     }
 
@@ -176,6 +180,7 @@ fun NetworkScreenContent(
         formPass = conn.password
         formAnon = conn.anonymous
         formPath = conn.initialPath
+        formTls = conn.useTls
         showDialog = true
     }
 
@@ -377,6 +382,15 @@ fun NetworkScreenContent(
                         )
                     }
 
+                    if (formProtocol == StorageProtocol.FTP) {
+                        SettingSwitchRow(
+                            title = "Cifrado TLS (FTPS)",
+                            subtitle = if (formTls) "Conexión y datos cifrados (AUTH TLS)" else "Sin cifrar: usuario y contraseña viajan en texto plano",
+                            checked = formTls,
+                            onCheckedChange = { formTls = it }
+                        )
+                    }
+
                     SettingSwitchRow(
                         title = "Acceso Invitado / Sin contraseña",
                         subtitle = if (formAnon) "Conecta sin usuario" else "Ingresar usuario y contraseña de Windows/FTP",
@@ -420,7 +434,8 @@ fun NetworkScreenContent(
                         formUser,
                         formPass,
                         formAnon,
-                        formPath
+                        formPath,
+                        formTls
                     )
                     showDialog = false
                 }) {
@@ -593,7 +608,7 @@ fun NetworkScreenPreview() {
             lanProgress = 0f,
             onScanLan = {},
             onConnect = {},
-            onSaveConnection = { _, _, _, _, _, _, _, _, _, _ -> },
+            onSaveConnection = { _, _, _, _, _, _, _, _, _, _, _ -> },
             onDeleteConnection = {}
         )
     }

@@ -116,15 +116,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.window.DialogWindowProvider
-import dev.chrisbanes.haze.HazeDefaults
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.HazeTint
-import dev.chrisbanes.haze.hazeEffect
-import dev.chrisbanes.haze.hazeSource
-
-val LocalHazeState = staticCompositionLocalOf<HazeState?> { null }
-val LocalBlurEnabled = staticCompositionLocalOf { true }
-
 val CardShape = GlassCardShape
 val ControlShape = GlassChipShape
 
@@ -134,19 +125,16 @@ fun AppBackground(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
-    val hazeState = remember { HazeState() }
-    CompositionLocalProvider(LocalHazeState provides hazeState) {
-        Box(
-            modifier = modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(BgTop, BgMid, BgBottom)
-                    )
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(BgTop, BgMid, BgBottom)
                 )
-        ) {
-            content()
-        }
+            )
+    ) {
+        content()
     }
 }
 
@@ -158,7 +146,6 @@ fun GlassSurface(
     fillColor: Color = GlassTint,
     borderColor: Color = GlassBorder,
     borderWidth: Dp = 1.dp,
-    blur: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val baseModifier = modifier
@@ -184,7 +171,6 @@ fun SectionCard(
 ) {
     GlassSurface(
         shape = GlassCardShape,
-        blur = true,
         modifier = modifier.fillMaxWidth()
     ) {
         Column(
@@ -396,7 +382,6 @@ fun GlassIconButton(
     GlassSurface(
         shape = GlassButtonShape,
         fillColor = GlassTint,
-        blur = false,
         modifier = modifier
             .size(48.dp)
             .clickable(onClick = onClick)
@@ -418,7 +403,6 @@ fun SegmentedTabs(
     GlassSurface(
         shape = GlassCardShape,
         fillColor = GlassTint,
-        blur = true,
         modifier = modifier.fillMaxWidth()
     ) {
         Row(
@@ -486,7 +470,6 @@ fun SelectChip(
         shape = GlassChipShape,
         fillColor = bg,
         borderColor = border,
-        blur = true,
         modifier = modifier.clickable(onClick = onClick)
     ) {
         Column(
@@ -548,7 +531,6 @@ fun GlassSearchField(
         shape = GlassChipShape,
         borderColor = borderColor,
         fillColor = GlassTint,
-        blur = true,
         modifier = modifier
             .height(height)
             .fillMaxWidth()
@@ -722,7 +704,6 @@ fun <T> DropdownField(
             shape = GlassChipShape,
             borderColor = borderColor,
             fillColor = GlassTint,
-            blur = true,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(44.dp)
@@ -775,7 +756,7 @@ fun <T> DropdownField(
 
         AnimatedVisibility(visible = expanded) {
             GlassSurface(
-                blur = true,
+
                 fillColor = GlassTint,
                 shape = GlassChipShape,
                 modifier = Modifier
@@ -813,17 +794,13 @@ fun <T> DropdownField(
     }
 }
 
-/** Desenfoque de sistema detrás de un Dialog (API 31+). */
+/** Atenuado de sistema detrás de un Dialog. */
 @Composable
-fun DialogWindowBlur(radius: Int = 32, dim: Float = 0.45f) {
+fun DialogWindowBlur(dim: Float = 0.55f) {
     val view = LocalView.current
     SideEffect {
         val window = (view.parent as? DialogWindowProvider)?.window ?: return@SideEffect
         window.setDimAmount(dim)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            window.addFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
-            window.attributes = window.attributes.also { it.blurBehindRadius = radius }
-        }
     }
 }
 
@@ -869,7 +846,6 @@ fun GlassPanel(
         shape = GlassChipShape,
         fillColor = Color.White.copy(alpha = 0.05f),
         borderColor = GlassBorder,
-        blur = false,
         modifier = modifier.fillMaxWidth()
     ) {
         Column(
@@ -944,7 +920,6 @@ fun StatTile(value: String, label: String, color: Color, modifier: Modifier = Mo
         shape = GlassChipShape,
         fillColor = color.copy(alpha = 0.12f),
         borderColor = color.copy(alpha = 0.35f),
-        blur = true,
         modifier = modifier
     ) {
         Column(
@@ -1003,7 +978,6 @@ fun GlassBottomBar(
             shape = GlassFloatingBarShape,
             fillColor = NavBg,
             borderColor = GlassBorder,
-            blur = true,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(64.dp)

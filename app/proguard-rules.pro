@@ -11,3 +11,7 @@
 -dontwarn org.apache.commons.net.**
 -dontwarn org.bouncycastle.**
 -dontwarn javax.naming.**
+
+# smbj -> mbassador referencia javax.el (no existe en Android, no se usa)
+-dontwarn javax.el.**
+-dontwarn net.engio.mbassy.dispatch.el.**

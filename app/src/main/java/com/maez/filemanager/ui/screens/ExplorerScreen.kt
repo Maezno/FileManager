@@ -1413,7 +1413,6 @@ private fun ExplorerListRow(
         shape = GlassChipShape,
         fillColor = if (isSelected) SelectedViolet else GlassFill,
         borderColor = if (isSelected) SelectedVioletBorder else GlassBorder,
-        blur = false,
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
@@ -1517,7 +1516,6 @@ private fun ExplorerGridCard(
         shape = GlassCardShape,
         fillColor = if (isSelected) SelectedViolet else GlassFill,
         borderColor = if (isSelected) SelectedVioletBorder else GlassBorder,
-        blur = false,
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)

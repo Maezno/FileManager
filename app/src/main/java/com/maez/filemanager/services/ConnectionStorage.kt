@@ -83,10 +83,13 @@ class ConnectionStorage(context: Context) {
             System.arraycopy(cipherText, 0, combined, iv.size, cipherText.size)
             ENC2_PREFIX + Base64.encodeToString(combined, Base64.NO_WRAP)
         } catch (e: KeyPermanentlyInvalidatedException) {
-            // Si la clave quedó invalidada permanentemente en el Keystore
-            ""
-        } catch (_: Exception) {
-            ""
+            // Si la clave se invalida (ej. cambio de bloqueo de pantalla), borrarla y fallar
+            val ks = KeyStore.getInstance(ANDROID_KEYSTORE)
+            ks.load(null)
+            ks.deleteEntry(KEY_ALIAS)
+            throw IllegalStateException("Clave de cifrado invalidada. Por favor, ingresa la contraseña nuevamente.")
+        } catch (e: Exception) {
+            throw IllegalStateException("Error al cifrar la contraseña: ${e.message}")
         }
     }
 
@@ -189,6 +192,7 @@ class ConnectionStorage(context: Context) {
                         password = decryptPassword(rawPassword),
                         anonymous = obj.optBoolean("anonymous", false),
                         initialPath = obj.optString("initialPath", "/"),
+                        useTls = obj.optBoolean("useTls", false),
                         lastUsedAt = obj.optLong("lastUsedAt", 0L)
                     )
                 )
@@ -215,9 +219,16 @@ class ConnectionStorage(context: Context) {
                 put("port", c.port)
                 put("shareName", c.shareName)
                 put("username", c.username)
-                put("password", encryptPassword(c.password))
+                try {
+                    put("password", encryptPassword(c.password))
+                } catch (e: Exception) {
+                    put("password", "")
+                    // Se podría notificar a la UI aquí si tuviéramos un callback,
+                    // por ahora guardamos vacío para no perder el resto de la conexión
+                }
                 put("anonymous", c.anonymous)
                 put("initialPath", c.initialPath)
+                put("useTls", c.useTls)
                 put("lastUsedAt", c.lastUsedAt)
             }
             arr.put(obj)
@@ -240,13 +251,6 @@ class ConnectionStorage(context: Context) {
 
     fun getAutoClearRemoteCache(): Boolean = prefs.getBoolean("pref_auto_clear_remote_cache", true)
     fun setAutoClearRemoteCache(value: Boolean) = prefs.edit().putBoolean("pref_auto_clear_remote_cache", value).apply()
-
-    fun getBlurEnabled(): Boolean =
-        prefs.getBoolean("blur_enabled", android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S)
-
-    fun setBlurEnabled(value: Boolean) {
-        prefs.edit().putBoolean("blur_enabled", value).apply()
-    }
 
     /** Opciones: 0 = Nunca, 5 = 5 min, 20 = 20 min (default), -1 = Siempre */
     fun getTabMemoryTimeoutMinutes(): Int = prefs.getInt("pref_tab_memory_timeout_minutes", 20)

@@ -9,3 +9,6 @@
 .cxx
 local.properties
 app/build/
+
+# Scripts locales de mantenimiento
+/fix*.py

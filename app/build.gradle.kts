@@ -6,19 +6,20 @@ plugins {
 
 android {
     namespace = "com.maez.filemanager"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.maez.filemanager"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0.0"
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -73,9 +74,6 @@ dependencies {
     implementation(libs.smbj)
     implementation(libs.jcifs.ng)
     implementation(libs.commons.net)
-
-    // Glassmorphism Blur
-    implementation(libs.haze)
 
     debugImplementation(libs.androidx.ui.tooling)
 }

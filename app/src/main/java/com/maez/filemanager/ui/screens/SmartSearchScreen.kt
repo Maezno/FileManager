@@ -847,7 +847,6 @@ fun SmartSearchScreenContent(
                             GlassSurface(
                                 shape = GlassChipShape,
                                 fillColor = GlassFill,
-                                blur = false,
                                 modifier = Modifier
                                     .weight(1f)
                                     .clickable { onSetCompareTwoFolders(!compareTwoFolders) }
@@ -870,7 +869,6 @@ fun SmartSearchScreenContent(
                             GlassSurface(
                                 shape = GlassChipShape,
                                 fillColor = GlassFill,
-                                blur = false,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(horizontal = 4.dp, vertical = 2.dp)
@@ -1239,7 +1237,6 @@ private fun MediaSearchResultCard(
         shape = GlassChipShape,
         fillColor = if (isSelected) SelectedViolet else GlassFill,
         borderColor = if (isSelected) Aqua.copy(alpha = 0.6f) else GlassBorder,
-        blur = false,
         modifier = Modifier
             .fillMaxWidth()
             .combinedClickable(
@@ -1366,7 +1363,6 @@ private fun DuplicateFileCard(
         shape = GlassChipShape,
         fillColor = if (isSelected) SelectedViolet else GlassFill,
         borderColor = if (entry.isPrimary) Aqua.copy(alpha = 0.5f) else WarningAmber.copy(alpha = 0.6f),
-        blur = false,
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() }

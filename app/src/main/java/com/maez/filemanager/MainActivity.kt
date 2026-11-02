@@ -69,7 +69,6 @@ import com.maez.filemanager.ui.components.AppBottomNavigationBar
 import com.maez.filemanager.ui.components.GlassAlertDialog
 import com.maez.filemanager.ui.components.GlassSurface
 import com.maez.filemanager.ui.components.IconBadge
-import com.maez.filemanager.ui.components.LocalBlurEnabled
 import com.maez.filemanager.ui.components.MediaPreviewDialog
 import com.maez.filemanager.ui.screens.ExplorerScreen
 import com.maez.filemanager.ui.screens.NetworkScreen
@@ -120,15 +119,18 @@ class MainActivity : ComponentActivity() {
                 val previewItem by viewModel.previewItem.collectAsState()
                 val previewLocalPath by viewModel.previewLocalPath.collectAsState()
                 val isPreviewLoading by viewModel.isPreviewLoading.collectAsState()
-                val blurEnabled by viewModel.blurEnabled.collectAsState()
 
-                BackHandler(enabled = selectedTab == 0) {
-                    if (!viewModel.navigateUp()) {
-                        finish()
+                BackHandler(enabled = true) {
+                    if (selectedTab != 0) {
+                        viewModel.selectTab(0)
+                    } else {
+                        if (!viewModel.navigateUp()) {
+                            finish()
+                        }
                     }
                 }
 
-                CompositionLocalProvider(LocalBlurEnabled provides blurEnabled) {
+                
                     MainScreenContent(
                         selectedTab = selectedTab,
                         hasAllFilesAccess = hasAllFilesAccess,
@@ -243,7 +245,7 @@ class MainActivity : ComponentActivity() {
                             }
                         )
                     }
-                }
+                
             }
         }
     }
@@ -365,7 +367,6 @@ fun MainScreenContent(
                                 shape = RoundedCornerShape(50),
                                 fillColor = statusColor.copy(alpha = 0.12f),
                                 borderColor = statusColor.copy(alpha = 0.4f),
-                                blur = true,
                                 modifier = Modifier.clickable(enabled = !hasAllFilesAccess) { onRequestStoragePermissions() }
                             ) {
                                 Row(

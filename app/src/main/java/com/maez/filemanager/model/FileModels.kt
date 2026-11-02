@@ -97,6 +97,7 @@ data class NetworkConnection(
     val password: String = "",
     val anonymous: Boolean = false,
     val initialPath: String = "/",
+    val useTls: Boolean = false, // FTPS explícito (AUTH TLS)
     val lastUsedAt: Long = 0L
 ) {
     val displayAddress: String

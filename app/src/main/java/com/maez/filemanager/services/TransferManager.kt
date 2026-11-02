@@ -16,9 +16,11 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.io.File
+import java.util.concurrent.ConcurrentHashMap
 
 object TransferManager {
 
@@ -32,32 +34,47 @@ object TransferManager {
     val activeConflict: StateFlow<ConflictRequest?> = _activeConflict.asStateFlow()
 
     private var executionJob: Job? = null
-    private val cancelledJobIds = mutableSetOf<String>()
+    private val cancelledJobIds = ConcurrentHashMap.newKeySet<String>()
+
+    // Resolvemos conflictos colgados
+    private var activeConflictDeferred: CompletableDeferred<Pair<ConflictResolution, Boolean>>? = null
 
     var onTransferFinished: ((TransferJob, Boolean) -> Unit)? = null
 
     fun enqueue(job: TransferJob) {
-        val current = _jobs.value.toMutableList()
-        current.add(job)
-        _jobs.value = current
+        _jobs.update { current ->
+            val list = current.toMutableList()
+            list.add(job)
+            list
+        }
         checkAndStartWorker()
     }
 
     fun cancel(jobId: String) {
         cancelledJobIds.add(jobId)
-        val current = _jobs.value.map { job ->
-            if (job.id == jobId && (job.status == TransferStatus.RUNNING || job.status == TransferStatus.QUEUED)) {
-                job.copy(status = TransferStatus.CANCELLED)
-            } else {
-                job
+        
+        // Si hay un conflicto esperando a este job, cancelarlo
+        val currentConflictJob = getActiveJob()
+        if (currentConflictJob?.id == jobId) {
+            activeConflictDeferred?.complete(ConflictResolution.SKIP to false)
+        }
+        
+        _jobs.update { current ->
+            current.map { job ->
+                if (job.id == jobId && (job.status == TransferStatus.RUNNING || job.status == TransferStatus.QUEUED)) {
+                    job.copy(status = TransferStatus.CANCELLED)
+                } else {
+                    job
+                }
             }
         }
-        _jobs.value = current
     }
 
     fun clearFinished() {
-        _jobs.value = _jobs.value.filter {
-            it.status == TransferStatus.RUNNING || it.status == TransferStatus.QUEUED
+        _jobs.update { current ->
+            current.filter {
+                it.status == TransferStatus.RUNNING || it.status == TransferStatus.QUEUED
+            }
         }
     }
 
@@ -117,6 +134,7 @@ object TransferManager {
             if (exists) {
                 val resolution = globalResolution ?: run {
                     val deferred = CompletableDeferred<Pair<ConflictResolution, Boolean>>()
+                    activeConflictDeferred = deferred
                     _activeConflict.value = ConflictRequest(
                         fileName = item.name,
                         targetParentPath = job.targetParentPath,
@@ -126,6 +144,7 @@ object TransferManager {
                         }
                     )
                     val (res, applyToAll) = deferred.await()
+                    activeConflictDeferred = null
                     if (applyToAll) globalResolution = res
                     res
                 }
@@ -174,13 +193,13 @@ object TransferManager {
                         currentSpeed = (bytesSinceLastTime * 1000L) / diff
                         lastTime = now
                         bytesSinceLastTime = 0L
-                    }
-
-                    updateJob(job.id) {
-                        it.copy(
-                            bytesTransferred = totalBytesTransferred,
-                            speedBytesPerSec = currentSpeed
-                        )
+                        
+                        updateJob(job.id) {
+                            it.copy(
+                                bytesTransferred = totalBytesTransferred,
+                                speedBytesPerSec = currentSpeed
+                            )
+                        }
                     }
                 },
                 isCancelled = { cancelledJobIds.contains(job.id) },
@@ -214,17 +233,26 @@ object TransferManager {
         onTransferFinished?.invoke(updatedJob, allSuccess)
     }
 
+    private val directoryCache = mutableMapOf<String, List<VfsItem>>()
+
     private suspend fun checkDestinationExists(
         targetParentPath: String,
         name: String,
         protocol: StorageProtocol,
         conn: com.maez.filemanager.model.NetworkConnection?
     ): Boolean {
+        if (protocol == StorageProtocol.LOCAL) {
+            return File(targetParentPath, name).exists()
+        }
         return try {
-            val list = vfsManager.listDirectory(targetParentPath, protocol, conn, showHidden = true)
+            val cacheKey = "${protocol.name}_${conn?.id}_$targetParentPath"
+            val list = directoryCache.getOrPut(cacheKey) {
+                vfsManager.listDirectory(targetParentPath, protocol, conn, showHidden = true)
+            }
             list.any { it.name.equals(name, ignoreCase = true) }
         } catch (_: Exception) {
-            false
+            // Fall cerrado: si falla la red asume que existe para no sobrescribir sin preguntar
+            true
         }
     }
 
@@ -246,13 +274,17 @@ object TransferManager {
     }
 
     private fun updateJobStatus(jobId: String, status: TransferStatus) {
-        updateJob(jobId) { it.copy(status = status) }
+        updateJob(jobId) { 
+            // Respetar CANCELLED como estado terminal
+            if (it.status == TransferStatus.CANCELLED) it else it.copy(status = status)
+        }
     }
 
     private fun updateJob(jobId: String, transform: (TransferJob) -> TransferJob) {
-        val current = _jobs.value.map { job ->
-            if (job.id == jobId) transform(job) else job
+        _jobs.update { current ->
+            current.map { job ->
+                if (job.id == jobId) transform(job) else job
+            }
         }
-        _jobs.value = current
     }
 }

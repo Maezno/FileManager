@@ -186,6 +186,15 @@ class TransferService : Service() {
 
     override fun onTimeout(startId: Int) {
         super.onTimeout(startId)
+        handleTimeout()
+    }
+
+    override fun onTimeout(startId: Int, fgsType: Int) {
+        super.onTimeout(startId, fgsType)
+        handleTimeout()
+    }
+
+    private fun handleTimeout() {
         // En Android 15+, dataSync tiene un timeout máximo de ejecución
         TransferManager.getActiveJob()?.let {
             TransferManager.cancel(it.id)

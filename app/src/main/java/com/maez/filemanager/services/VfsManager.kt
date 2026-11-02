@@ -25,6 +25,8 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import org.apache.commons.net.ftp.FTP
 import org.apache.commons.net.ftp.FTPClient
+import org.apache.commons.net.ftp.FTPReply
+import org.apache.commons.net.ftp.FTPSClient
 import java.io.ByteArrayOutputStream
 import java.io.DataInputStream
 import java.io.File
@@ -93,7 +95,6 @@ class VfsManager {
         val props = Properties().apply {
             setProperty("jcifs.smb.client.enableSMB2", "true")
             setProperty("jcifs.smb.client.useSMB2Negotiation", "true")
-            setProperty("jcifs.smb.client.ipcSigningEnforced", "false")
             setProperty("jcifs.smb.client.responseTimeout", "8000")
             setProperty("jcifs.smb.client.soTimeout", "10000")
             setProperty("jcifs.smb.client.connTimeout", "6000")
@@ -611,12 +612,19 @@ class VfsManager {
     // 4. OPERACIONES DE ARCHIVOS (CREAR CARPETA, RENOMBRAR, ELIMINAR, COPIAR/MOVER)
     // ─────────────────────────────────────────────────────────────────────────────
 
+    private fun isValidName(name: String): Boolean {
+        if (name.isBlank()) return false
+        val invalidChars = listOf('/', '\\', ':', '*', '?', '"', '<', '>', '|')
+        return invalidChars.none { it in name } && name != "." && name != ".."
+    }
+
     suspend fun createFolder(
         parentPath: String,
         folderName: String,
         protocol: StorageProtocol,
         connection: NetworkConnection? = null
     ): Boolean = withContext(Dispatchers.IO) {
+        if (!isValidName(folderName)) return@withContext false
         try {
             when (protocol) {
                 StorageProtocol.LOCAL -> File(parentPath, folderName).mkdirs()
@@ -648,11 +656,13 @@ class VfsManager {
         newName: String,
         connection: NetworkConnection? = null
     ): Boolean = withContext(Dispatchers.IO) {
+        if (!isValidName(newName)) return@withContext false
         try {
             when (item.protocol) {
                 StorageProtocol.LOCAL -> {
                     val src = File(item.path)
                     val dst = File(src.parentFile, newName)
+                    if (dst.exists()) return@withContext false
                     src.renameTo(dst)
                 }
                 StorageProtocol.SMB -> {
@@ -740,13 +750,27 @@ class VfsManager {
         targetFileName: String = source.name
     ): Boolean = withContext(Dispatchers.IO) {
         if (isCancelled?.invoke() == true) return@withContext false
+        
+        // Evitar bucle infinito al copiar carpeta en sí misma
+        if (source.isDirectory) {
+            val srcDir = if (source.protocol == StorageProtocol.LOCAL) File(source.path).canonicalPath else source.path
+            val dstDir = if (targetProtocol == StorageProtocol.LOCAL) File(targetParentPath).canonicalPath else targetParentPath
+            if (dstDir.startsWith(srcDir + File.separator) || dstDir.startsWith(srcDir + "/")) {
+                return@withContext false
+            }
+        }
+        
         if (source.isDirectory) {
             try {
-                // 1. Crear la carpeta de destino
-                val created = createFolder(targetParentPath, targetFileName, targetProtocol, targetConn)
-                val newDirPath = if (targetParentPath == "/") "/$targetFileName" else "${targetParentPath.trimEnd('/')}/$targetFileName"
-                // 2. Listar los hijos de la carpeta origen
+                // 1. Listar los hijos ANTES de crear el destino para no incluirlo en el listado
                 val children = listDirectory(source.path, source.protocol, sourceConn, showHidden = true)
+                // 2. Crear la carpeta de destino
+                val created = createFolder(targetParentPath, targetFileName, targetProtocol, targetConn)
+                if (!created && targetProtocol == StorageProtocol.LOCAL && !File(targetParentPath, targetFileName).exists()) {
+                    return@withContext false
+                }
+                val newDirPath = if (targetParentPath == "/") "/$targetFileName" else "${targetParentPath.trimEnd('/')}/$targetFileName"
+                
                 // 3. Transferir recursivamente cada hijo
                 var allSuccess = true
                 for (child in children) {
@@ -775,9 +799,16 @@ class VfsManager {
             if (source.protocol == StorageProtocol.LOCAL && targetProtocol == StorageProtocol.LOCAL) {
                 val srcFile = File(source.path)
                 val dstFile = File(targetParentPath, targetFileName)
+                
+                if (srcFile.canonicalFile == dstFile.canonicalFile) {
+                    // Mismo archivo, no truncar ni eliminar
+                    return@withContext true
+                }
+                
+                val tempFile = File(targetParentPath, "$targetFileName.part")
                 try {
                     srcFile.inputStream().use { input ->
-                        dstFile.outputStream().use { output ->
+                        tempFile.outputStream().use { output ->
                             val buffer = ByteArray(64 * 1024)
                             var read: Int
                             while (input.read(buffer).also { read = it } >= 0) {
@@ -789,13 +820,18 @@ class VfsManager {
                             }
                         }
                     }
-                    if (deleteSourceAfter) srcFile.delete()
-                    return@withContext true
+                    if (tempFile.renameTo(dstFile)) {
+                        if (deleteSourceAfter) srcFile.delete()
+                        return@withContext true
+                    } else {
+                        if (tempFile.exists()) tempFile.delete()
+                        return@withContext false
+                    }
                 } catch (e: kotlinx.coroutines.CancellationException) {
-                    if (dstFile.exists()) dstFile.delete()
+                    if (tempFile.exists()) tempFile.delete()
                     return@withContext false
                 } catch (e: Exception) {
-                    if (dstFile.exists()) dstFile.delete()
+                    if (tempFile.exists()) tempFile.delete()
                     return@withContext false
                 }
             }
@@ -1298,16 +1334,25 @@ class VfsManager {
     }
 
     private fun <T> withFtpClient(conn: NetworkConnection, block: (FTPClient) -> T): T {
-        val ftp = FTPClient()
+        // FTPS explícito: valida el certificado con los CA del sistema (TrustManager por defecto)
+        val ftp = if (conn.useTls) FTPSClient(false).apply { hostnameVerifier = javax.net.ssl.HttpsURLConnection.getDefaultHostnameVerifier() } else FTPClient()
         ftp.connectTimeout = 8000
         ftp.defaultTimeout = 10000
         ftp.controlEncoding = "UTF-8"
         try {
             ftp.connect(conn.host, conn.port)
+            if (!FTPReply.isPositiveCompletion(ftp.replyCode)) {
+                throw IllegalStateException("El servidor FTP rechazó la conexión (${ftp.replyCode})")
+            }
             val user = if (conn.anonymous || conn.username.isBlank()) "anonymous" else conn.username
             val pass = if (conn.anonymous || conn.username.isBlank()) "anonymous@" else conn.password
             if (!ftp.login(user, pass)) {
                 throw IllegalStateException("Autenticación FTP fallida para '$user'")
+            }
+            if (ftp is FTPSClient) {
+                // Cifra también el canal de datos
+                ftp.execPBSZ(0)
+                ftp.execPROT("P")
             }
             ftp.enterLocalPassiveMode()
             ftp.setFileType(FTP.BINARY_FILE_TYPE)
