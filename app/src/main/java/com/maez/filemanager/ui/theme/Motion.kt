@@ -1,5 +1,6 @@
 package com.maez.filemanager.ui.theme
 
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.FiniteAnimationSpec
@@ -50,6 +51,34 @@ object Motion {
         expandHorizontally(elastic<IntSize>(), expandFrom = Alignment.Start) + fadeIn(fade())
     val inlineExit: ExitTransition =
         shrinkHorizontally(elastic<IntSize>(), shrinkTowards = Alignment.End) + fadeOut(fade())
+
+    /**
+     * Barra de selección: entra desde la izquierda tapando las herramientas, en su mismo lugar y altura
+     * (la lista no se mueve), y vuelve por donde vino al deseleccionar o terminar la acción.
+     */
+    val selectionBarEnter: EnterTransition =
+        slideInHorizontally(elastic<IntOffset>()) { w -> -w } + fadeIn(fade())
+    val selectionBarExit: ExitTransition =
+        slideOutHorizontally(tween<IntOffset>(NORMAL_MS)) { w -> -w } + fadeOut(fade())
+
+    /** Herramientas que la barra de selección aparta hacia la derecha y que regresan al terminar. */
+    val toolsEnter: EnterTransition =
+        slideInHorizontally(elastic<IntOffset>()) { w -> w / 3 } + fadeIn(fade())
+    val toolsExit: ExitTransition =
+        slideOutHorizontally(tween<IntOffset>(NORMAL_MS)) { w -> w / 3 } + fadeOut(fade())
+
+    /** Elementos pequeños que aparecen en cada fila (casillas de selección): suaves, sin rebote. */
+    val softInlineEnter: EnterTransition =
+        expandHorizontally(tween<IntSize>(NORMAL_MS, easing = FastOutSlowInEasing), expandFrom = Alignment.Start) +
+            fadeIn(tween(NORMAL_MS))
+    val softInlineExit: ExitTransition =
+        shrinkHorizontally(tween<IntSize>(FAST_MS, easing = FastOutSlowInEasing), shrinkTowards = Alignment.Start) +
+            fadeOut(tween(FAST_MS))
+
+    /** Lo mismo para elementos superpuestos que no ocupan espacio en la fila (casilla sobre una miniatura). */
+    val softPopEnter: EnterTransition =
+        fadeIn(tween(NORMAL_MS)) + scaleIn(tween(NORMAL_MS, easing = FastOutSlowInEasing), initialScale = 0.8f)
+    val softPopExit: ExitTransition = fadeOut(tween(FAST_MS)) + scaleOut(tween(FAST_MS), targetScale = 0.8f)
 
     /** Un botón que aparece en su sitio con un "pop". */
     val popEnter: EnterTransition = scaleIn(elastic()) + fadeIn(fade())

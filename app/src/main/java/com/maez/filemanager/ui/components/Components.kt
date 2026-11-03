@@ -1,5 +1,29 @@
 package com.maez.filemanager.ui.components
 
+import androidx.compose.runtime.withFrameNanos
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.coroutineScope
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.foundation.lazy.LazyItemScope
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.animation.core.animate
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.CoroutineScope
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.runtime.DisposableEffect
+import kotlinx.coroutines.withTimeoutOrNull
+import androidx.compose.runtime.snapshotFlow
+import kotlinx.coroutines.launch
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.gestures.scrollBy
+import androidx.compose.foundation.gestures.ScrollableState
 import com.maez.filemanager.ui.theme.Motion
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
@@ -1140,43 +1164,129 @@ fun EmptyStatePreview() {
 
 /**
  * Mantener pulsado y arrastrar para seleccionar varios elementos de una lista.
- * Escucha en el pase Initial para adelantarse a los clics y long-press de cada tarjeta,
- * y consume el arrastre para que la lista no haga scroll mientras se selecciona.
+ * Escucha en el pase Initial para adelantarse a los clics de cada tarjeta y consume el arrastre para que la lista
+ * no haga scroll por su cuenta; si se pasa [scrollState], al acercar el dedo al borde superior o inferior la lista se
+ * desplaza sola (más rápido cuanto más cerca del borde) y sigue seleccionando lo que pasa bajo el dedo.
  */
 fun Modifier.dragToSelect(
     keyAt: (Offset) -> Any?,
     onSelectionStart: (Any) -> Unit,
-    onDragOver: (startKey: Any, currentKey: Any) -> Unit
-): Modifier = pointerInput(Unit) {
-    awaitEachGesture {
-        val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
-        val endedEarly = withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) {
-            while (true) {
-                val change = awaitPointerEvent(PointerEventPass.Initial).changes
-                    .firstOrNull { it.id == down.id } ?: return@withTimeoutOrNull true
-                if (!change.pressed) return@withTimeoutOrNull true
-                if ((change.position - down.position).getDistance() > viewConfiguration.touchSlop) {
-                    return@withTimeoutOrNull true
+    onDragOver: (startKey: Any, currentKey: Any) -> Unit,
+    scrollState: ScrollableState? = null
+): Modifier = pointerInput(scrollState) {
+    coroutineScope {
+        awaitEachGesture {
+            val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+            val endedEarly = withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) {
+                while (true) {
+                    val change = awaitPointerEvent(PointerEventPass.Initial).changes
+                        .firstOrNull { it.id == down.id } ?: return@withTimeoutOrNull true
+                    if (!change.pressed) return@withTimeoutOrNull true
+                    if ((change.position - down.position).getDistance() > viewConfiguration.touchSlop) {
+                        return@withTimeoutOrNull true
+                    }
+                }
+                @Suppress("UNREACHABLE_CODE")
+                true
+            }
+            if (endedEarly != null) return@awaitEachGesture
+
+            val startKey = keyAt(down.position) ?: return@awaitEachGesture
+            onSelectionStart(startKey)
+            var lastKey: Any = startKey
+            var pointer = down.position
+            val selectUnderPointer = {
+                val key = keyAt(pointer)
+                if (key != null && key != lastKey) {
+                    lastKey = key
+                    onDragOver(startKey, key)
                 }
             }
-            @Suppress("UNREACHABLE_CODE")
-            true
-        }
-        if (endedEarly != null) return@awaitEachGesture
 
-        val startKey = keyAt(down.position) ?: return@awaitEachGesture
-        onSelectionStart(startKey)
-        var lastKey: Any = startKey
-        while (true) {
-            val change = awaitPointerEvent(PointerEventPass.Initial).changes
-                .firstOrNull { it.id == down.id } ?: break
-            change.consume()
-            if (!change.pressed) break
-            val key = keyAt(change.position)
-            if (key != null && key != lastKey) {
-                lastKey = key
-                onDragOver(startKey, key)
+            // Desplazamiento automático mientras el dedo está cerca de un borde
+            val edge = 72.dp.toPx()
+            val maxStep = 22.dp.toPx()
+            val autoScroll = scrollState?.let { state ->
+                launch {
+                    while (isActive) {
+                        val step = when {
+                            pointer.y < edge -> -maxStep * ((edge - pointer.y) / edge).coerceIn(0f, 1f)
+                            pointer.y > size.height - edge -> maxStep * ((pointer.y - (size.height - edge)) / edge).coerceIn(0f, 1f)
+                            else -> 0f
+                        }
+                        if (step != 0f && state.scrollBy(step) != 0f) selectUnderPointer()
+                        withFrameNanos { }
+                    }
+                }
             }
+
+            while (true) {
+                val change = awaitPointerEvent(PointerEventPass.Initial).changes
+                    .firstOrNull { it.id == down.id } ?: break
+                change.consume()
+                if (!change.pressed) break
+                pointer = change.position
+                selectUnderPointer()
+            }
+            autoScroll?.cancel()
         }
     }
+}
+
+
+/**
+ * Desplazamiento vertical animado de lo que la barra de selección empuja hacia arriba al aparecer
+ * (o devuelve hacia abajo al irse). El valor cambia en el mismo frame que el scroll, sin parpadeo,
+ * y luego vuelve a cero con el resorte de indicador del motor de animaciones.
+ */
+class SelectionBarShift internal constructor(private val scope: CoroutineScope) {
+    var offset by mutableFloatStateOf(0f)
+        private set
+    private var job: Job? = null
+
+    internal fun play(from: Float) {
+        job?.cancel()
+        offset = from
+        job = scope.launch {
+            animate(from, 0f, animationSpec = Motion.indicator()) { value, _ -> offset = value }
+        }
+    }
+}
+
+@Composable
+fun rememberSelectionBarShift(): SelectionBarShift {
+    val scope = rememberCoroutineScope()
+    return remember { SelectionBarShift(scope) }
+}
+
+/** Elemento de lista situado encima de la barra de selección: acompaña su desplazamiento con una animación suave. */
+fun LazyListScope.shiftedItem(
+    shift: SelectionBarShift,
+    key: Any? = null,
+    content: @Composable LazyItemScope.() -> Unit
+) = item(key = key) {
+    Box(Modifier.graphicsLayer { translationY = shift.offset }) { content() }
+}
+
+/**
+ * Para una barra que aparece dentro de una lista (elemento con clave [barKey]) por encima de lo que se está tocando:
+ * compensa su altura en el mismo frame en que aparece y en el que desaparece, así las tarjetas de debajo no se
+ * mueven ni parpadean, y lo que está arriba se desliza con [shift]. Si la barra está fijada arriba (su lugar quedó
+ * fuera de pantalla) no desplaza nada. Se coloca dentro del contenido de la barra.
+ */
+@Composable
+fun KeepListStillWhileShown(state: LazyListState, barKey: Any, barHeight: Dp, shift: SelectionBarShift) {
+    val heightPx = with(LocalDensity.current) { barHeight.roundToPx() }
+    DisposableEffect(Unit) {
+        if (state.shiftAboveBar(barKey, heightPx)) shift.play(heightPx.toFloat())
+        onDispose { if (state.shiftAboveBar(barKey, -heightPx)) shift.play(-heightPx.toFloat()) }
+    }
+}
+
+private fun LazyListState.shiftAboveBar(barKey: Any, delta: Int): Boolean {
+    val bar = layoutInfo.visibleItemsInfo.firstOrNull { it.key == barKey } ?: return false
+    // Barra fijada arriba o por encima del primer elemento visible: la lista ya mantiene su posición sola
+    if (firstVisibleItemIndex >= bar.index && bar.offset <= 0) return false
+    requestScrollToItem(firstVisibleItemIndex, (firstVisibleItemScrollOffset + delta).coerceAtLeast(0))
+    return true
 }

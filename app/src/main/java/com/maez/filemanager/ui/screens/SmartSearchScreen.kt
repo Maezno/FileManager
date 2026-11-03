@@ -1,5 +1,12 @@
 package com.maez.filemanager.ui.screens
 
+import com.maez.filemanager.ui.components.rememberSelectionBarShift
+import com.maez.filemanager.ui.components.shiftedItem
+import com.maez.filemanager.ui.components.KeepListStillWhileShown
+import androidx.compose.foundation.layout.heightIn
+import com.maez.filemanager.ui.theme.PopupSurface
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
 import com.maez.filemanager.ui.theme.Motion
 import android.content.Context
 import com.maez.filemanager.ui.components.dragToSelect
@@ -397,6 +404,7 @@ fun SmartSearchScreen(viewModel: MainViewModel) {
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun SmartSearchScreenContent(
     toolIndex: Int,
@@ -493,6 +501,8 @@ fun SmartSearchScreenContent(
     }
 
     val resultsListState = rememberLazyListState()
+    val barShift = rememberSelectionBarShift()
+    val holdScope = rememberCoroutineScope()
     val latestResults by rememberUpdatedState(filteredSearchResults)
     val latestSelected by rememberUpdatedState(selectedSearchPaths)
     var dragSelectTarget by remember { mutableStateOf(true) }
@@ -504,6 +514,7 @@ fun SmartSearchScreenContent(
                 .fillMaxSize()
                 .padding(horizontal = 16.dp, vertical = 12.dp)
                 .dragToSelect(
+                    scrollState = resultsListState,
                     // Solo las tarjetas de resultados tienen como clave la ruta del archivo
                     keyAt = { offset ->
                         resultsListState.layoutInfo.visibleItemsInfo
@@ -531,7 +542,7 @@ fun SmartSearchScreenContent(
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             // 1. Selector de Modo (Búsqueda Inteligente vs Limpiar Duplicados)
-            item {
+            shiftedItem(barShift) {
                 GlassSegmentedControl(
                     options = listOf(
                         "Búsqueda Inteligente" to Icons.Default.Search,
@@ -543,7 +554,7 @@ fun SmartSearchScreenContent(
             }
 
             if (toolIndex == 0) {
-                item {
+                shiftedItem(barShift) {
                     val focusRequester = remember { FocusRequester() }
                     val showSearchField = searchExpanded || searchWord.isNotBlank()
 
@@ -626,7 +637,7 @@ fun SmartSearchScreenContent(
                 }
 
                 // Panel de filtros desplegable, con etiquetas legibles
-                item {
+                shiftedItem(barShift) {
                     AnimatedVisibility(
                         visible = filtersExpanded,
                         // Se despliega hacia abajo desde el botón de filtros (arriba a la derecha)
@@ -727,7 +738,7 @@ fun SmartSearchScreenContent(
                 }
 
                 // Fila de Acciones de Escaneo
-                item {
+                shiftedItem(barShift) {
                     if (isScanning) {
                         GlassSurface(
                             shape = GlassCardShape,
@@ -770,7 +781,7 @@ fun SmartSearchScreenContent(
                 }
 
                 if (metricsText.isNotEmpty() && !isScanning) {
-                    item {
+                    shiftedItem(barShift) {
                         Text(
                             text = metricsText,
                             color = Aqua,
@@ -781,99 +792,51 @@ fun SmartSearchScreenContent(
                     }
                 }
 
-                // Resumen de archivos y tamaño
-                if (filteredSearchResults.isNotEmpty() && !isScanning) {
-                    item {
-                        val totalBytes = filteredSearchResults.sumOf { it.item.sizeBytes }
-                        Text(
-                            text = "${filteredSearchResults.size} archivos · ${formatBytes(totalBytes)} en total",
-                            color = TextMuted,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium,
-                            modifier = Modifier.padding(horizontal = 2.dp)
-                        )
-                    }
-                }
-
-                // Barra de Acciones de Selección Múltiple (Búsqueda)
-                item {
-                    AnimatedVisibility(
+                // Barra de selección: entra desde la izquierda justo encima de los resultados y vuelve por donde vino
+                stickyHeader(key = "selectionBar") {
+                    androidx.compose.animation.AnimatedVisibility(
                         visible = selectedSearchPaths.isNotEmpty() && !isScanning,
-                        enter = Motion.panelEnter,
-                        exit = Motion.panelExit
+                        enter = Motion.selectionBarEnter,
+                        exit = Motion.selectionBarExit
                     ) {
-                        Column {
-                                val selectedItems = filteredSearchResults.filter { it.item.path in selectedSearchPaths }
-                                val selectedBytes = selectedItems.sumOf { it.item.sizeBytes }
-
-                                GlassSurface(
-                                    shape = GlassCardShape,
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Column(
-                                        modifier = Modifier.padding(12.dp),
-                                        verticalArrangement = Arrangement.spacedBy(10.dp)
-                                    ) {
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Text(
-                                                text = "${selectedSearchPaths.size} seleccionados",
-                                                color = TextPrimary,
-                                                fontSize = 14.sp,
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                            Text(
-                                                text = "${formatBytes(selectedBytes)} seleccionados",
-                                                color = WarningAmber,
-                                                fontSize = 13.sp,
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                        }
-
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            SecondaryGlassButton(
-                                                text = if (selectedSearchPaths.size == filteredSearchResults.size) "Deseleccionar" else "Todo",
-                                                icon = Icons.Default.SelectAll,
-                                                onClick = {
-                                                    if (selectedSearchPaths.size == filteredSearchResults.size) {
-                                                        onClearSearchSelection()
-                                                    } else {
-                                                        onSelectAllSearchResults()
-                                                    }
-                                                },
-                                                modifier = Modifier.weight(1f),
-                                                tint = Aqua
-                                            )
-                                            SecondaryGlassButton(
-                                                text = "Compartir",
-                                                icon = Icons.Default.Share,
-                                                onClick = onShareSelectedSearch,
-                                                modifier = Modifier.weight(1f),
-                                                tint = Violet
-                                            )
-                                            PrimaryGlassButton(
-                                                text = "Eliminar",
-                                                icon = Icons.Default.Delete,
-                                                onClick = onRequestDeleteSelectedSearch,
-                                                modifier = Modifier.weight(1f)
-                                            )
-                                            SecondaryButton(
-                                                text = "Cancelar",
-                                                icon = Icons.Default.Close,
-                                                onClick = onClearSearchSelection,
-                                                tint = TextMuted
-                                            )
-                                        }
-                                    }
-                                }
-                        }
+                        KeepListStillWhileShown(resultsListState, "selectionBar", 52.dp, barShift)
+        val selectedBytes = filteredSearchResults.filter { it.item.path in selectedSearchPaths }.sumOf { it.item.sizeBytes }
+        val allSelected = selectedSearchPaths.size == filteredSearchResults.size
+        GlassSurface(
+            shape = GlassChipShape,
+            fillColor = PopupSurface,
+            borderColor = Violet,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp)
+                    .padding(horizontal = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = onClearSearchSelection, modifier = Modifier.size(36.dp)) {
+                    Icon(Icons.Default.Close, contentDescription = "Cancelar selección", tint = TextMuted, modifier = Modifier.size(18.dp))
+                }
+                Spacer(Modifier.width(4.dp))
+                Column(Modifier.weight(1f)) {
+                    Text("${selectedSearchPaths.size} sel.", color = Violet, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    Text(formatBytes(selectedBytes), color = WarningAmber, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                }
+                IconButton(
+                    onClick = { if (allSelected) onClearSearchSelection() else onSelectAllSearchResults() },
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(Icons.Default.SelectAll, contentDescription = if (allSelected) "Deseleccionar" else "Seleccionar todo", tint = Aqua, modifier = Modifier.size(20.dp))
+                }
+                IconButton(onClick = onShareSelectedSearch, modifier = Modifier.size(40.dp)) {
+                    Icon(Icons.Default.Share, contentDescription = "Compartir", tint = Violet, modifier = Modifier.size(20.dp))
+                }
+                IconButton(onClick = onRequestDeleteSelectedSearch, modifier = Modifier.size(40.dp)) {
+                    Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = Danger, modifier = Modifier.size(20.dp))
+                }
+            }
+        }
                     }
                 }
 
@@ -1401,16 +1364,18 @@ private fun MediaSearchResultCard(
                 .padding(horizontal = 12.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            if (isSelectionMode) {
-                IconButton(onClick = onToggleSelect, modifier = Modifier.size(28.dp)) {
-                    Icon(
-                        imageVector = if (isSelected) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
-                        contentDescription = "Seleccionar",
-                        tint = if (isSelected) Aqua else TextMuted,
-                        modifier = Modifier.size(18.dp)
-                    )
+            AnimatedVisibility(visible = isSelectionMode, enter = Motion.softInlineEnter, exit = Motion.softInlineExit) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = onToggleSelect, modifier = Modifier.size(28.dp)) {
+                        Icon(
+                            imageVector = if (isSelected) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
+                            contentDescription = "Seleccionar",
+                            tint = if (isSelected) Aqua else TextMuted,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                    Spacer(Modifier.width(6.dp))
                 }
-                Spacer(Modifier.width(6.dp))
             }
 
             FileThumbnailBox(
@@ -1481,7 +1446,7 @@ private fun MediaSearchResultCard(
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f)
                     )
-                    if (!isSelectionMode) {
+                    AnimatedVisibility(visible = !isSelectionMode, enter = Motion.softInlineEnter, exit = Motion.softInlineExit) {
                         Row {
                             IconButton(onClick = onShare, modifier = Modifier.size(28.dp)) {
                                 Icon(Icons.Default.Share, contentDescription = "Compartir", tint = Violet, modifier = Modifier.size(16.dp))

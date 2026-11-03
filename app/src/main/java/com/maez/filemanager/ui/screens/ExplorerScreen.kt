@@ -1,5 +1,14 @@
 package com.maez.filemanager.ui.screens
 
+import com.maez.filemanager.ui.theme.PopupSurface
+import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import com.maez.filemanager.ui.theme.Motion
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -521,70 +530,7 @@ fun ExplorerScreenContent(
             }
         }
 
-        // 3. Barra de Selección Múltiple
-        AnimatedVisibility(visible = isSelectionMode, enter = Motion.panelEnter, exit = Motion.panelExit) {
-            GlassSurface(
-                shape = GlassChipShape,
-                borderColor = Violet,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                        IconButton(onClick = onClearSelection, modifier = Modifier.size(32.dp)) {
-                            Icon(Icons.Default.Close, contentDescription = "Cancelar selección", tint = TextMuted, modifier = Modifier.size(18.dp))
-                        }
-                        Spacer(Modifier.width(4.dp))
-                        Text(
-                            text = "${selectedPaths.size} sel.",
-                            color = Violet,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(
-                            onClick = {
-                                if (selectedPaths.size == filteredItems.size) {
-                                    onClearSelection()
-                                } else {
-                                    onSelectAll(filteredItems)
-                                }
-                            },
-                            modifier = Modifier.size(32.dp)
-                        ) {
-                            Icon(Icons.Default.SelectAll, contentDescription = "Seleccionar todo", tint = TextPrimary, modifier = Modifier.size(18.dp))
-                        }
-                        IconButton(onClick = onCopySelected, modifier = Modifier.size(32.dp)) {
-                            Icon(Icons.Default.ContentCopy, contentDescription = "Copiar", tint = Violet, modifier = Modifier.size(18.dp))
-                        }
-                        IconButton(onClick = onCutSelected, modifier = Modifier.size(32.dp)) {
-                            Icon(Icons.Default.ContentCut, contentDescription = "Mover", tint = Aqua, modifier = Modifier.size(18.dp))
-                        }
-                        IconButton(onClick = onShareSelected, modifier = Modifier.size(32.dp)) {
-                            Icon(Icons.Default.Share, contentDescription = "Compartir", tint = Violet, modifier = Modifier.size(18.dp))
-                        }
-                        IconButton(
-                            onClick = {
-                                if (confirmBeforeDelete) {
-                                    showDeleteSelectedConfirm = true
-                                } else {
-                                    onDeleteSelected()
-                                }
-                            },
-                            modifier = Modifier.size(32.dp)
-                        ) {
-                            Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = Danger, modifier = Modifier.size(18.dp))
-                        }
-                    }
-                }
-            }
-        }
+
 
         // 4. Portapapeles flotante
         AnimatedVisibility(visible = clipboard.items.isNotEmpty(), enter = Motion.panelEnter, exit = Motion.panelExit) {
@@ -699,108 +645,186 @@ fun ExplorerScreenContent(
             onSetQuickFilter("")
             searchExpanded = false
         }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+        // Al seleccionar, la barra de selección entra desde la izquierda y ocupa el lugar de las herramientas
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp)
         ) {
-            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
-                Box(modifier = Modifier.animateContentSize(animationSpec = Motion.elastic())) {
-                    if (showSearch) {
-                        GlassSearchField(
-                            value = quickFilter,
-                            onValueChange = onSetQuickFilter,
-                            placeholder = "Buscar aquí y en subcarpetas...",
-                            height = 48.dp,
-                            focusRequester = searchFocusRequester,
-                            onClose = { collapseSearch() },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        LaunchedEffect(searchExpanded) {
-                            if (searchExpanded) searchFocusRequester.requestFocus()
+            androidx.compose.animation.AnimatedVisibility(visible = !isSelectionMode, enter = Motion.toolsEnter, exit = Motion.toolsExit) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                    Box(modifier = Modifier.animateContentSize(animationSpec = Motion.elastic())) {
+                        if (showSearch) {
+                            GlassSearchField(
+                                value = quickFilter,
+                                onValueChange = onSetQuickFilter,
+                                placeholder = "Buscar aquí y en subcarpetas...",
+                                height = 48.dp,
+                                focusRequester = searchFocusRequester,
+                                onClose = { collapseSearch() },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            LaunchedEffect(searchExpanded) {
+                                if (searchExpanded) searchFocusRequester.requestFocus()
+                            }
+                        } else {
+                            GlassIconButton(
+                                icon = Icons.Default.Search,
+                                onClick = { searchExpanded = true },
+                                tint = Aqua,
+                                contentDescription = "Buscar"
+                            )
                         }
-                    } else {
+                    }
+                }
+
+                // Iconos agrupados mientras se busca: tocar el botón los devuelve a su sitio
+                AnimatedVisibility(
+                    visible = showSearch,
+                    enter = Motion.popEnter + Motion.inlineEnter,
+                    exit = Motion.popExit + Motion.inlineExit
+                ) {
+                    GlassIconButton(
+                        icon = Icons.Default.Tune,
+                        onClick = { collapseSearch() },
+                        tint = Violet,
+                        contentDescription = "Mostrar herramientas",
+                        modifier = Modifier.padding(start = 8.dp)
+                    )
+                }
+
+                AnimatedVisibility(
+                    visible = !showSearch,
+                    enter = Motion.inlineEnter,
+                    exit = Motion.inlineExit
+                ) {
+                    Row(
+                        modifier = Modifier.padding(start = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box {
+                            GlassIconButton(
+                                icon = Icons.AutoMirrored.Filled.Sort,
+                                onClick = { showSortMenu = true },
+                                tint = Violet,
+                                contentDescription = "Ordenar"
+                            )
+                            GlassDropdownMenu(
+                                expanded = showSortMenu,
+                                onDismissRequest = { showSortMenu = false }
+                            ) {
+                                SortField.entries.forEach { field ->
+                                    DropdownMenuItem(
+                                        text = {
+                                            val arrow = if (sortField == field) (if (sortAsc) " ↑" else " ↓") else ""
+                                            Text("Ordenar por ${field.label}$arrow", color = TextPrimary, fontSize = 13.sp)
+                                        },
+                                        onClick = {
+                                            val nextAsc = if (sortField == field) !sortAsc else true
+                                            onSetSorting(field, nextAsc)
+                                            showSortMenu = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+
                         GlassIconButton(
-                            icon = Icons.Default.Search,
-                            onClick = { searchExpanded = true },
+                            icon = Icons.Default.Refresh,
+                            onClick = onRefreshDirectory,
+                            tint = TextMuted,
+                            contentDescription = "Actualizar"
+                        )
+
+                        GlassIconButton(
+                            icon = Icons.Default.CreateNewFolder,
+                            onClick = { showNewFolderDialog = true },
                             tint = Aqua,
-                            contentDescription = "Buscar"
+                            contentDescription = "Nueva carpeta"
+                        )
+
+                        GlassIconButton(
+                            icon = if (isGrid) Icons.AutoMirrored.Filled.ViewList else Icons.Default.GridView,
+                            onClick = onToggleGridView,
+                            tint = Violet,
+                            contentDescription = "Cambiar vista"
                         )
                     }
                 }
             }
-
-            // Iconos agrupados mientras se busca: tocar el botón los devuelve a su sitio
-            AnimatedVisibility(
-                visible = showSearch,
-                enter = Motion.popEnter + Motion.inlineEnter,
-                exit = Motion.popExit + Motion.inlineExit
-            ) {
-                GlassIconButton(
-                    icon = Icons.Default.Tune,
-                    onClick = { collapseSearch() },
-                    tint = Violet,
-                    contentDescription = "Mostrar herramientas",
-                    modifier = Modifier.padding(start = 8.dp)
-                )
             }
-
-            AnimatedVisibility(
-                visible = !showSearch,
-                enter = Motion.inlineEnter,
-                exit = Motion.inlineExit
+            androidx.compose.animation.AnimatedVisibility(
+                visible = isSelectionMode,
+                enter = Motion.selectionBarEnter,
+                exit = Motion.selectionBarExit,
+                modifier = Modifier.matchParentSize()
             ) {
-                Row(
-                    modifier = Modifier.padding(start = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                GlassSurface(
+                    shape = GlassChipShape,
+                    fillColor = PopupSurface,
+                    borderColor = Violet,
+                    modifier = Modifier.fillMaxSize()
                 ) {
-                    Box {
-                        GlassIconButton(
-                            icon = Icons.AutoMirrored.Filled.Sort,
-                            onClick = { showSortMenu = true },
-                            tint = Violet,
-                            contentDescription = "Ordenar"
-                        )
-                        GlassDropdownMenu(
-                            expanded = showSortMenu,
-                            onDismissRequest = { showSortMenu = false }
-                        ) {
-                            SortField.entries.forEach { field ->
-                                DropdownMenuItem(
-                                    text = {
-                                        val arrow = if (sortField == field) (if (sortAsc) " ↑" else " ↓") else ""
-                                        Text("Ordenar por ${field.label}$arrow", color = TextPrimary, fontSize = 13.sp)
-                                    },
-                                    onClick = {
-                                        val nextAsc = if (sortField == field) !sortAsc else true
-                                        onSetSorting(field, nextAsc)
-                                        showSortMenu = false
+                    Row(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                            IconButton(onClick = onClearSelection, modifier = Modifier.size(32.dp)) {
+                                Icon(Icons.Default.Close, contentDescription = "Cancelar selección", tint = TextMuted, modifier = Modifier.size(18.dp))
+                            }
+                            Spacer(Modifier.width(4.dp))
+                            Text(
+                                text = "${selectedPaths.size} sel.",
+                                color = Violet,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                            IconButton(
+                                onClick = {
+                                    if (selectedPaths.size == filteredItems.size) {
+                                        onClearSelection()
+                                    } else {
+                                        onSelectAll(filteredItems)
                                     }
-                                )
+                                },
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(Icons.Default.SelectAll, contentDescription = "Seleccionar todo", tint = TextPrimary, modifier = Modifier.size(18.dp))
+                            }
+                            IconButton(onClick = onCopySelected, modifier = Modifier.size(32.dp)) {
+                                Icon(Icons.Default.ContentCopy, contentDescription = "Copiar", tint = Violet, modifier = Modifier.size(18.dp))
+                            }
+                            IconButton(onClick = onCutSelected, modifier = Modifier.size(32.dp)) {
+                                Icon(Icons.Default.ContentCut, contentDescription = "Mover", tint = Aqua, modifier = Modifier.size(18.dp))
+                            }
+                            IconButton(onClick = onShareSelected, modifier = Modifier.size(32.dp)) {
+                                Icon(Icons.Default.Share, contentDescription = "Compartir", tint = Violet, modifier = Modifier.size(18.dp))
+                            }
+                            IconButton(
+                                onClick = {
+                                    if (confirmBeforeDelete) {
+                                        showDeleteSelectedConfirm = true
+                                    } else {
+                                        onDeleteSelected()
+                                    }
+                                },
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = Danger, modifier = Modifier.size(18.dp))
                             }
                         }
                     }
-
-                    GlassIconButton(
-                        icon = Icons.Default.Refresh,
-                        onClick = onRefreshDirectory,
-                        tint = TextMuted,
-                        contentDescription = "Actualizar"
-                    )
-
-                    GlassIconButton(
-                        icon = Icons.Default.CreateNewFolder,
-                        onClick = { showNewFolderDialog = true },
-                        tint = Aqua,
-                        contentDescription = "Nueva carpeta"
-                    )
-
-                    GlassIconButton(
-                        icon = if (isGrid) Icons.AutoMirrored.Filled.ViewList else Icons.Default.GridView,
-                        onClick = onToggleGridView,
-                        tint = Violet,
-                        contentDescription = "Cambiar vista"
-                    )
                 }
             }
         }
@@ -866,6 +890,9 @@ fun ExplorerScreenContent(
         } else {
             val lazyListState = rememberLazyListState()
             val lazyGridState = rememberLazyGridState()
+            val holdScope = rememberCoroutineScope()
+            // Posición de la lista en pantalla: se mueve cuando aparece la barra o se compactan las herramientas
+            var listTop by remember { mutableIntStateOf(0) }
 
             var initialSelectionState by remember { mutableStateOf(false) }
 
@@ -873,6 +900,7 @@ fun ExplorerScreenContent(
             val updatedSelectedPaths by rememberUpdatedState(selectedPaths)
 
             val dragGestureModifier = Modifier.dragToSelect(
+                scrollState = if (isGrid) lazyGridState else lazyListState,
                 keyAt = { offset ->
                     if (isGrid) {
                         lazyGridState.layoutInfo.visibleItemsInfo.firstOrNull {
@@ -909,6 +937,7 @@ fun ExplorerScreenContent(
                     modifier = Modifier
                         .fillMaxSize()
                         .weight(1f)
+                        .onGloballyPositioned { listTop = it.positionInRoot().y.toInt() }
                         .then(dragGestureModifier),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -951,6 +980,7 @@ fun ExplorerScreenContent(
                     modifier = Modifier
                         .fillMaxSize()
                         .weight(1f)
+                        .onGloballyPositioned { listTop = it.positionInRoot().y.toInt() }
                         .then(dragGestureModifier),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
@@ -1469,16 +1499,18 @@ private fun ExplorerListRow(
                 .padding(horizontal = 12.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            if (isSelectionMode) {
-                IconButton(onClick = onToggleSelect, modifier = Modifier.size(28.dp)) {
-                    Icon(
-                        imageVector = if (isSelected) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
-                        contentDescription = null,
-                        tint = if (isSelected) Violet else TextMuted,
-                        modifier = Modifier.size(18.dp)
-                    )
+            AnimatedVisibility(visible = isSelectionMode, enter = Motion.softInlineEnter, exit = Motion.softInlineExit) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = onToggleSelect, modifier = Modifier.size(28.dp)) {
+                        Icon(
+                            imageVector = if (isSelected) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
+                            contentDescription = null,
+                            tint = if (isSelected) Violet else TextMuted,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                    Spacer(Modifier.width(4.dp))
                 }
-                Spacer(Modifier.width(4.dp))
             }
 
             FileThumbnailBox(
@@ -1582,13 +1614,17 @@ private fun ExplorerGridCard(
                         .height(84.dp)
                 )
 
-                if (isSelectionMode) {
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = isSelectionMode,
+                    enter = Motion.softPopEnter,
+                    exit = Motion.softPopExit,
+                    modifier = Modifier.align(Alignment.TopStart)
+                ) {
                     Icon(
                         imageVector = if (isSelected) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
                         contentDescription = "Seleccionar",
                         tint = if (isSelected) Violet else TextMuted,
                         modifier = Modifier
-                            .align(Alignment.TopStart)
                             .padding(4.dp)
                             .size(20.dp)
                             .clickable { onToggleSelect() }
