@@ -1,4 +1,4 @@
-package com.maez.filemanager.ui.screens
+package com.maez.qubitexplorer.ui.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
@@ -45,35 +45,35 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.maez.filemanager.model.DiscoveredHost
-import com.maez.filemanager.model.NetworkConnection
-import com.maez.filemanager.model.StorageProtocol
-import com.maez.filemanager.ui.components.AppProgressBar
-import com.maez.filemanager.ui.components.ControlShape
-import com.maez.filemanager.ui.components.EmptyState
-import com.maez.filemanager.ui.components.GlassAlertDialog
-import com.maez.filemanager.ui.components.GlassIconButton
-import com.maez.filemanager.ui.components.GlassSurface
-import com.maez.filemanager.ui.components.IconBadge
-import com.maez.filemanager.ui.components.IconBubble
-import com.maez.filemanager.ui.components.PrimaryButton
-import com.maez.filemanager.ui.components.SecondaryButton
-import com.maez.filemanager.ui.components.SectionCard
-import com.maez.filemanager.ui.components.SelectChip
-import com.maez.filemanager.ui.components.SettingSwitchRow
-import com.maez.filemanager.ui.components.Tag
-import com.maez.filemanager.ui.components.appTextFieldColors
-import com.maez.filemanager.ui.theme.Aqua
-import com.maez.filemanager.ui.theme.BgElevated
-import com.maez.filemanager.ui.theme.CardDark
-import com.maez.filemanager.ui.theme.Danger
-import com.maez.filemanager.ui.theme.FileManagerTheme
-import com.maez.filemanager.ui.theme.GlassCardShape
-import com.maez.filemanager.ui.theme.TextMuted
-import com.maez.filemanager.ui.theme.TextPrimary
-import com.maez.filemanager.ui.theme.TextSecondary
-import com.maez.filemanager.ui.theme.Violet
-import com.maez.filemanager.viewmodel.MainViewModel
+import com.maez.qubitexplorer.model.DiscoveredHost
+import com.maez.qubitexplorer.model.NetworkConnection
+import com.maez.qubitexplorer.model.StorageProtocol
+import com.maez.qubitexplorer.ui.components.AppProgressBar
+import com.maez.qubitexplorer.ui.components.ControlShape
+import com.maez.qubitexplorer.ui.components.EmptyState
+import com.maez.qubitexplorer.ui.components.GlassAlertDialog
+import com.maez.qubitexplorer.ui.components.GlassIconButton
+import com.maez.qubitexplorer.ui.components.GlassSurface
+import com.maez.qubitexplorer.ui.components.IconBadge
+import com.maez.qubitexplorer.ui.components.IconBubble
+import com.maez.qubitexplorer.ui.components.PrimaryButton
+import com.maez.qubitexplorer.ui.components.SecondaryButton
+import com.maez.qubitexplorer.ui.components.SectionCard
+import com.maez.qubitexplorer.ui.components.SelectChip
+import com.maez.qubitexplorer.ui.components.SettingSwitchRow
+import com.maez.qubitexplorer.ui.components.Tag
+import com.maez.qubitexplorer.ui.components.appTextFieldColors
+import com.maez.qubitexplorer.ui.theme.Aqua
+import com.maez.qubitexplorer.ui.theme.BgElevated
+import com.maez.qubitexplorer.ui.theme.CardDark
+import com.maez.qubitexplorer.ui.theme.Danger
+import com.maez.qubitexplorer.ui.theme.QubitExplorerTheme
+import com.maez.qubitexplorer.ui.theme.GlassCardShape
+import com.maez.qubitexplorer.ui.theme.TextMuted
+import com.maez.qubitexplorer.ui.theme.TextPrimary
+import com.maez.qubitexplorer.ui.theme.TextSecondary
+import com.maez.qubitexplorer.ui.theme.Violet
+import com.maez.qubitexplorer.viewmodel.MainViewModel
 
 @Composable
 fun NetworkScreen(viewModel: MainViewModel) {
@@ -584,7 +584,7 @@ private fun DiscoveredHostCard(
 @Preview(showBackground = true, backgroundColor = 0xFF120B26)
 @Composable
 fun NetworkScreenPreview() {
-    FileManagerTheme {
+    QubitExplorerTheme {
         NetworkScreenContent(
             savedConnections = listOf(
                 NetworkConnection(
@@ -617,7 +617,7 @@ fun NetworkScreenPreview() {
 @Preview(showBackground = true, backgroundColor = 0xFF120B26)
 @Composable
 fun DiscoveredHostCardPreview() {
-    FileManagerTheme {
+    QubitExplorerTheme {
         Box(modifier = Modifier.padding(12.dp)) {
             DiscoveredHostCard(
                 host = DiscoveredHost(

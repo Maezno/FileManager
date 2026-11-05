@@ -1,5 +1,6 @@
-package com.maez.filemanager.ui.theme
+package com.maez.qubitexplorer.ui.theme
 
+import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
@@ -24,13 +25,16 @@ import androidx.compose.ui.unit.IntSize
 
 /**
  * Lenguaje de movimiento único de la app. Cada familia de elementos usa siempre la misma animación:
- * - Elástica: lo que crece o se encoge al tocarlo (barra de búsqueda, paneles, barras de acciones).
+ * - Elástica: lo que crece al tocarlo (barra de búsqueda, paneles, barras de acciones). Al encogerse no rebota.
  * - Indicador: lo que se desplaza para marcar una selección (pestañas, segmentos).
  * - Fundido: cambios de color y de contenido sin cambio de tamaño.
  */
 object Motion {
     const val FAST_MS = 180
     const val NORMAL_MS = 220
+
+    /** Cierre: arranca suave y se asienta brevemente, sin cola lenta ni parada en seco. */
+    private val collapseEasing = CubicBezierEasing(0.4f, 0f, 0.7f, 1f)
 
     fun <T> elastic(): FiniteAnimationSpec<T> =
         spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMediumLow)
@@ -40,17 +44,27 @@ object Motion {
 
     fun <T> fade(): FiniteAnimationSpec<T> = tween(FAST_MS)
 
+    /** Rebote leve en ambos sentidos: el panel que se expande y se contrae con el progreso de una tarea. */
+    fun <T> softBounce(): FiniteAnimationSpec<T> =
+        spring(dampingRatio = 0.65f, stiffness = Spring.StiffnessMediumLow)
+
     /** Paneles y barras que aparecen debajo de algo (filtros, selección, portapapeles, menús). */
     val panelEnter: EnterTransition =
         expandVertically(elastic<IntSize>(), expandFrom = Alignment.Top) + fadeIn(fade())
     val panelExit: ExitTransition =
-        shrinkVertically(elastic<IntSize>(), shrinkTowards = Alignment.Top) + fadeOut(fade())
+        shrinkVertically(tween<IntSize>(NORMAL_MS, easing = collapseEasing), shrinkTowards = Alignment.Top) + fadeOut(tween(NORMAL_MS))
+
+    /** Progreso dentro de un panel: a diferencia del resto, también rebota levemente al contraerse. */
+    val progressEnter: EnterTransition =
+        expandVertically(softBounce<IntSize>(), expandFrom = Alignment.Top) + fadeIn(fade())
+    val progressExit: ExitTransition =
+        shrinkVertically(softBounce<IntSize>(), shrinkTowards = Alignment.Top) + fadeOut(fade())
 
     /** Elementos de una fila que se apartan o vuelven a su sitio (iconos de herramientas, etiquetas). */
     val inlineEnter: EnterTransition =
         expandHorizontally(elastic<IntSize>(), expandFrom = Alignment.Start) + fadeIn(fade())
     val inlineExit: ExitTransition =
-        shrinkHorizontally(elastic<IntSize>(), shrinkTowards = Alignment.End) + fadeOut(fade())
+        shrinkHorizontally(tween<IntSize>(NORMAL_MS, easing = collapseEasing), shrinkTowards = Alignment.End) + fadeOut(tween(NORMAL_MS))
 
     /**
      * Barra de selección: entra desde la izquierda tapando las herramientas, en su mismo lugar y altura

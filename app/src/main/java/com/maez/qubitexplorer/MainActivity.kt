@@ -1,6 +1,6 @@
-package com.maez.filemanager
+package com.maez.qubitexplorer
 
-import com.maez.filemanager.ui.theme.Motion
+import com.maez.qubitexplorer.ui.theme.Motion
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -65,23 +65,23 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
-import com.maez.filemanager.ui.components.AppBackground
-import com.maez.filemanager.ui.components.AppBottomNavigationBar
-import com.maez.filemanager.ui.components.GlassAlertDialog
-import com.maez.filemanager.ui.components.GlassSurface
-import com.maez.filemanager.ui.components.IconBadge
-import com.maez.filemanager.ui.components.MediaPreviewDialog
-import com.maez.filemanager.ui.screens.ExplorerScreen
-import com.maez.filemanager.ui.screens.NetworkScreen
-import com.maez.filemanager.ui.screens.SettingsScreen
-import com.maez.filemanager.ui.screens.SmartSearchScreen
-import com.maez.filemanager.ui.theme.Aqua
-import com.maez.filemanager.ui.theme.FileManagerTheme
-import com.maez.filemanager.ui.theme.TextMuted
-import com.maez.filemanager.ui.theme.TextPrimary
-import com.maez.filemanager.ui.theme.TextSecondary
-import com.maez.filemanager.ui.theme.WarningAmber
-import com.maez.filemanager.viewmodel.MainViewModel
+import com.maez.qubitexplorer.ui.components.AppBackground
+import com.maez.qubitexplorer.ui.components.AppBottomNavigationBar
+import com.maez.qubitexplorer.ui.components.GlassAlertDialog
+import com.maez.qubitexplorer.ui.components.GlassSurface
+import com.maez.qubitexplorer.ui.components.IconBadge
+import com.maez.qubitexplorer.ui.components.MediaPreviewDialog
+import com.maez.qubitexplorer.ui.screens.ExplorerScreen
+import com.maez.qubitexplorer.ui.screens.NetworkScreen
+import com.maez.qubitexplorer.ui.screens.SettingsScreen
+import com.maez.qubitexplorer.ui.screens.SmartSearchScreen
+import com.maez.qubitexplorer.ui.theme.Aqua
+import com.maez.qubitexplorer.ui.theme.QubitExplorerTheme
+import com.maez.qubitexplorer.ui.theme.TextMuted
+import com.maez.qubitexplorer.ui.theme.TextPrimary
+import com.maez.qubitexplorer.ui.theme.TextSecondary
+import com.maez.qubitexplorer.ui.theme.WarningAmber
+import com.maez.qubitexplorer.viewmodel.MainViewModel
 
 class MainActivity : ComponentActivity() {
 
@@ -115,7 +115,7 @@ class MainActivity : ComponentActivity() {
         updatePermissionState()
 
         setContent {
-            FileManagerTheme {
+            QubitExplorerTheme {
                 val selectedTab by viewModel.selectedTab.collectAsState()
                 val previewItem by viewModel.previewItem.collectAsState()
                 val previewLocalPath by viewModel.previewLocalPath.collectAsState()
@@ -216,7 +216,7 @@ class MainActivity : ComponentActivity() {
                             },
                             text = {
                                 Text(
-                                    text = "Por qué FileManager Studio necesita acceso a todos los archivos: Para explorar carpetas del dispositivo, detectar archivos duplicados y transferir documentos o multimedia entre tu memoria interna y tus servidores de red local (SMB/FTP).",
+                                    text = "Por qué Qubit Explorer necesita acceso a todos los archivos: Para explorar carpetas del dispositivo, detectar archivos duplicados y transferir documentos o multimedia entre tu memoria interna y tus servidores de red local (SMB/FTP).",
                                     color = TextSecondary,
                                     fontSize = 12.sp,
                                     lineHeight = 16.sp
@@ -336,7 +336,7 @@ fun MainScreenContent(
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Image(
                                     painter = painterResource(id = R.drawable.app_logo),
-                                    contentDescription = "FileManager Studio",
+                                    contentDescription = "Qubit Explorer",
                                     modifier = Modifier
                                         .size(40.dp)
                                         .clip(RoundedCornerShape(12.dp))
@@ -344,16 +344,10 @@ fun MainScreenContent(
                                 Spacer(Modifier.width(10.dp))
                                 Column {
                                     Text(
-                                        text = "FileManager",
+                                        text = "Qubit Explorer",
                                         color = TextPrimary,
                                         fontSize = 22.sp,
                                         fontWeight = FontWeight.Bold
-                                    )
-                                    Text(
-                                        text = "Studio Mobile",
-                                        color = TextMuted,
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.Medium
                                     )
                                 }
                             }
@@ -403,7 +397,7 @@ fun MainScreenContent(
 @Preview(showBackground = true)
 @Composable
 fun MainScreenPreview() {
-    FileManagerTheme {
+    QubitExplorerTheme {
         MainScreenContent(
             selectedTab = 0,
             hasAllFilesAccess = true,

@@ -1,15 +1,15 @@
-package com.maez.filemanager.ui.screens
+package com.maez.qubitexplorer.ui.screens
 
-import com.maez.filemanager.ui.components.rememberSelectionBarShift
-import com.maez.filemanager.ui.components.shiftedItem
-import com.maez.filemanager.ui.components.KeepListStillWhileShown
+import com.maez.qubitexplorer.ui.components.rememberSelectionBarShift
+import com.maez.qubitexplorer.ui.components.shiftedItem
+import com.maez.qubitexplorer.ui.components.KeepListStillWhileShown
 import androidx.compose.foundation.layout.heightIn
-import com.maez.filemanager.ui.theme.PopupSurface
+import com.maez.qubitexplorer.ui.theme.PopupSurface
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
-import com.maez.filemanager.ui.theme.Motion
+import com.maez.qubitexplorer.ui.theme.Motion
 import android.content.Context
-import com.maez.filemanager.ui.components.dragToSelect
+import com.maez.qubitexplorer.ui.components.dragToSelect
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.ui.graphics.TransformOrigin
@@ -76,10 +76,10 @@ import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material.icons.filled.ScreenRotation
 import androidx.compose.material.icons.filled.SdCard
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.SelectAll
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Stop
-import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -113,61 +113,61 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.maez.filemanager.model.DeviceSummary
-import com.maez.filemanager.model.DuplicateFileEntry
-import com.maez.filemanager.model.FileCategory
-import com.maez.filemanager.model.MediaOrientation
-import com.maez.filemanager.model.MediaSearchItem
-import com.maez.filemanager.model.NetworkConnection
-import com.maez.filemanager.model.SearchSortField
-import com.maez.filemanager.model.StorageProtocol
-import com.maez.filemanager.model.VfsItem
-import com.maez.filemanager.model.formatBytes
-import com.maez.filemanager.services.ConnectionStorage
-import com.maez.filemanager.services.VfsManager
-import com.maez.filemanager.ui.components.AppProgressBar
-import com.maez.filemanager.ui.components.CompactSearchField
-import com.maez.filemanager.ui.components.ControlShape
-import com.maez.filemanager.ui.components.EmptyState
-import com.maez.filemanager.ui.components.FileThumbnailBox
-import com.maez.filemanager.ui.components.GlassAlertDialog
-import com.maez.filemanager.ui.components.GlassDropdownMenu
-import com.maez.filemanager.ui.components.GlassIconButton
-import com.maez.filemanager.ui.components.GlassSearchField
-import com.maez.filemanager.ui.components.GlassSegmentedControl
-import com.maez.filemanager.ui.components.GlassSurface
-import com.maez.filemanager.ui.components.IconBadge
-import com.maez.filemanager.ui.components.IconBubble
-import com.maez.filemanager.ui.components.PrimaryButton
-import com.maez.filemanager.ui.components.PrimaryGlassButton
-import com.maez.filemanager.ui.components.SecondaryButton
-import com.maez.filemanager.ui.components.SecondaryGlassButton
-import com.maez.filemanager.ui.components.SectionCard
-import com.maez.filemanager.ui.components.SegmentedTabs
-import com.maez.filemanager.ui.components.SelectChip
-import com.maez.filemanager.ui.components.SettingSwitchRow
-import com.maez.filemanager.ui.components.Tag
-import com.maez.filemanager.ui.components.appTextFieldColors
-import com.maez.filemanager.ui.theme.Aqua
-import com.maez.filemanager.ui.theme.BgElevated
-import com.maez.filemanager.ui.theme.BorderDark
-import com.maez.filemanager.ui.theme.CardDark
-import com.maez.filemanager.ui.theme.Danger
-import com.maez.filemanager.ui.theme.DangerRed
-import com.maez.filemanager.ui.theme.DangerRedLight
-import com.maez.filemanager.ui.theme.FileManagerTheme
-import com.maez.filemanager.ui.theme.GlassBorder
-import com.maez.filemanager.ui.theme.GlassCardShape
-import com.maez.filemanager.ui.theme.GlassChipShape
-import com.maez.filemanager.ui.theme.GlassFill
-import com.maez.filemanager.ui.theme.InputDark
-import com.maez.filemanager.ui.theme.SelectedViolet
-import com.maez.filemanager.ui.theme.TextMuted
-import com.maez.filemanager.ui.theme.TextPrimary
-import com.maez.filemanager.ui.theme.TextSecondary
-import com.maez.filemanager.ui.theme.Violet
-import com.maez.filemanager.ui.theme.WarningAmber
-import com.maez.filemanager.viewmodel.MainViewModel
+import com.maez.qubitexplorer.model.DeviceSummary
+import com.maez.qubitexplorer.model.DuplicateFileEntry
+import com.maez.qubitexplorer.model.FileCategory
+import com.maez.qubitexplorer.model.MediaOrientation
+import com.maez.qubitexplorer.model.MediaSearchItem
+import com.maez.qubitexplorer.model.NetworkConnection
+import com.maez.qubitexplorer.model.SearchSortField
+import com.maez.qubitexplorer.model.StorageProtocol
+import com.maez.qubitexplorer.model.VfsItem
+import com.maez.qubitexplorer.model.formatBytes
+import com.maez.qubitexplorer.services.ConnectionStorage
+import com.maez.qubitexplorer.services.VfsManager
+import com.maez.qubitexplorer.ui.components.AppProgressBar
+import com.maez.qubitexplorer.ui.components.CompactSearchField
+import com.maez.qubitexplorer.ui.components.ControlShape
+import com.maez.qubitexplorer.ui.components.EmptyState
+import com.maez.qubitexplorer.ui.components.FileThumbnailBox
+import com.maez.qubitexplorer.ui.components.GlassAlertDialog
+import com.maez.qubitexplorer.ui.components.GlassDropdownMenu
+import com.maez.qubitexplorer.ui.components.GlassIconButton
+import com.maez.qubitexplorer.ui.components.GlassSearchField
+import com.maez.qubitexplorer.ui.components.GlassSegmentedControl
+import com.maez.qubitexplorer.ui.components.GlassSurface
+import com.maez.qubitexplorer.ui.components.IconBadge
+import com.maez.qubitexplorer.ui.components.IconBubble
+import com.maez.qubitexplorer.ui.components.PrimaryButton
+import com.maez.qubitexplorer.ui.components.PrimaryGlassButton
+import com.maez.qubitexplorer.ui.components.SecondaryButton
+import com.maez.qubitexplorer.ui.components.SecondaryGlassButton
+import com.maez.qubitexplorer.ui.components.SectionCard
+import com.maez.qubitexplorer.ui.components.SegmentedTabs
+import com.maez.qubitexplorer.ui.components.SelectChip
+import com.maez.qubitexplorer.ui.components.SettingSwitchRow
+import com.maez.qubitexplorer.ui.components.Tag
+import com.maez.qubitexplorer.ui.components.appTextFieldColors
+import com.maez.qubitexplorer.ui.theme.Aqua
+import com.maez.qubitexplorer.ui.theme.BgElevated
+import com.maez.qubitexplorer.ui.theme.BorderDark
+import com.maez.qubitexplorer.ui.theme.CardDark
+import com.maez.qubitexplorer.ui.theme.Danger
+import com.maez.qubitexplorer.ui.theme.DangerRed
+import com.maez.qubitexplorer.ui.theme.DangerRedLight
+import com.maez.qubitexplorer.ui.theme.QubitExplorerTheme
+import com.maez.qubitexplorer.ui.theme.GlassBorder
+import com.maez.qubitexplorer.ui.theme.GlassCardShape
+import com.maez.qubitexplorer.ui.theme.GlassChipShape
+import com.maez.qubitexplorer.ui.theme.GlassFill
+import com.maez.qubitexplorer.ui.theme.InputDark
+import com.maez.qubitexplorer.ui.theme.SelectedViolet
+import com.maez.qubitexplorer.ui.theme.TextMuted
+import com.maez.qubitexplorer.ui.theme.TextPrimary
+import com.maez.qubitexplorer.ui.theme.TextSecondary
+import com.maez.qubitexplorer.ui.theme.Violet
+import com.maez.qubitexplorer.ui.theme.WarningAmber
+import com.maez.qubitexplorer.viewmodel.MainViewModel
 
 data class FolderPickerState(
     val title: String,
@@ -541,12 +541,12 @@ fun SmartSearchScreenContent(
                 ),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // 1. Selector de Modo (Búsqueda Inteligente vs Limpiar Duplicados)
+            // 1. Selector de Modo (Archivos pesados vs Duplicados)
             shiftedItem(barShift) {
                 GlassSegmentedControl(
                     options = listOf(
-                        "Búsqueda Inteligente" to Icons.Default.Search,
-                        "Limpiar Duplicados" to Icons.Default.ContentCopy
+                        "Archivos pesados" to Icons.Default.Storage,
+                        "Duplicados" to Icons.Default.ContentCopy
                     ),
                     selectedIndex = toolIndex,
                     onSelect = onSetToolIndex
@@ -1689,7 +1689,7 @@ fun SmartSearchScreenPreview() {
         isDirectory = true,
         protocol = StorageProtocol.LOCAL
     )
-    FileManagerTheme {
+    QubitExplorerTheme {
         SmartSearchScreenContent(
             toolIndex = 0,
             folderA = sampleFolder,
@@ -1731,7 +1731,7 @@ fun SmartSearchScreenPreview() {
 @Preview(showBackground = true, backgroundColor = 0xFF120B26)
 @Composable
 fun MediaSearchResultCardPreview() {
-    FileManagerTheme {
+    QubitExplorerTheme {
         MediaSearchResultCard(
             entry = MediaSearchItem(
                 item = VfsItem(
@@ -1754,7 +1754,7 @@ fun MediaSearchResultCardPreview() {
 @Preview(showBackground = true, backgroundColor = 0xFF120B26)
 @Composable
 fun DuplicateFileCardPreview() {
-    FileManagerTheme {
+    QubitExplorerTheme {
         DuplicateFileCard(
             entry = DuplicateFileEntry(
                 groupId = 1,

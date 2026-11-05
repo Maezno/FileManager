@@ -1,13 +1,13 @@
-package com.maez.filemanager.services
+package com.maez.qubitexplorer.services
 
 import android.content.Context
-import com.maez.filemanager.model.ConflictRequest
-import com.maez.filemanager.model.ConflictResolution
-import com.maez.filemanager.model.StorageProtocol
-import com.maez.filemanager.model.TransferJob
-import com.maez.filemanager.model.TransferStatus
-import com.maez.filemanager.model.TransferType
-import com.maez.filemanager.model.VfsItem
+import com.maez.qubitexplorer.model.ConflictRequest
+import com.maez.qubitexplorer.model.ConflictResolution
+import com.maez.qubitexplorer.model.StorageProtocol
+import com.maez.qubitexplorer.model.TransferJob
+import com.maez.qubitexplorer.model.TransferStatus
+import com.maez.qubitexplorer.model.TransferType
+import com.maez.qubitexplorer.model.VfsItem
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -115,11 +115,30 @@ object TransferManager {
 
         var globalResolution: ConflictResolution? = null
 
-        val connMap = mutableMapOf<String, com.maez.filemanager.model.NetworkConnection>()
+        val connMap = mutableMapOf<String, com.maez.qubitexplorer.model.NetworkConnection>()
         job.targetConnection?.let { connMap[it.id] = it }
 
         var allSuccess = true
         var isCancelled = false
+
+        // Las carpetas no traen tamaño propio: se suma su contenido para que el progreso sea real
+        if (job.items.any { it.isDirectory }) {
+            try {
+                val total = job.items.sumOf { item ->
+                    if (!item.isDirectory) item.sizeBytes
+                    else vfsManager.collectFilesRecursive(
+                        rootPath = item.path,
+                        protocol = item.protocol,
+                        connection = item.connectionId?.let { connMap[it] }
+                    ).sumOf { it.sizeBytes }
+                }
+                updateJob(job.id) { it.copy(totalBytes = total) }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                // Sin total conocido el progreso se calcula por elementos
+            }
+        }
 
         for ((index, item) in job.items.withIndex()) {
             if (cancelledJobIds.contains(job.id)) {
@@ -224,6 +243,7 @@ object TransferManager {
         updateJob(job.id) {
             it.copy(
                 status = finalStatus,
+                bytesTransferred = totalBytesTransferred,
                 speedBytesPerSec = 0L,
                 errorMessage = if (finalStatus == TransferStatus.ERROR) "Uno o más archivos no se pudieron transferir" else null
             )
@@ -239,7 +259,7 @@ object TransferManager {
         targetParentPath: String,
         name: String,
         protocol: StorageProtocol,
-        conn: com.maez.filemanager.model.NetworkConnection?
+        conn: com.maez.qubitexplorer.model.NetworkConnection?
     ): Boolean {
         if (protocol == StorageProtocol.LOCAL) {
             return File(targetParentPath, name).exists()
@@ -260,7 +280,7 @@ object TransferManager {
         targetParentPath: String,
         originalName: String,
         protocol: StorageProtocol,
-        conn: com.maez.filemanager.model.NetworkConnection?
+        conn: com.maez.qubitexplorer.model.NetworkConnection?
     ): String {
         val ext = originalName.substringAfterLast('.', "")
         val baseName = if (ext.isNotEmpty()) originalName.substringBeforeLast('.') else originalName

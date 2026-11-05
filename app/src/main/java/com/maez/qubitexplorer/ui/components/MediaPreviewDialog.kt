@@ -1,4 +1,4 @@
-package com.maez.filemanager.ui.components
+package com.maez.qubitexplorer.ui.components
 
 import android.graphics.BitmapFactory
 import android.widget.MediaController
@@ -44,20 +44,20 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.maez.filemanager.model.FileCategory
-import com.maez.filemanager.model.StorageProtocol
-import com.maez.filemanager.model.VfsItem
-import com.maez.filemanager.ui.theme.AccentBlueLight
-import com.maez.filemanager.ui.theme.AccentGreenLight
-import com.maez.filemanager.ui.theme.BorderDark
-import com.maez.filemanager.ui.theme.CardDark
-import com.maez.filemanager.ui.theme.ConsoleBg
-import com.maez.filemanager.ui.theme.DangerRedLight
-import com.maez.filemanager.ui.theme.FileManagerTheme
-import com.maez.filemanager.ui.theme.PopupBorder
-import com.maez.filemanager.ui.theme.PopupSurface
-import com.maez.filemanager.ui.theme.TextPrimary
-import com.maez.filemanager.ui.theme.TextSecondary
+import com.maez.qubitexplorer.model.FileCategory
+import com.maez.qubitexplorer.model.StorageProtocol
+import com.maez.qubitexplorer.model.VfsItem
+import com.maez.qubitexplorer.ui.theme.AccentBlueLight
+import com.maez.qubitexplorer.ui.theme.AccentGreenLight
+import com.maez.qubitexplorer.ui.theme.BorderDark
+import com.maez.qubitexplorer.ui.theme.CardDark
+import com.maez.qubitexplorer.ui.theme.ConsoleBg
+import com.maez.qubitexplorer.ui.theme.DangerRedLight
+import com.maez.qubitexplorer.ui.theme.QubitExplorerTheme
+import com.maez.qubitexplorer.ui.theme.PopupBorder
+import com.maez.qubitexplorer.ui.theme.PopupSurface
+import com.maez.qubitexplorer.ui.theme.TextPrimary
+import com.maez.qubitexplorer.ui.theme.TextSecondary
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -253,7 +253,7 @@ fun MediaPreviewDialog(
 @Preview(showBackground = true)
 @Composable
 fun MediaPreviewDialogPreview() {
-    FileManagerTheme {
+    QubitExplorerTheme {
         MediaPreviewDialog(
             item = VfsItem(
                 name = "Foto_Playa.jpg",

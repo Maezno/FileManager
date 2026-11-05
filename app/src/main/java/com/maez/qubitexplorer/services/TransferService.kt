@@ -1,4 +1,4 @@
-package com.maez.filemanager.services
+package com.maez.qubitexplorer.services
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -12,11 +12,11 @@ import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
-import com.maez.filemanager.MainActivity
-import com.maez.filemanager.R
-import com.maez.filemanager.model.TransferJob
-import com.maez.filemanager.model.TransferStatus
-import com.maez.filemanager.model.formatBytes
+import com.maez.qubitexplorer.MainActivity
+import com.maez.qubitexplorer.R
+import com.maez.qubitexplorer.model.TransferJob
+import com.maez.qubitexplorer.model.TransferStatus
+import com.maez.qubitexplorer.model.formatBytes
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -37,8 +37,8 @@ class TransferService : Service() {
         const val CHANNEL_ID = "transfers"
         const val NOTIFICATION_ID = 2001
 
-        const val ACTION_START = "com.maez.filemanager.TRANSFER_START"
-        const val ACTION_CANCEL = "com.maez.filemanager.TRANSFER_CANCEL"
+        const val ACTION_START = "com.maez.qubitexplorer.TRANSFER_START"
+        const val ACTION_CANCEL = "com.maez.qubitexplorer.TRANSFER_CANCEL"
         const val EXTRA_JOB_ID = "extra_job_id"
 
         fun start(context: Context) {

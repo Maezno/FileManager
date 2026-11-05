@@ -1,12 +1,12 @@
-package com.maez.filemanager.services
+package com.maez.qubitexplorer.services
 
 import android.content.Context
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyPermanentlyInvalidatedException
 import android.security.keystore.KeyProperties
 import android.util.Base64
-import com.maez.filemanager.model.NetworkConnection
-import com.maez.filemanager.model.StorageProtocol
+import com.maez.qubitexplorer.model.NetworkConnection
+import com.maez.qubitexplorer.model.StorageProtocol
 import org.json.JSONArray
 import org.json.JSONObject
 import java.security.KeyStore

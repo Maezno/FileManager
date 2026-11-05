@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "com.maez.filemanager"
+    namespace = "com.maez.qubitexplorer"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.maez.filemanager"
+        applicationId = "com.maez.qubitexplorer"
         minSdk = 26
         targetSdk = 36
         versionCode = 1

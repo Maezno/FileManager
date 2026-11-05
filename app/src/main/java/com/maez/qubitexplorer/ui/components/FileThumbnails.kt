@@ -1,4 +1,4 @@
-package com.maez.filemanager.ui.components
+package com.maez.qubitexplorer.ui.components
 
 import android.content.Context
 import android.graphics.Bitmap
@@ -52,20 +52,20 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.drawable.toBitmap
 import androidx.exifinterface.media.ExifInterface
-import com.maez.filemanager.model.FileCategory
-import com.maez.filemanager.model.NetworkConnection
-import com.maez.filemanager.model.StorageProtocol
-import com.maez.filemanager.model.VfsItem
-import com.maez.filemanager.services.VfsManager
-import com.maez.filemanager.ui.theme.AccentBlueLight
-import com.maez.filemanager.ui.theme.AccentGreenLight
-import com.maez.filemanager.ui.theme.FileManagerTheme
-import com.maez.filemanager.ui.theme.AccentPurple
-import com.maez.filemanager.ui.theme.BorderDark
-import com.maez.filemanager.ui.theme.ConsoleBg
-import com.maez.filemanager.ui.theme.DangerRedLight
-import com.maez.filemanager.ui.theme.TextSecondary
-import com.maez.filemanager.ui.theme.WarningAmber
+import com.maez.qubitexplorer.model.FileCategory
+import com.maez.qubitexplorer.model.NetworkConnection
+import com.maez.qubitexplorer.model.StorageProtocol
+import com.maez.qubitexplorer.model.VfsItem
+import com.maez.qubitexplorer.services.VfsManager
+import com.maez.qubitexplorer.ui.theme.AccentBlueLight
+import com.maez.qubitexplorer.ui.theme.AccentGreenLight
+import com.maez.qubitexplorer.ui.theme.QubitExplorerTheme
+import com.maez.qubitexplorer.ui.theme.AccentPurple
+import com.maez.qubitexplorer.ui.theme.BorderDark
+import com.maez.qubitexplorer.ui.theme.ConsoleBg
+import com.maez.qubitexplorer.ui.theme.DangerRedLight
+import com.maez.qubitexplorer.ui.theme.TextSecondary
+import com.maez.qubitexplorer.ui.theme.WarningAmber
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -321,7 +321,7 @@ fun FileThumbnailBox(
 @Preview(showBackground = true)
 @Composable
 fun FileThumbnailBoxPreview() {
-    FileManagerTheme {
+    QubitExplorerTheme {
         FileThumbnailBox(
             item = VfsItem(
                 name = "Video_Ejemplo.mp4",

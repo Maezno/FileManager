@@ -1,15 +1,15 @@
-package com.maez.filemanager.services
+package com.maez.qubitexplorer.services
 
 import android.content.Context
 import android.media.MediaMetadataRetriever
 import androidx.exifinterface.media.ExifInterface
-import com.maez.filemanager.model.DeviceSummary
-import com.maez.filemanager.model.DuplicateFileEntry
-import com.maez.filemanager.model.FileCategory
-import com.maez.filemanager.model.MediaSearchItem
-import com.maez.filemanager.model.NetworkConnection
-import com.maez.filemanager.model.StorageProtocol
-import com.maez.filemanager.model.VfsItem
+import com.maez.qubitexplorer.model.DeviceSummary
+import com.maez.qubitexplorer.model.DuplicateFileEntry
+import com.maez.qubitexplorer.model.FileCategory
+import com.maez.qubitexplorer.model.MediaSearchItem
+import com.maez.qubitexplorer.model.NetworkConnection
+import com.maez.qubitexplorer.model.StorageProtocol
+import com.maez.qubitexplorer.model.VfsItem
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext

@@ -1,4 +1,4 @@
-package com.maez.filemanager.services
+package com.maez.qubitexplorer.services
 
 import com.hierynomus.msdtyp.AccessMask
 import com.hierynomus.mssmb2.SMB2CreateDisposition
@@ -8,10 +8,10 @@ import com.hierynomus.smbj.SMBClient
 import com.hierynomus.smbj.SmbConfig
 import com.hierynomus.smbj.auth.AuthenticationContext
 import com.hierynomus.smbj.share.DiskShare
-import com.maez.filemanager.model.DiscoveredHost
-import com.maez.filemanager.model.NetworkConnection
-import com.maez.filemanager.model.StorageProtocol
-import com.maez.filemanager.model.VfsItem
+import com.maez.qubitexplorer.model.DiscoveredHost
+import com.maez.qubitexplorer.model.NetworkConnection
+import com.maez.qubitexplorer.model.StorageProtocol
+import com.maez.qubitexplorer.model.VfsItem
 import jcifs.CIFSContext
 import jcifs.config.PropertyConfiguration
 import jcifs.context.BaseContext

@@ -1,4 +1,4 @@
-package com.maez.filemanager.ui.screens
+package com.maez.qubitexplorer.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -44,24 +44,24 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.maez.filemanager.model.formatBytes
-import com.maez.filemanager.ui.components.AppProgressBar
-import com.maez.filemanager.ui.components.DropdownField
-import com.maez.filemanager.ui.components.GlassAlertDialog
-import com.maez.filemanager.ui.components.GlassPanel
-import com.maez.filemanager.ui.components.IconBadge
-import com.maez.filemanager.ui.components.PrimaryButton
-import com.maez.filemanager.ui.components.SecondaryButton
-import com.maez.filemanager.ui.components.SectionCard
-import com.maez.filemanager.ui.components.SettingSwitchRow
-import com.maez.filemanager.ui.theme.Aqua
-import com.maez.filemanager.ui.theme.Danger
-import com.maez.filemanager.ui.theme.FileManagerTheme
-import com.maez.filemanager.ui.theme.TextMuted
-import com.maez.filemanager.ui.theme.TextPrimary
-import com.maez.filemanager.ui.theme.Violet
-import com.maez.filemanager.ui.theme.WarningAmber
-import com.maez.filemanager.viewmodel.MainViewModel
+import com.maez.qubitexplorer.model.formatBytes
+import com.maez.qubitexplorer.ui.components.AppProgressBar
+import com.maez.qubitexplorer.ui.components.DropdownField
+import com.maez.qubitexplorer.ui.components.GlassAlertDialog
+import com.maez.qubitexplorer.ui.components.GlassPanel
+import com.maez.qubitexplorer.ui.components.IconBadge
+import com.maez.qubitexplorer.ui.components.PrimaryButton
+import com.maez.qubitexplorer.ui.components.SecondaryButton
+import com.maez.qubitexplorer.ui.components.SectionCard
+import com.maez.qubitexplorer.ui.components.SettingSwitchRow
+import com.maez.qubitexplorer.ui.theme.Aqua
+import com.maez.qubitexplorer.ui.theme.Danger
+import com.maez.qubitexplorer.ui.theme.QubitExplorerTheme
+import com.maez.qubitexplorer.ui.theme.TextMuted
+import com.maez.qubitexplorer.ui.theme.TextPrimary
+import com.maez.qubitexplorer.ui.theme.Violet
+import com.maez.qubitexplorer.ui.theme.WarningAmber
+import com.maez.qubitexplorer.viewmodel.MainViewModel
 
 @Composable
 fun SettingsScreen(
@@ -301,11 +301,11 @@ fun SettingsScreen(
                     title = "Acerca de y Privacidad",
                     icon = Icons.Default.Info,
                     iconTint = Violet,
-                    subtitle = "FileManager Studio v1.0.0"
+                    subtitle = "Qubit Explorer v1.0.0"
                 ) {
                     GlassPanel(padding = 14.dp) {
                         Text(
-                            text = "FileManager Studio v1.0.0",
+                            text = "Qubit Explorer v1.0.0",
                             color = TextPrimary,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold
@@ -371,7 +371,7 @@ fun SettingsScreen(
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "FileManager Studio opera de manera 100% local y en tu Red de Área Local (LAN). Ninguno de tus archivos, nombres, rutas ni credenciales de red (SMB/FTP) es enviado a servidores externos ni rastreadores.",
+                        text = "Qubit Explorer opera de manera 100% local y en tu Red de Área Local (LAN). Ninguno de tus archivos, nombres, rutas ni credenciales de red (SMB/FTP) es enviado a servidores externos ni rastreadores.",
                         color = TextMuted,
                         fontSize = 12.sp,
                         lineHeight = 16.sp
@@ -429,7 +429,7 @@ fun SettingsScreen(
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        text = "FileManager Studio utiliza las siguientes bibliotecas de código abierto:",
+                        text = "Qubit Explorer utiliza las siguientes bibliotecas de código abierto:",
                         color = TextMuted,
                         fontSize = 12.sp
                     )
@@ -461,7 +461,7 @@ fun SettingsScreen(
 @Preview(showBackground = true, backgroundColor = 0xFF120B26)
 @Composable
 fun SettingsScreenPreview() {
-    FileManagerTheme {
+    QubitExplorerTheme {
         Box(modifier = Modifier.padding(16.dp)) {
             GlassPanel {
                 Text("Ajustes y Configuración", color = TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold)

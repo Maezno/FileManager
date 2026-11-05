@@ -1,4 +1,4 @@
-package com.maez.filemanager.model
+package com.maez.qubitexplorer.model
 
 enum class TransferType(val label: String) {
     COPY("Copiar"),

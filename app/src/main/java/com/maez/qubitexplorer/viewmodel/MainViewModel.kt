@@ -1,4 +1,4 @@
-package com.maez.filemanager.viewmodel
+package com.maez.qubitexplorer.viewmodel
 
 import android.app.Application
 import android.content.Intent
@@ -8,29 +8,31 @@ import android.widget.Toast
 import androidx.core.content.FileProvider
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.maez.filemanager.model.ClipboardState
-import com.maez.filemanager.model.ConflictRequest
-import com.maez.filemanager.model.ConflictResolution
-import com.maez.filemanager.model.DeviceSummary
-import com.maez.filemanager.model.DiscoveredHost
-import com.maez.filemanager.model.DuplicateFileEntry
-import com.maez.filemanager.model.FileCategory
-import com.maez.filemanager.model.MediaOrientation
-import com.maez.filemanager.model.MediaSearchItem
-import com.maez.filemanager.model.NetworkConnection
-import com.maez.filemanager.model.SearchSortField
-import com.maez.filemanager.model.SortField
-import com.maez.filemanager.model.StorageProtocol
-import com.maez.filemanager.model.TransferJob
-import com.maez.filemanager.model.TransferStatus
-import com.maez.filemanager.model.TransferType
-import com.maez.filemanager.model.VfsItem
-import com.maez.filemanager.model.formatBytes
-import com.maez.filemanager.services.ConnectionStorage
-import com.maez.filemanager.services.SmartSearchEngine
-import com.maez.filemanager.services.TransferManager
-import com.maez.filemanager.services.TransferService
-import com.maez.filemanager.services.VfsManager
+import com.maez.qubitexplorer.model.ClipboardState
+import com.maez.qubitexplorer.model.ConflictRequest
+import com.maez.qubitexplorer.model.ConflictResolution
+import com.maez.qubitexplorer.model.DeviceSummary
+import com.maez.qubitexplorer.model.DiscoveredHost
+import com.maez.qubitexplorer.model.DuplicateFileEntry
+import com.maez.qubitexplorer.model.FileCategory
+import com.maez.qubitexplorer.model.MediaOrientation
+import com.maez.qubitexplorer.model.ExplorerSearchFilters
+import com.maez.qubitexplorer.model.ExplorerSearchTab
+import com.maez.qubitexplorer.model.MediaSearchItem
+import com.maez.qubitexplorer.model.NetworkConnection
+import com.maez.qubitexplorer.model.SearchSortField
+import com.maez.qubitexplorer.model.SortField
+import com.maez.qubitexplorer.model.StorageProtocol
+import com.maez.qubitexplorer.model.TransferJob
+import com.maez.qubitexplorer.model.TransferStatus
+import com.maez.qubitexplorer.model.TransferType
+import com.maez.qubitexplorer.model.VfsItem
+import com.maez.qubitexplorer.model.formatBytes
+import com.maez.qubitexplorer.services.ConnectionStorage
+import com.maez.qubitexplorer.services.SmartSearchEngine
+import com.maez.qubitexplorer.services.TransferManager
+import com.maez.qubitexplorer.services.TransferService
+import com.maez.qubitexplorer.services.VfsManager
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -95,12 +97,27 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _quickFilterQuery = MutableStateFlow("")
     val quickFilterQuery: StateFlow<String> = _quickFilterQuery.asStateFlow()
 
-    // Búsqueda rápida en subcarpetas desde el explorador (índice en memoria por carpeta)
-    private val _deepSearchResults = MutableStateFlow<List<VfsItem>?>(null)
-    val deepSearchResults: StateFlow<List<VfsItem>?> = _deepSearchResults.asStateFlow()
+    // Búsqueda dentro del explorador (índice en memoria por carpeta). La pestaña de resultados
+    // sobrevive a la navegación hasta que se haga otra búsqueda o el usuario la cierre.
+    private val _isSearchOpen = MutableStateFlow(false)
+    val isSearchOpen: StateFlow<Boolean> = _isSearchOpen.asStateFlow()
 
-    private val _isDeepSearching = MutableStateFlow(false)
-    val isDeepSearching: StateFlow<Boolean> = _isDeepSearching.asStateFlow()
+    private val _searchFilters = MutableStateFlow(ExplorerSearchFilters())
+    val searchFilters: StateFlow<ExplorerSearchFilters> = _searchFilters.asStateFlow()
+
+    private val _searchTab = MutableStateFlow<ExplorerSearchTab?>(null)
+    val searchTab: StateFlow<ExplorerSearchTab?> = _searchTab.asStateFlow()
+
+    /** La pestaña de resultados, solo mientras es lo que se está viendo en el explorador. */
+    val shownSearchTab: StateFlow<ExplorerSearchTab?> = combine(
+        _isSearchOpen,
+        _searchTab,
+        _quickFilterQuery,
+        _searchFilters,
+        _currentPath
+    ) { open, tab, query, filters, path ->
+        tab?.takeIf { open && it.query == query.trim() && it.filters == filters && it.rootPath == path }
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     private var deepSearchJob: Job? = null
     private var deepIndexKey: String? = null
@@ -343,7 +360,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             else -> _activeShortcutKey.value.takeIf { !it.startsWith("NET_") } ?: "LOCAL_ROOT"
         }
         _activeShortcutKey.value = resolvedShortcut
-        if (_currentPath.value != path || _currentProtocol.value != protocol) resetDeepSearch()
+        if (_currentPath.value != path || _currentProtocol.value != protocol) {
+            _isSearchOpen.value = false
+            _quickFilterQuery.value = ""
+        }
         _currentPath.value = path
         _currentProtocol.value = protocol
         _activeConnection.value = connection
@@ -389,12 +409,18 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun refreshCurrentDirectory() {
         _rememberedTabPaths.value = connectionStorage.loadAllValidTabPaths()
+        deepIndexKey = null
+        if (shownSearchTab.value != null) runSearch(debounce = false)
         loadDirectory(_currentPath.value, _currentProtocol.value, _activeConnection.value, pushHistory = false)
     }
 
     fun navigateUp(): Boolean {
         if (_selectedPaths.value.isNotEmpty()) {
             _selectedPaths.value = emptySet()
+            return true
+        }
+        if (_isSearchOpen.value) {
+            closeSearch()
             return true
         }
         val current = _currentPath.value
@@ -477,24 +503,84 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setQuickFilter(query: String) {
         _quickFilterQuery.value = query
+        runSearch()
+    }
+
+    /** La lupa: abre las herramientas para una búsqueda nueva; la pestaña anterior sigue hasta que haya otra. */
+    fun openSearch() {
+        deepIndexKey = null // Una búsqueda nueva ve también los archivos creados fuera de la app
+        _quickFilterQuery.value = ""
+        _searchFilters.value = ExplorerSearchFilters()
+        _isSearchOpen.value = true
+    }
+
+    /** Vuelve a la carpeta sin perder la pestaña de resultados. */
+    fun closeSearch() {
         deepSearchJob?.cancel()
-        val q = query.trim()
-        if (q.length < 2) {
-            _deepSearchResults.value = null
-            _isDeepSearching.value = false
-            return
+        _searchTab.value = _searchTab.value?.copy(isSearching = false)
+        _isSearchOpen.value = false
+        _quickFilterQuery.value = ""
+    }
+
+    fun setSearchFilters(filters: ExplorerSearchFilters) {
+        _searchFilters.value = filters
+        runSearch(debounce = false)
+    }
+
+    /** Regresa a la pestaña de resultados: recupera su ubicación, para que abrir y copiar usen su conexión. */
+    fun openSearchTab() {
+        val tab = _searchTab.value ?: return
+        if (_currentPath.value != tab.rootPath || _currentProtocol.value != tab.protocol) {
+            loadDirectory(tab.rootPath, tab.protocol, tab.connection, shortcutKey = tab.shortcutKey)
         }
+        _quickFilterQuery.value = tab.query
+        _searchFilters.value = tab.filters
+        _isSearchOpen.value = true
+        runSearch(debounce = false)
+    }
+
+    fun closeSearchTab() {
+        deepSearchJob?.cancel()
+        val wasShown = shownSearchTab.value != null
+        _searchTab.value = null
+        if (wasShown) {
+            _isSearchOpen.value = false
+            _quickFilterQuery.value = ""
+        }
+    }
+
+    private fun runSearch(debounce: Boolean = true) {
+        deepSearchJob?.cancel()
+        val q = _quickFilterQuery.value.trim()
+        val filters = _searchFilters.value
+        if (q.length < 2 && !filters.isActive) return
+        val root = _currentPath.value
+        val protocol = _currentProtocol.value
+        val connection = _activeConnection.value
+        val shortcutKey = _activeShortcutKey.value
         deepSearchJob = viewModelScope.launch {
-            delay(250) // Espera a que el usuario deje de escribir
-            val key = "${_currentProtocol.value}|${_activeConnection.value?.id}|${_currentPath.value}"
+            if (debounce) delay(250) // Espera a que el usuario deje de escribir
+            // Una búsqueda igual conserva lo que ya muestra mientras se actualiza
+            val previous = _searchTab.value?.takeIf { it.query == q && it.filters == filters && it.rootPath == root }
+            val tab = ExplorerSearchTab(
+                query = q,
+                filters = filters,
+                rootPath = root,
+                protocol = protocol,
+                connection = connection,
+                shortcutKey = shortcutKey,
+                results = previous?.results,
+                isSearching = true
+            )
+            _searchTab.value = tab
+            val key = "$protocol|${connection?.id}|$root|${filters.includeSubfolders}"
             if (deepIndexKey != key) {
-                _isDeepSearching.value = true
                 try {
                     deepIndex = vfsManager.collectFilesRecursive(
-                        rootPath = _currentPath.value,
-                        protocol = _currentProtocol.value,
-                        connection = _activeConnection.value,
-                        recursive = true,
+                        rootPath = root,
+                        protocol = protocol,
+                        connection = connection,
+                        recursive = filters.includeSubfolders,
                         includeDirectories = true
                     )
                     deepIndexKey = key
@@ -503,26 +589,22 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 } catch (_: Exception) {
                     deepIndex = emptyList()
                     deepIndexKey = null
-                } finally {
-                    _isDeepSearching.value = false
                 }
             }
-            _deepSearchResults.value = sortItems(
-                deepIndex.filter { it.name.contains(q, ignoreCase = true) }
-            ).take(DEEP_SEARCH_LIMIT)
+            val minBytes = filters.minSizeMB * 1024L * 1024L
+            val matches = deepIndex.filter { item ->
+                (q.isEmpty() || item.name.contains(q, ignoreCase = true)) &&
+                    (filters.category == FileCategory.ALL || item.category == filters.category) &&
+                    item.sizeBytes >= minBytes
+            }
+            _searchTab.value = tab.copy(results = sortItems(matches).take(DEEP_SEARCH_LIMIT), isSearching = false)
         }
     }
 
-    private fun resetDeepSearch() {
-        deepSearchJob?.cancel()
-        deepIndexKey = null
-        deepIndex = emptyList()
-        _deepSearchResults.value = null
-        _isDeepSearching.value = false
-        _quickFilterQuery.value = ""
-    }
+    /** Lo que se ve en el explorador: las acciones sobre la selección también valen para los resultados. */
+    private fun visibleItems(): List<VfsItem> = shownSearchTab.value?.results ?: _directoryItems.value
 
-    /** Abre el buscador avanzado en la carpeta actual priorizando archivos pesados y lanza el escaneo. */
+    /** Prepara la pestaña de archivos pesados en la carpeta actual; el escaneo lo inicia el usuario. */
     fun startHeavySearchFromCurrentFolder() {
         setCurrentFolderAsSearchFolderA()
         _searchToolIndex.value = 0
@@ -531,13 +613,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (_minSizeMB.value <= 0f) _minSizeMB.value = DEFAULT_HEAVY_MB
         _searchSortField.value = SearchSortField.SIZE
         _searchSortAscending.value = false
-        startSmartScan()
     }
 
     fun setSorting(field: SortField, ascending: Boolean = _sortAscending.value) {
         _sortField.value = field
         _sortAscending.value = ascending
         _directoryItems.value = sortItems(_directoryItems.value)
+        _searchTab.value = _searchTab.value?.let { tab -> tab.copy(results = tab.results?.let(::sortItems)) }
     }
 
     fun toggleGridView() {
@@ -805,7 +887,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun copySelectedToClipboard(isMove: Boolean) {
-        val selected = _directoryItems.value.filter { it.path in _selectedPaths.value }
+        val selected = visibleItems().filter { it.path in _selectedPaths.value }
         if (selected.isEmpty()) return
         _clipboard.value = ClipboardState(items = selected, isMove = isMove)
         _selectedPaths.value = emptySet()
@@ -818,7 +900,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun deleteSelectedItems() {
-        val selected = _directoryItems.value.filter { it.path in _selectedPaths.value }
+        val selected = visibleItems().filter { it.path in _selectedPaths.value }
         if (selected.isEmpty()) return
         _isExplorerLoading.value = true
         viewModelScope.launch {
@@ -844,7 +926,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun shareSelectedItems() {
-        val selectedFiles = _directoryItems.value.filter { it.path in _selectedPaths.value && !it.isDirectory }
+        val selectedFiles = visibleItems().filter { it.path in _selectedPaths.value && !it.isDirectory }
         if (selectedFiles.isEmpty()) {
             Toast.makeText(getApplication(), "Selecciona al menos un archivo para compartir", Toast.LENGTH_SHORT).show()
             return
@@ -1080,6 +1162,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             _searchToolIndex.value = 1
         } else {
             _folderA.value = folder
+            _searchToolIndex.value = 0
         }
         _selectedTab.value = 1
     }
@@ -1299,7 +1382,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 val downloads = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
                 if (!downloads.exists()) downloads.mkdirs()
                 val suffix = if (exportDetails) "detalle" else "resumen_dispositivos"
-                val file = File(downloads, "FileManager_${suffix}_${System.currentTimeMillis()}.csv")
+                val file = File(downloads, "QubitExplorer_${suffix}_${System.currentTimeMillis()}.csv")
                 searchEngine.exportResultsToCsv(file, items, summaries, exportDetails)
                 Toast.makeText(
                     getApplication(),

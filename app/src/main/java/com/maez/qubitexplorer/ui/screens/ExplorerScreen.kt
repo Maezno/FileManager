@@ -1,15 +1,16 @@
-package com.maez.filemanager.ui.screens
+package com.maez.qubitexplorer.ui.screens
 
-import com.maez.filemanager.ui.theme.PopupSurface
+import com.maez.qubitexplorer.ui.theme.PopupSurface
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
-import com.maez.filemanager.ui.theme.Motion
+import com.maez.qubitexplorer.ui.theme.Motion
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -116,53 +117,56 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.maez.filemanager.model.ClipboardState
-import com.maez.filemanager.model.ConflictRequest
-import com.maez.filemanager.model.ConflictResolution
-import com.maez.filemanager.model.NetworkConnection
-import com.maez.filemanager.model.SortField
-import com.maez.filemanager.model.StorageProtocol
-import com.maez.filemanager.model.TransferJob
-import com.maez.filemanager.model.TransferStatus
-import com.maez.filemanager.model.VfsItem
-import com.maez.filemanager.model.formatBytes
-import com.maez.filemanager.services.ConnectionStorage
-import com.maez.filemanager.services.TransferManager
-import com.maez.filemanager.services.VfsManager
-import com.maez.filemanager.ui.components.AppProgressBar
-import com.maez.filemanager.ui.components.CardShape
-import com.maez.filemanager.ui.components.ControlShape
-import com.maez.filemanager.ui.components.EmptyState
-import com.maez.filemanager.ui.components.FileThumbnailBox
-import com.maez.filemanager.ui.components.GlassAlertDialog
-import com.maez.filemanager.ui.components.GlassDropdownMenu
-import com.maez.filemanager.ui.components.GlassIconButton
-import com.maez.filemanager.ui.components.GlassSearchField
-import com.maez.filemanager.ui.components.dragToSelect
-import com.maez.filemanager.ui.components.GlassSurface
-import com.maez.filemanager.ui.components.IconBadge
-import com.maez.filemanager.ui.components.IconBubble
-import com.maez.filemanager.ui.components.PrimaryButton
-import com.maez.filemanager.ui.components.SecondaryButton
-import com.maez.filemanager.ui.components.SelectChip
-import com.maez.filemanager.ui.components.appTextFieldColors
-import com.maez.filemanager.ui.theme.Aqua
-import com.maez.filemanager.ui.theme.BgElevated
-import com.maez.filemanager.ui.theme.CardDark
-import com.maez.filemanager.ui.theme.Danger
-import com.maez.filemanager.ui.theme.FileManagerTheme
-import com.maez.filemanager.ui.theme.GlassBorder
-import com.maez.filemanager.ui.theme.GlassCardShape
-import com.maez.filemanager.ui.theme.GlassChipShape
-import com.maez.filemanager.ui.theme.GlassFill
-import com.maez.filemanager.ui.theme.SelectedViolet
-import com.maez.filemanager.ui.theme.SelectedVioletBorder
-import com.maez.filemanager.ui.theme.TextMuted
-import com.maez.filemanager.ui.theme.TextPrimary
-import com.maez.filemanager.ui.theme.TextSecondary
-import com.maez.filemanager.ui.theme.Violet
-import com.maez.filemanager.ui.theme.WarningAmber
-import com.maez.filemanager.viewmodel.MainViewModel
+import com.maez.qubitexplorer.model.ClipboardState
+import com.maez.qubitexplorer.model.ConflictRequest
+import com.maez.qubitexplorer.model.ConflictResolution
+import com.maez.qubitexplorer.model.ExplorerSearchFilters
+import com.maez.qubitexplorer.model.ExplorerSearchTab
+import com.maez.qubitexplorer.model.FileCategory
+import com.maez.qubitexplorer.model.NetworkConnection
+import com.maez.qubitexplorer.model.SortField
+import com.maez.qubitexplorer.model.StorageProtocol
+import com.maez.qubitexplorer.model.TransferJob
+import com.maez.qubitexplorer.model.TransferStatus
+import com.maez.qubitexplorer.model.VfsItem
+import com.maez.qubitexplorer.model.formatBytes
+import com.maez.qubitexplorer.services.ConnectionStorage
+import com.maez.qubitexplorer.services.TransferManager
+import com.maez.qubitexplorer.services.VfsManager
+import com.maez.qubitexplorer.ui.components.AppProgressBar
+import com.maez.qubitexplorer.ui.components.CardShape
+import com.maez.qubitexplorer.ui.components.ControlShape
+import com.maez.qubitexplorer.ui.components.EmptyState
+import com.maez.qubitexplorer.ui.components.FileThumbnailBox
+import com.maez.qubitexplorer.ui.components.GlassAlertDialog
+import com.maez.qubitexplorer.ui.components.GlassDropdownMenu
+import com.maez.qubitexplorer.ui.components.GlassIconButton
+import com.maez.qubitexplorer.ui.components.GlassSearchField
+import com.maez.qubitexplorer.ui.components.dragToSelect
+import com.maez.qubitexplorer.ui.components.GlassSurface
+import com.maez.qubitexplorer.ui.components.IconBadge
+import com.maez.qubitexplorer.ui.components.IconBubble
+import com.maez.qubitexplorer.ui.components.PrimaryButton
+import com.maez.qubitexplorer.ui.components.SecondaryButton
+import com.maez.qubitexplorer.ui.components.SelectChip
+import com.maez.qubitexplorer.ui.components.appTextFieldColors
+import com.maez.qubitexplorer.ui.theme.Aqua
+import com.maez.qubitexplorer.ui.theme.BgElevated
+import com.maez.qubitexplorer.ui.theme.CardDark
+import com.maez.qubitexplorer.ui.theme.Danger
+import com.maez.qubitexplorer.ui.theme.QubitExplorerTheme
+import com.maez.qubitexplorer.ui.theme.GlassBorder
+import com.maez.qubitexplorer.ui.theme.GlassCardShape
+import com.maez.qubitexplorer.ui.theme.GlassChipShape
+import com.maez.qubitexplorer.ui.theme.GlassFill
+import com.maez.qubitexplorer.ui.theme.SelectedViolet
+import com.maez.qubitexplorer.ui.theme.SelectedVioletBorder
+import com.maez.qubitexplorer.ui.theme.TextMuted
+import com.maez.qubitexplorer.ui.theme.TextPrimary
+import com.maez.qubitexplorer.ui.theme.TextSecondary
+import com.maez.qubitexplorer.ui.theme.Violet
+import com.maez.qubitexplorer.ui.theme.WarningAmber
+import com.maez.qubitexplorer.viewmodel.MainViewModel
 
 data class BreadcrumbSegment(val label: String, val fullPath: String)
 
@@ -206,8 +210,10 @@ fun ExplorerScreen(
     val isLoading by viewModel.isExplorerLoading.collectAsState()
     val errorText by viewModel.explorerError.collectAsState()
     val quickFilter by viewModel.quickFilterQuery.collectAsState()
-    val deepSearchResults by viewModel.deepSearchResults.collectAsState()
-    val isDeepSearching by viewModel.isDeepSearching.collectAsState()
+    val isSearchOpen by viewModel.isSearchOpen.collectAsState()
+    val searchFilters by viewModel.searchFilters.collectAsState()
+    val searchTab by viewModel.searchTab.collectAsState()
+    val shownSearchTab by viewModel.shownSearchTab.collectAsState()
     val sortField by viewModel.sortField.collectAsState()
     val sortAsc by viewModel.sortAscending.collectAsState()
     val isGrid by viewModel.isGridView.collectAsState()
@@ -226,8 +232,10 @@ fun ExplorerScreen(
         isLoading = isLoading,
         errorText = errorText,
         quickFilter = quickFilter,
-        deepSearchResults = deepSearchResults,
-        isDeepSearching = isDeepSearching,
+        isSearchOpen = isSearchOpen,
+        searchFilters = searchFilters,
+        searchTab = searchTab,
+        shownSearchTab = shownSearchTab,
         sortField = sortField,
         sortAsc = sortAsc,
         isGrid = isGrid,
@@ -257,6 +265,11 @@ fun ExplorerScreen(
         onPasteClipboard = { viewModel.pasteClipboardHere() },
         onClearClipboard = { viewModel.clearClipboard() },
         onSetQuickFilter = { viewModel.setQuickFilter(it) },
+        onOpenSearch = { viewModel.openSearch() },
+        onCloseSearch = { viewModel.closeSearch() },
+        onSetSearchFilters = { viewModel.setSearchFilters(it) },
+        onOpenSearchTab = { viewModel.openSearchTab() },
+        onCloseSearchTab = { viewModel.closeSearchTab() },
         onSetSorting = { field, asc -> viewModel.setSorting(field, asc) },
         onToggleGridView = { viewModel.toggleGridView() },
         onItemClick = { item ->
@@ -284,6 +297,143 @@ fun ExplorerScreen(
     )
 }
 
+private const val TRANSFER_DONE_HOLD_MS = 800L
+private val SEARCH_SIZE_OPTIONS_MB = listOf(0L, 10L, 100L, 500L, 1024L)
+
+private fun searchSizeLabel(mb: Long): String = when {
+    mb <= 0L -> "Cualquier tamaño"
+    mb >= 1024L -> "≥ ${mb / 1024L} GB"
+    else -> "≥ $mb MB"
+}
+
+@Composable
+private fun TransferProgressSection(job: TransferJob, activeCount: Int, onClick: () -> Unit) {
+    val isActive = job.status == TransferStatus.RUNNING || job.status == TransferStatus.QUEUED
+    val progress = if (job.status == TransferStatus.COMPLETED) 1f else job.progress
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = when {
+                    !isActive -> job.status.label
+                    activeCount > 1 -> "$activeCount transferencias: ${job.currentFileName.ifBlank { "Procesando..." }}"
+                    else -> job.currentFileName.ifBlank { "Procesando..." }
+                },
+                color = TextPrimary,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f)
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(
+                text = if (isActive) "${(progress * 100).toInt()}% • ${job.speedFormatted}" else "${(progress * 100).toInt()}%",
+                color = Aqua,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+        AppProgressBar(progress = progress * 100f)
+    }
+}
+
+@Composable
+private fun ExplorerSearchTools(
+    filters: ExplorerSearchFilters,
+    sortField: SortField,
+    sortAsc: Boolean,
+    onFiltersChange: (ExplorerSearchFilters) -> Unit,
+    onSetSorting: (SortField, Boolean) -> Unit
+) {
+    var showCategoryMenu by remember { mutableStateOf(false) }
+    var showSizeMenu by remember { mutableStateOf(false) }
+    var showSortMenu by remember { mutableStateOf(false) }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        SelectChip(
+            text = "Subcarpetas",
+            icon = Icons.Default.Folder,
+            selected = filters.includeSubfolders,
+            onClick = { onFiltersChange(filters.copy(includeSubfolders = !filters.includeSubfolders)) },
+            accent = Aqua
+        )
+        Box {
+            SelectChip(
+                text = if (filters.category == FileCategory.ALL) "Tipo" else filters.category.label,
+                icon = Icons.Default.Tune,
+                selected = filters.category != FileCategory.ALL,
+                onClick = { showCategoryMenu = true },
+                accent = Aqua
+            )
+            GlassDropdownMenu(expanded = showCategoryMenu, onDismissRequest = { showCategoryMenu = false }) {
+                FileCategory.entries.forEach { category ->
+                    DropdownMenuItem(
+                        text = { Text(category.label, color = TextPrimary, fontSize = 13.sp) },
+                        onClick = {
+                            onFiltersChange(filters.copy(category = category))
+                            showCategoryMenu = false
+                        }
+                    )
+                }
+            }
+        }
+        Box {
+            SelectChip(
+                text = if (filters.minSizeMB > 0L) searchSizeLabel(filters.minSizeMB) else "Tamaño",
+                icon = Icons.Default.Storage,
+                selected = filters.minSizeMB > 0L,
+                onClick = { showSizeMenu = true },
+                accent = Aqua
+            )
+            GlassDropdownMenu(expanded = showSizeMenu, onDismissRequest = { showSizeMenu = false }) {
+                SEARCH_SIZE_OPTIONS_MB.forEach { mb ->
+                    DropdownMenuItem(
+                        text = { Text(searchSizeLabel(mb), color = TextPrimary, fontSize = 13.sp) },
+                        onClick = {
+                            onFiltersChange(filters.copy(minSizeMB = mb))
+                            showSizeMenu = false
+                        }
+                    )
+                }
+            }
+        }
+        Box {
+            SelectChip(
+                text = "${sortField.label} ${if (sortAsc) "↑" else "↓"}",
+                icon = Icons.AutoMirrored.Filled.Sort,
+                selected = false,
+                onClick = { showSortMenu = true },
+                accent = Violet
+            )
+            GlassDropdownMenu(expanded = showSortMenu, onDismissRequest = { showSortMenu = false }) {
+                SortField.entries.forEach { field ->
+                    DropdownMenuItem(
+                        text = {
+                            val arrow = if (sortField == field) (if (sortAsc) " ↑" else " ↓") else ""
+                            Text("Ordenar por ${field.label}$arrow", color = TextPrimary, fontSize = 13.sp)
+                        },
+                        onClick = {
+                            onSetSorting(field, if (sortField == field) !sortAsc else true)
+                            showSortMenu = false
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ExplorerScreenContent(
@@ -296,8 +446,10 @@ fun ExplorerScreenContent(
     isLoading: Boolean,
     errorText: String?,
     quickFilter: String,
-    deepSearchResults: List<VfsItem>? = null,
-    isDeepSearching: Boolean = false,
+    isSearchOpen: Boolean = false,
+    searchFilters: ExplorerSearchFilters = ExplorerSearchFilters(),
+    searchTab: ExplorerSearchTab? = null,
+    shownSearchTab: ExplorerSearchTab? = null,
     sortField: SortField,
     sortAsc: Boolean,
     isGrid: Boolean,
@@ -328,6 +480,11 @@ fun ExplorerScreenContent(
     onPasteClipboard: () -> Unit = {},
     onClearClipboard: () -> Unit = {},
     onSetQuickFilter: (String) -> Unit = {},
+    onOpenSearch: () -> Unit = {},
+    onCloseSearch: () -> Unit = {},
+    onSetSearchFilters: (ExplorerSearchFilters) -> Unit = {},
+    onOpenSearchTab: () -> Unit = {},
+    onCloseSearchTab: () -> Unit = {},
     onSetSorting: (SortField, Boolean) -> Unit = { _, _ -> },
     onToggleGridView: () -> Unit = {},
     onItemClick: (VfsItem) -> Unit = {},
@@ -359,14 +516,16 @@ fun ExplorerScreenContent(
     var showCredentialsDialog by remember { mutableStateOf(false) }
     var showTransfersSheet by remember { mutableStateOf(false) }
 
-    var searchExpanded by remember { mutableStateOf(false) }
     val searchFocusRequester = remember { FocusRequester() }
 
     // Con texto: primero coincidencias de la carpeta actual y, al terminar el índice, también las de subcarpetas
-    val filteredItems = remember(items, quickFilter, deepSearchResults) {
+    val deepResults = shownSearchTab?.results
+    val isDeepSearching = shownSearchTab?.isSearching == true
+    val isShowingResults = shownSearchTab != null
+    val filteredItems = remember(items, quickFilter, deepResults) {
         when {
+            deepResults != null -> deepResults
             quickFilter.isBlank() -> items
-            deepSearchResults != null -> deepSearchResults
             else -> items.filter { it.name.contains(quickFilter, ignoreCase = true) }
         }
     }
@@ -392,6 +551,18 @@ fun ExplorerScreenContent(
                 .horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+            // Pestaña de resultados: se queda hasta que haya otra búsqueda o se cierre
+            AnimatedVisibility(visible = searchTab != null, enter = Motion.inlineEnter, exit = Motion.inlineExit) {
+                SelectChip(
+                    text = "Resultados: ${searchTab?.label.orEmpty()}",
+                    icon = Icons.Default.Search,
+                    selected = isShowingResults,
+                    onClick = onOpenSearchTab,
+                    accent = Aqua,
+                    onClear = onCloseSearchTab
+                )
+            }
+
             @Composable
             fun renderNetworkChip(conn: NetworkConnection) {
                 val key = "NET_${conn.id}"
@@ -455,6 +626,8 @@ fun ExplorerScreenContent(
             }
         }
 
+        // Sin separación propia: la del portapapeles va dentro del panel para animarse con él al cerrarse
+        Column(Modifier.fillMaxWidth()) {
         // 2. Tarjeta de Carpeta Actual (Segmentos de ruta)
         GlassSurface(
             shape = GlassCardShape,
@@ -524,7 +697,7 @@ fun ExplorerScreenContent(
                     }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
-                    GlassIconButton(icon = Icons.Default.Storage, onClick = onSetFolderA, tint = WarningAmber, contentDescription = "Buscar archivos pesados aquí")
+                    GlassIconButton(icon = Icons.Default.Storage, onClick = onSetFolderA, tint = WarningAmber, contentDescription = "Archivos pesados de esta carpeta")
                     GlassIconButton(icon = Icons.AutoMirrored.Filled.CompareArrows, onClick = onSetFolderB, tint = Aqua, contentDescription = "Comparar Dups (B)")
                 }
             }
@@ -533,12 +706,45 @@ fun ExplorerScreenContent(
 
 
         // 4. Portapapeles flotante
-        AnimatedVisibility(visible = clipboard.items.isNotEmpty(), enter = Motion.panelEnter, exit = Motion.panelExit) {
+        // Se expande con el progreso de la transferencia y se contrae al terminar
+        val transferJobs by TransferManager.jobs.collectAsState()
+        val activeTransferJobs = remember(transferJobs) {
+            transferJobs.filter { it.status == TransferStatus.RUNNING || it.status == TransferStatus.QUEUED }
+        }
+        val hasActiveTransfers = activeTransferJobs.isNotEmpty()
+        var shownJobId by remember { mutableStateOf<String?>(null) }
+        var showTransferProgress by remember { mutableStateOf(false) }
+        var lastClipboard by remember { mutableStateOf(clipboard) }
+        LaunchedEffect(activeTransferJobs.firstOrNull()?.id) {
+            activeTransferJobs.firstOrNull()?.let { shownJobId = it.id }
+        }
+        LaunchedEffect(clipboard) {
+            if (clipboard.items.isNotEmpty()) lastClipboard = clipboard
+        }
+        LaunchedEffect(hasActiveTransfers) {
+            if (hasActiveTransfers) {
+                showTransferProgress = true
+            } else if (showTransferProgress) {
+                delay(TRANSFER_DONE_HOLD_MS) // Deja ver el resultado antes de contraerse
+                showTransferProgress = false
+            }
+        }
+        val shownJob = transferJobs.firstOrNull { it.id == shownJobId }
+
+        AnimatedVisibility(
+            visible = clipboard.items.isNotEmpty() || showTransferProgress,
+            enter = Motion.progressEnter,
+            exit = if (shownJob != null) Motion.progressExit else Motion.panelExit
+        ) {
             GlassSurface(
                 shape = GlassChipShape,
                 borderColor = Aqua,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .padding(top = 10.dp)
+                    .fillMaxWidth()
             ) {
+                Column(Modifier.fillMaxWidth()) {
+                AnimatedVisibility(visible = clipboard.items.isNotEmpty(), enter = Motion.progressEnter, exit = Motion.progressExit) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -546,15 +752,16 @@ fun ExplorerScreenContent(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    val actionLabel = if (clipboard.isMove) "Mover" else "Copiar"
-                    val summaryLabel = if (clipboard.items.size == 1) {
-                        clipboard.items.first().name
+                    val shownClipboard = if (clipboard.items.isNotEmpty()) clipboard else lastClipboard
+                    val actionLabel = if (shownClipboard.isMove) "Mover" else "Copiar"
+                    val summaryLabel = if (shownClipboard.items.size == 1) {
+                        shownClipboard.items.first().name
                     } else {
-                        "${clipboard.items.size} elementos"
+                        "${shownClipboard.items.size} elementos"
                     }
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                         Icon(
-                            imageVector = if (clipboard.isMove) Icons.Default.ContentCut else Icons.Default.ContentCopy,
+                            imageVector = if (shownClipboard.isMove) Icons.Default.ContentCut else Icons.Default.ContentCopy,
                             contentDescription = null,
                             tint = Aqua,
                             modifier = Modifier.size(18.dp)
@@ -581,70 +788,25 @@ fun ExplorerScreenContent(
                         }
                     }
                 }
-            }
-        }
-
-        // 4.1 Indicador de progreso de transferencias en segundo plano
-        val transferJobs by TransferManager.jobs.collectAsState()
-        val activeTransferJobs = remember(transferJobs) {
-            transferJobs.filter { it.status == TransferStatus.RUNNING || it.status == TransferStatus.QUEUED }
-        }
-
-        if (activeTransferJobs.isNotEmpty()) {
-            val primaryJob = activeTransferJobs.first()
-            GlassSurface(
-                shape = GlassChipShape,
-                borderColor = Violet.copy(alpha = 0.8f),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { showTransfersSheet = true }
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                            Icon(
-                                imageVector = Icons.Default.Refresh,
-                                contentDescription = null,
-                                tint = Violet,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(Modifier.width(6.dp))
-                            Text(
-                                text = "${activeTransferJobs.size} transferencia${if (activeTransferJobs.size > 1) "s" else ""}: ${primaryJob.currentFileName.ifBlank { "Procesando..." }}",
-                                color = TextPrimary,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                        Text(
-                            text = "${(primaryJob.progress * 100).toInt()}% • ${primaryJob.speedFormatted}",
-                            color = Aqua,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold
+                }
+                AnimatedVisibility(visible = showTransferProgress, enter = Motion.progressEnter, exit = Motion.progressExit) {
+                    shownJob?.let { job ->
+                        TransferProgressSection(
+                            job = job,
+                            activeCount = activeTransferJobs.size,
+                            onClick = { showTransfersSheet = true }
                         )
                     }
-                    AppProgressBar(progress = primaryJob.progress * 100f)
+                }
                 }
             }
         }
 
-        // 5. Barra de herramientas: la lupa se expande empujando los iconos, que se agrupan en un botón
-        val showSearch = searchExpanded || quickFilter.isNotBlank()
-        val collapseSearch = {
-            onSetQuickFilter("")
-            searchExpanded = false
         }
+
+        // 5. Barra de herramientas: la lupa se expande empujando los iconos, que se agrupan en un botón
+        val showSearch = isSearchOpen
+        val collapseSearch = onCloseSearch
         // Al seleccionar, la barra de selección entra desde la izquierda y ocupa el lugar de las herramientas
         Box(
             modifier = Modifier
@@ -668,13 +830,14 @@ fun ExplorerScreenContent(
                                 onClose = { collapseSearch() },
                                 modifier = Modifier.fillMaxWidth()
                             )
-                            LaunchedEffect(searchExpanded) {
-                                if (searchExpanded) searchFocusRequester.requestFocus()
+                            LaunchedEffect(Unit) {
+                                // Al volver a la pestaña de resultados no se abre el teclado
+                                if (quickFilter.isBlank()) searchFocusRequester.requestFocus()
                             }
                         } else {
                             GlassIconButton(
                                 icon = Icons.Default.Search,
-                                onClick = { searchExpanded = true },
+                                onClick = onOpenSearch,
                                 tint = Aqua,
                                 contentDescription = "Buscar"
                             )
@@ -829,11 +992,23 @@ fun ExplorerScreenContent(
             }
         }
 
+        // Herramientas de búsqueda: se quedan a la vista junto con los resultados
+        AnimatedVisibility(visible = showSearch, enter = Motion.panelEnter, exit = Motion.panelExit) {
+            ExplorerSearchTools(
+                filters = searchFilters,
+                sortField = sortField,
+                sortAsc = sortAsc,
+                onFiltersChange = onSetSearchFilters,
+                onSetSorting = onSetSorting
+            )
+        }
+
         Text(
             text = when {
+                isDeepSearching -> "${filteredItems.size} resultados · buscando..."
+                deepResults != null && searchFilters.includeSubfolders -> "${filteredItems.size} resultados (incluye subcarpetas)"
+                deepResults != null -> "${filteredItems.size} resultados en esta carpeta"
                 quickFilter.isBlank() -> "${filteredItems.size} elementos"
-                isDeepSearching -> "${filteredItems.size} en esta carpeta · buscando en subcarpetas..."
-                deepSearchResults != null -> "${filteredItems.size} resultados (incluye subcarpetas)"
                 else -> "${filteredItems.size} resultados en esta carpeta"
             },
             color = TextMuted,
@@ -841,7 +1016,7 @@ fun ExplorerScreenContent(
             modifier = Modifier.padding(start = 4.dp, top = 2.dp)
         )
 
-        if (isLoading) {
+        if (isLoading && !isShowingResults) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -850,7 +1025,7 @@ fun ExplorerScreenContent(
             ) {
                 CircularProgressIndicator(color = Aqua, strokeWidth = 3.dp, modifier = Modifier.size(36.dp))
             }
-        } else if (errorText != null) {
+        } else if (errorText != null && !isShowingResults) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -883,8 +1058,8 @@ fun ExplorerScreenContent(
             ) {
                 EmptyState(
                     icon = Icons.Default.Folder,
-                    title = if (quickFilter.isBlank()) "Carpeta vacía" else "Sin coincidencias",
-                    message = if (quickFilter.isBlank()) "No hay elementos en esta ubicación." else if (isDeepSearching) "Buscando en subcarpetas..." else "No hay archivos ni carpetas con ese nombre aquí ni en subcarpetas."
+                    title = if (quickFilter.isBlank() && !isShowingResults) "Carpeta vacía" else "Sin coincidencias",
+                    message = if (isDeepSearching) "Buscando..." else if (quickFilter.isBlank() && !isShowingResults) "No hay elementos en esta ubicación." else "No hay archivos ni carpetas que coincidan con la búsqueda."
                 )
             }
         } else {
@@ -988,6 +1163,7 @@ fun ExplorerScreenContent(
                         val isSelected = item.path in selectedPaths
                         ExplorerListRow(
                             item = item,
+                            location = if (isShowingResults) item.parentPath else null,
                             isSelected = isSelected,
                             isSelectionMode = isSelectionMode,
                             vfsManager = vfsManager,
@@ -1466,6 +1642,7 @@ fun ExplorerScreenContent(
 @Composable
 private fun ExplorerListRow(
     item: VfsItem,
+    location: String? = null,
     isSelected: Boolean,
     isSelectionMode: Boolean,
     vfsManager: VfsManager? = null,
@@ -1537,9 +1714,11 @@ private fun ExplorerListRow(
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = if (item.isDirectory) "Carpeta" else item.sizeFormatted,
+                    text = listOfNotNull(if (item.isDirectory) "Carpeta" else item.sizeFormatted, location).joinToString(" · "),
                     color = TextMuted,
-                    fontSize = 13.sp
+                    fontSize = 13.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
 
@@ -1714,7 +1893,7 @@ private fun ItemContextMenu(
         )
         if (item.isDirectory) {
             DropdownMenuItem(
-                text = { Text("Analizar en Buscador (Carpeta A)", color = TextPrimary) },
+                text = { Text("Ver archivos pesados aquí", color = TextPrimary) },
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Violet) },
                 onClick = { onDismiss(); onSetFolderA() }
             )
@@ -1761,7 +1940,7 @@ private fun ItemContextMenu(
 @Preview(showBackground = true, backgroundColor = 0xFF120B26)
 @Composable
 fun ExplorerScreenPreview() {
-    FileManagerTheme {
+    QubitExplorerTheme {
         ExplorerScreenContent(
             currentPath = "/storage/emulated/0/Download",
             currentProtocol = StorageProtocol.LOCAL,
@@ -1813,7 +1992,7 @@ fun ExplorerScreenPreview() {
 @Preview(showBackground = true, backgroundColor = 0xFF120B26)
 @Composable
 fun ExplorerListRowPreview() {
-    FileManagerTheme {
+    QubitExplorerTheme {
         ExplorerListRow(
             item = VfsItem(
                 name = "Manual_Usuario.pdf",
@@ -1833,7 +2012,7 @@ fun ExplorerListRowPreview() {
 @Preview(showBackground = true, backgroundColor = 0xFF120B26)
 @Composable
 fun ExplorerGridCardPreview() {
-    FileManagerTheme {
+    QubitExplorerTheme {
         Box(modifier = Modifier.width(130.dp)) {
             ExplorerGridCard(
                 item = VfsItem(

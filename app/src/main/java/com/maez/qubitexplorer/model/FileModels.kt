@@ -1,4 +1,4 @@
-package com.maez.filemanager.model
+package com.maez.qubitexplorer.model
 
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -152,6 +152,29 @@ data class DuplicateFileEntry(
     val isPrimary: Boolean,
     val sourceLabel: String // "Carpeta A" o "Carpeta B"
 )
+
+data class ExplorerSearchFilters(
+    val category: FileCategory = FileCategory.ALL,
+    val minSizeMB: Long = 0L,
+    val includeSubfolders: Boolean = true
+) {
+    /** Con un filtro de tipo o tamaño se puede buscar sin escribir nada. */
+    val isActive: Boolean get() = category != FileCategory.ALL || minSizeMB > 0L
+}
+
+data class ExplorerSearchTab(
+    val query: String,
+    val filters: ExplorerSearchFilters,
+    val rootPath: String,
+    val protocol: StorageProtocol,
+    val connection: NetworkConnection?,
+    val shortcutKey: String,
+    val results: List<VfsItem>? = null,
+    val isSearching: Boolean = false
+) {
+    val label: String
+        get() = query.ifEmpty { if (filters.category != FileCategory.ALL) filters.category.label else "Filtros" }
+}
 
 data class ClipboardState(
     val items: List<VfsItem> = emptyList(),

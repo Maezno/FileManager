@@ -1,4 +1,4 @@
-package com.maez.filemanager.ui.components
+package com.maez.qubitexplorer.ui.components
 
 import androidx.compose.runtime.withFrameNanos
 import kotlinx.coroutines.isActive
@@ -24,7 +24,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.gestures.ScrollableState
-import com.maez.filemanager.ui.theme.Motion
+import com.maez.qubitexplorer.ui.theme.Motion
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
@@ -60,7 +60,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ManageSearch
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.KeyboardArrowDown
@@ -68,6 +67,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Lan
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
@@ -116,31 +116,31 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.maez.filemanager.ui.theme.Aqua
-import com.maez.filemanager.ui.theme.BgBottom
-import com.maez.filemanager.ui.theme.BgMid
-import com.maez.filemanager.ui.theme.BgTop
-import com.maez.filemanager.ui.theme.CardDark
-import com.maez.filemanager.ui.theme.FileManagerTheme
-import com.maez.filemanager.ui.theme.GlassBorder
-import com.maez.filemanager.ui.theme.GlassButtonShape
-import com.maez.filemanager.ui.theme.GlassCardShape
-import com.maez.filemanager.ui.theme.GlassChipShape
-import com.maez.filemanager.ui.theme.GlassFill
-import com.maez.filemanager.ui.theme.GlassFloatingBarShape
-import com.maez.filemanager.ui.theme.GlassTint
-import com.maez.filemanager.ui.theme.GlowAqua
-import com.maez.filemanager.ui.theme.GlowViolet
-import com.maez.filemanager.ui.theme.NavBg
-import com.maez.filemanager.ui.theme.PopupBorder
-import com.maez.filemanager.ui.theme.PopupSurface
-import com.maez.filemanager.ui.theme.SelectedAqua
-import com.maez.filemanager.ui.theme.SelectedAquaBorder
-import com.maez.filemanager.ui.theme.SelectedViolet
-import com.maez.filemanager.ui.theme.SelectedVioletBorder
-import com.maez.filemanager.ui.theme.TextMuted
-import com.maez.filemanager.ui.theme.TextPrimary
-import com.maez.filemanager.ui.theme.Violet
+import com.maez.qubitexplorer.ui.theme.Aqua
+import com.maez.qubitexplorer.ui.theme.BgBottom
+import com.maez.qubitexplorer.ui.theme.BgMid
+import com.maez.qubitexplorer.ui.theme.BgTop
+import com.maez.qubitexplorer.ui.theme.CardDark
+import com.maez.qubitexplorer.ui.theme.QubitExplorerTheme
+import com.maez.qubitexplorer.ui.theme.GlassBorder
+import com.maez.qubitexplorer.ui.theme.GlassButtonShape
+import com.maez.qubitexplorer.ui.theme.GlassCardShape
+import com.maez.qubitexplorer.ui.theme.GlassChipShape
+import com.maez.qubitexplorer.ui.theme.GlassFill
+import com.maez.qubitexplorer.ui.theme.GlassFloatingBarShape
+import com.maez.qubitexplorer.ui.theme.GlassTint
+import com.maez.qubitexplorer.ui.theme.GlowAqua
+import com.maez.qubitexplorer.ui.theme.GlowViolet
+import com.maez.qubitexplorer.ui.theme.NavBg
+import com.maez.qubitexplorer.ui.theme.PopupBorder
+import com.maez.qubitexplorer.ui.theme.PopupSurface
+import com.maez.qubitexplorer.ui.theme.SelectedAqua
+import com.maez.qubitexplorer.ui.theme.SelectedAquaBorder
+import com.maez.qubitexplorer.ui.theme.SelectedViolet
+import com.maez.qubitexplorer.ui.theme.SelectedVioletBorder
+import com.maez.qubitexplorer.ui.theme.TextMuted
+import com.maez.qubitexplorer.ui.theme.TextPrimary
+import com.maez.qubitexplorer.ui.theme.Violet
 import android.os.Build
 import android.view.WindowManager
 import androidx.compose.material3.AlertDialog
@@ -996,7 +996,7 @@ fun GlassBottomBar(
     val items = remember {
         listOf(
             BottomTabItem(0, "Explorador", Icons.Default.Folder),
-            BottomTabItem(1, "Buscador", Icons.AutoMirrored.Filled.ManageSearch),
+            BottomTabItem(1, "Pesados", Icons.Default.Storage),
             BottomTabItem(2, "Red LAN", Icons.Default.Lan),
             BottomTabItem(3, "Ajustes", Icons.Default.Settings)
         )
@@ -1123,7 +1123,7 @@ fun AppBottomNavigationBar(
 @Preview(showBackground = true)
 @Composable
 fun AppBottomNavigationBarPreview() {
-    FileManagerTheme {
+    QubitExplorerTheme {
         AppBottomNavigationBar(
             selectedTab = 0,
             onTabSelected = {}
@@ -1134,7 +1134,7 @@ fun AppBottomNavigationBarPreview() {
 @Preview(showBackground = true, backgroundColor = 0xFF120B26)
 @Composable
 fun SectionCardPreview() {
-    FileManagerTheme {
+    QubitExplorerTheme {
         SectionCard(
             title = "Almacenamiento Local",
             icon = Icons.Default.Folder,
@@ -1153,7 +1153,7 @@ fun SectionCardPreview() {
 @Preview(showBackground = true, backgroundColor = 0xFF120B26)
 @Composable
 fun EmptyStatePreview() {
-    FileManagerTheme {
+    QubitExplorerTheme {
         EmptyState(
             icon = Icons.Default.Folder,
             title = "Carpeta vacía",

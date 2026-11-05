@@ -202,6 +202,28 @@ El cambio entre pantallas principales en el contenedor `AnimatedContent` acompa�
 - **Gradiente:** Relleno horizontal interpolado desde `Violet` (`#818CF8`) hasta `Aqua` (`#38BDF8`).
 - **Animación:** Variación fluida del ancho mediante `animateFloatAsState((progress / 100f).coerceIn(0f, 1f))`.
 
+### 6.5 Desplegables y Paneles que se Expanden
+Aplica a menús desplegables, registros plegables y cualquier panel con `AnimatedVisibility`.
+
+- **Apertura:** Puede rebotar, porque el resorte se pasa del tamaño final y vuelve:  
+  `expandVertically(spring(DampingRatioMediumBouncy, StiffnessMediumLow), expandFrom = Alignment.Top) + fadeIn(tween(180))`
+- **Cierre:** Nunca usa resorte con rebote: el tamaño final es cero y no hay adónde pasarse, así que la animación se rompe. Tampoco usa una curva que frene mucho al final (cola lenta) ni una que solo acelere (parada en seco):  
+  `shrinkVertically(tween(220, easing = CubicBezierEasing(0.4f, 0f, 0.7f, 1f)), shrinkTowards = Alignment.Top) + fadeOut(tween(220))`
+- **Misma duración:** El encogimiento y el fundido del cierre duran lo mismo, para que no quede un panel vacío moviéndose al final.
+- **Separación dentro del panel:** Prohibido separar el panel de su botón con `spacedBy` en el contenedor. Ese espacio queda fuera de la animación y desaparece de golpe al terminar de cerrar, lo que se ve como un "mini corte". La separación va como `padding(top = ...)` dentro del contenido animado:
+
+```kotlin
+Column(modifier = modifier) { // Sin spacedBy
+    Boton()
+    AnimatedVisibility(visible = expanded, enter = panelEnter, exit = panelExit) {
+        Panel(Modifier.padding(top = 6.dp).fillMaxWidth())
+    }
+}
+```
+
+- **Verificación:** Grabar la pantalla y revisar cuadro por cuadro que el contenido de abajo llegue a su lugar sin saltos en el último cuadro.
+- **Encogimiento horizontal:** Las mismas reglas valen para `shrinkHorizontally`, por ejemplo en las etiquetas de la navegación (sección 6.1).
+
 ---
 
 ## 7. Directrices de Rendimiento y Arquitectura
@@ -209,3 +231,7 @@ El cambio entre pantallas principales en el contenedor `AnimatedContent` acompa�
 1. **Sin Pasos de Desenfoque GPU:** Al prescindir del glassmorfismo, se elimina por completo el uso de librerías de blur (`haze`, `RenderEffect` en Android 12+), garantizando 120 FPS estables sin sobrecalentamiento ni caídas de cuadros durante desplazamientos rápidos.
 2. **Contraste Seguro en Fondos Oscuros:** Todos los textos `TextPrimary` (`#F3F4F6`) sobre superficies `#161922` superan holgadamente la relación de contraste WCAG AAA (> 7:1).
 3. **Reutilización:** Todos los bordes mantienen el grosor estándar de `1 dp` para preservar la coherencia geométrica en toda la app.
+
+### Progreso en paneles
+
+El flotante de copiar/mover se expande para mostrar el progreso y se contrae al terminar. Usa `Motion.progressEnter` / `Motion.progressExit` (`softBounce`): es la única excepción a la regla de no rebotar al encogerse.

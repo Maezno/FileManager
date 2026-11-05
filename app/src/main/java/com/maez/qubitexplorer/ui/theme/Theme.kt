@@ -1,4 +1,4 @@
-package com.maez.filemanager.ui.theme
+package com.maez.qubitexplorer.ui.theme
 
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -123,7 +123,7 @@ val AppTypography = Typography(
 )
 
 @Composable
-fun FileManagerTheme(content: @Composable () -> Unit) {
+fun QubitExplorerTheme(content: @Composable () -> Unit) {
     MaterialTheme(
         colorScheme = AppColorScheme,
         typography = AppTypography,
