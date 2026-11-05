@@ -116,6 +116,7 @@ object TransferManager {
         var globalResolution: ConflictResolution? = null
 
         val connMap = mutableMapOf<String, com.maez.qubitexplorer.model.NetworkConnection>()
+        job.sourceConnections.forEach { connMap[it.id] = it }
         job.targetConnection?.let { connMap[it.id] = it }
 
         var allSuccess = true

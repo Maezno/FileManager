@@ -1163,10 +1163,43 @@ fun EmptyStatePreview() {
 }
 
 /**
+ * Estado de un arrastre de selección. Recuerda la selección previa para que, al volver sin soltar, los elementos que
+ * salen del rango recuperen el estado que tenían antes del arrastre.
+ */
+class DragSelection {
+    private var base: Set<String> = emptySet()
+    private var current: Set<String> = emptySet()
+    private var select = true
+
+    /** Llamar al iniciar el arrastre, antes de alternar [startKey]. */
+    fun begin(startKey: String, selected: Set<String>) {
+        base = selected
+        select = startKey !in selected
+        current = if (select) selected + startKey else selected - startKey
+    }
+
+    /** Aplica el rango actual y llama a [toggle] con el índice de cada elemento que debe cambiar. */
+    fun update(keys: List<String>, startKey: Any, currentKey: Any, toggle: (Int) -> Unit) {
+        val a = keys.indexOf(startKey as? String)
+        val b = keys.indexOf(currentKey as? String)
+        if (a < 0 || b < 0) return
+        val range = minOf(a, b)..maxOf(a, b)
+        keys.forEachIndexed { i, key ->
+            val wanted = if (i in range) select else key in base
+            if ((key in current) != wanted) {
+                current = if (wanted) current + key else current - key
+                toggle(i)
+            }
+        }
+    }
+}
+
+/**
  * Mantener pulsado y arrastrar para seleccionar varios elementos de una lista.
  * Escucha en el pase Initial para adelantarse a los clics de cada tarjeta y consume el arrastre para que la lista
  * no haga scroll por su cuenta; si se pasa [scrollState], al acercar el dedo al borde superior o inferior la lista se
- * desplaza sola (más rápido cuanto más cerca del borde) y sigue seleccionando lo que pasa bajo el dedo.
+ * desplaza sola (acelera de forma suave según la cercanía al borde y el tiempo que el dedo sigue ahí) y sigue
+ * seleccionando lo que pasa bajo el dedo.
  */
 fun Modifier.dragToSelect(
     keyAt: (Offset) -> Any?,
@@ -1205,17 +1238,34 @@ fun Modifier.dragToSelect(
 
             // Desplazamiento automático mientras el dedo está cerca de un borde
             val edge = 72.dp.toPx()
-            val maxStep = 22.dp.toPx()
+            val minTopSpeed = 260.dp.toPx()
+            val maxTopSpeed = 900.dp.toPx()
             val autoScroll = scrollState?.let { state ->
                 launch {
+                    var speed = 0f
+                    var heldSeconds = 0f
+                    var lastFrame = withFrameNanos { it }
                     while (isActive) {
-                        val step = when {
-                            pointer.y < edge -> -maxStep * ((edge - pointer.y) / edge).coerceIn(0f, 1f)
-                            pointer.y > size.height - edge -> maxStep * ((pointer.y - (size.height - edge)) / edge).coerceIn(0f, 1f)
+                        val frame = withFrameNanos { it }
+                        val dt = (frame - lastFrame) / 1_000_000_000f
+                        lastFrame = frame
+
+                        // Con signo: negativo hacia arriba, positivo hacia abajo
+                        val proximity = when {
+                            pointer.y < edge -> -((edge - pointer.y) / edge).coerceIn(0f, 1f)
+                            pointer.y > size.height - edge -> ((pointer.y - (size.height - edge)) / edge).coerceIn(0f, 1f)
                             else -> 0f
                         }
-                        if (step != 0f && state.scrollBy(step) != 0f) selectUnderPointer()
-                        withFrameNanos { }
+                        heldSeconds = if (proximity == 0f) 0f else heldSeconds + dt
+                        val topSpeed = minTopSpeed + (maxTopSpeed - minTopSpeed) * (heldSeconds / 3f).coerceIn(0f, 1f)
+                        val targetSpeed = topSpeed * proximity * kotlin.math.abs(proximity)
+
+                        // Arranca despacio y frena enseguida al salir del borde
+                        val response = if (proximity == 0f) 0.08f else 0.35f
+                        speed += (targetSpeed - speed) * (1f - kotlin.math.exp(-dt / response))
+                        if (proximity == 0f && kotlin.math.abs(speed) < 1f) speed = 0f
+
+                        if (speed != 0f && state.scrollBy(speed * dt) != 0f) selectUnderPointer()
                     }
                 }
             }

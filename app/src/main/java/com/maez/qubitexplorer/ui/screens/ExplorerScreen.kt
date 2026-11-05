@@ -142,6 +142,7 @@ import com.maez.qubitexplorer.ui.components.GlassAlertDialog
 import com.maez.qubitexplorer.ui.components.GlassDropdownMenu
 import com.maez.qubitexplorer.ui.components.GlassIconButton
 import com.maez.qubitexplorer.ui.components.GlassSearchField
+import com.maez.qubitexplorer.ui.components.DragSelection
 import com.maez.qubitexplorer.ui.components.dragToSelect
 import com.maez.qubitexplorer.ui.components.GlassSurface
 import com.maez.qubitexplorer.ui.components.IconBadge
@@ -424,7 +425,7 @@ private fun ExplorerSearchTools(
                             Text("Ordenar por ${field.label}$arrow", color = TextPrimary, fontSize = 13.sp)
                         },
                         onClick = {
-                            onSetSorting(field, if (sortField == field) !sortAsc else true)
+                            onSetSorting(field, if (sortField == field) !sortAsc else field.defaultAscending)
                             showSortMenu = false
                         }
                     )
@@ -888,7 +889,7 @@ fun ExplorerScreenContent(
                                             Text("Ordenar por ${field.label}$arrow", color = TextPrimary, fontSize = 13.sp)
                                         },
                                         onClick = {
-                                            val nextAsc = if (sortField == field) !sortAsc else true
+                                            val nextAsc = if (sortField == field) !sortAsc else field.defaultAscending
                                             onSetSorting(field, nextAsc)
                                             showSortMenu = false
                                         }
@@ -1069,7 +1070,7 @@ fun ExplorerScreenContent(
             // Posición de la lista en pantalla: se mueve cuando aparece la barra o se compactan las herramientas
             var listTop by remember { mutableIntStateOf(0) }
 
-            var initialSelectionState by remember { mutableStateOf(false) }
+            val dragSelection = remember { DragSelection() }
 
             val updatedItems by rememberUpdatedState(filteredItems)
             val updatedSelectedPaths by rememberUpdatedState(selectedPaths)
@@ -1090,17 +1091,13 @@ fun ExplorerScreenContent(
                 },
                 onSelectionStart = { key ->
                     val startItem = updatedItems.firstOrNull { it.path == key } ?: return@dragToSelect
-                    initialSelectionState = startItem.path !in updatedSelectedPaths
+                    dragSelection.begin(startItem.path, updatedSelectedPaths)
                     onToggleSelectPath(startItem)
                 },
                 onDragOver = { startKey, currentKey ->
-                    val startIdx = updatedItems.indexOfFirst { it.path == startKey }
-                    val currentIdx = updatedItems.indexOfFirst { it.path == currentKey }
-                    if (startIdx >= 0 && currentIdx >= 0) {
-                        for (i in minOf(startIdx, currentIdx)..maxOf(startIdx, currentIdx)) {
-                            val item = updatedItems[i]
-                            if ((item.path in updatedSelectedPaths) != initialSelectionState) onToggleSelectPath(item)
-                        }
+                    val items = updatedItems
+                    dragSelection.update(items.map { it.path }, startKey, currentKey) { i ->
+                        onToggleSelectPath(items[i])
                     }
                 }
             )

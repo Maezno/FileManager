@@ -841,17 +841,22 @@ class VfsManager {
                 val localSourceFile = if (source.protocol == StorageProtocol.LOCAL) {
                     File(source.path)
                 } else {
-                    downloadToLocalFile(source, sourceConn, tempFile, onProgress = onProgress, isCancelled = isCancelled)
+                    val downloaded = downloadToLocalFile(source, sourceConn, tempFile, onProgress = onProgress, isCancelled = isCancelled)
                     if (isCancelled?.invoke() == true) return@withContext false
+                    // Una descarga fallida o incompleta nunca debe llegar al destino ni borrar el origen
+                    if (!downloaded || (source.sizeBytes > 0 && tempFile.length() != source.sizeBytes)) {
+                        return@withContext false
+                    }
                     tempFile
                 }
 
                 when (targetProtocol) {
                     StorageProtocol.LOCAL -> {
                         val dst = File(targetParentPath, targetFileName)
+                        val partFile = File(targetParentPath, "$targetFileName.part")
                         try {
                             localSourceFile.inputStream().use { input ->
-                                dst.outputStream().use { output ->
+                                partFile.outputStream().use { output ->
                                     val buffer = ByteArray(64 * 1024)
                                     var read: Int
                                     while (input.read(buffer).also { read = it } >= 0) {
@@ -865,8 +870,13 @@ class VfsManager {
                                     }
                                 }
                             }
-                        } catch (e: Exception) {
                             if (dst.exists()) dst.delete()
+                            if (!partFile.renameTo(dst)) {
+                                partFile.delete()
+                                return@withContext false
+                            }
+                        } catch (e: Exception) {
+                            if (partFile.exists()) partFile.delete()
                             return@withContext false
                         }
                     }
@@ -907,11 +917,12 @@ class VfsManager {
                     StorageProtocol.FTP -> {
                         val conn = targetConn ?: return@withContext false
                         val remoteTarget = if (targetParentPath == "/") "/$targetFileName" else "${targetParentPath.trimEnd('/')}/$targetFileName"
-                        withFtpClient(conn) { ftp ->
+                        val stored = withFtpClient(conn) { ftp ->
                             FileInputStream(localSourceFile).use { ins ->
                                 ftp.storeFile(remoteTarget, ins)
                             }
                         }
+                        if (!stored) return@withContext false
                     }
                 }
 

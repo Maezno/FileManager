@@ -1,6 +1,7 @@
 package com.maez.qubitexplorer.services
 
 import android.content.Context
+import android.graphics.BitmapFactory
 import android.media.MediaMetadataRetriever
 import androidx.exifinterface.media.ExifInterface
 import com.maez.qubitexplorer.model.DeviceSummary
@@ -147,6 +148,20 @@ class SmartSearchEngine(
                 height = tmp
             }
 
+            // Muchos archivos (PNG, JPEG sin EXIF) no declaran dimensiones en sus etiquetas
+            if (width <= 0 || height <= 0) {
+                val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                if (item.protocol == StorageProtocol.LOCAL) {
+                    BitmapFactory.decodeFile(item.path, bounds)
+                } else {
+                    val header = vfsManager.readBytesAt(item, 0L, 64 * 1024, conn)
+                    BitmapFactory.decodeByteArray(header, 0, header.size, bounds)
+                }
+                val swap = rotation == 90 || rotation == 270
+                width = if (swap) bounds.outHeight else bounds.outWidth
+                height = if (swap) bounds.outWidth else bounds.outHeight
+            }
+
             val make = exif.getAttribute(ExifInterface.TAG_MAKE)?.trim().orEmpty()
             val model = exif.getAttribute(ExifInterface.TAG_MODEL)?.trim().orEmpty()
             val software = exif.getAttribute(ExifInterface.TAG_SOFTWARE)?.trim().orEmpty()
@@ -164,7 +179,7 @@ class SmartSearchEngine(
             }
 
             val orientation = when {
-                width <= 0 || height <= 0 -> "Horizontal"
+                width <= 0 || height <= 0 -> "N/A"
                 height > width -> "Vertical"
                 else -> "Horizontal"
             }
@@ -178,7 +193,7 @@ class SmartSearchEngine(
                 rotation = rotation
             )
         } catch (_: Exception) {
-            MediaSearchItem(item = item, deviceModel = "Imagen", orientation = "Horizontal")
+            MediaSearchItem(item = item, deviceModel = "Imagen", orientation = "N/A")
         }
     }
 
@@ -229,7 +244,11 @@ class SmartSearchEngine(
             height = tmp
         }
 
-        val orientation = if (height > width) "Vertical" else "Horizontal"
+        val orientation = when {
+            width <= 0 || height <= 0 -> "N/A"
+            height > width -> "Vertical"
+            else -> "Horizontal"
+        }
         val res = if (width > 0 && height > 0) "${width}×${height}" else ""
 
         val deviceModel = detectVideoDeviceFromBytes(item, headBytes, tailBytes)
@@ -371,7 +390,7 @@ class SmartSearchEngine(
         while (i <= max) {
             if (bytes[i] == target[0] && bytes[i + 1] == target[1] && bytes[i + 2] == target[2] && bytes[i + 3] == target[3]) {
                 val version = bytes[i + 4].toInt() and 0xFF
-                val matrixOffset = if (version == 1) i + 4 + 48 else i + 4 + 36
+                val matrixOffset = if (version == 1) i + 4 + 52 else i + 4 + 40
                 val widthOffset = matrixOffset + 36
                 if (widthOffset + 8 <= bytes.size) {
                     val buf = ByteBuffer.wrap(bytes)

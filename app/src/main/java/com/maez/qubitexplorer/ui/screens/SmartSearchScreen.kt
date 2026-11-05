@@ -9,6 +9,7 @@ import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
 import com.maez.qubitexplorer.ui.theme.Motion
 import android.content.Context
+import com.maez.qubitexplorer.ui.components.DragSelection
 import com.maez.qubitexplorer.ui.components.dragToSelect
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -505,7 +506,7 @@ fun SmartSearchScreenContent(
     val holdScope = rememberCoroutineScope()
     val latestResults by rememberUpdatedState(filteredSearchResults)
     val latestSelected by rememberUpdatedState(selectedSearchPaths)
-    var dragSelectTarget by remember { mutableStateOf(true) }
+    val dragSelection = remember { DragSelection() }
 
     Box(modifier = modifier.fillMaxSize()) {
         LazyColumn(
@@ -524,18 +525,13 @@ fun SmartSearchScreenContent(
                     },
                     onSelectionStart = { key ->
                         val path = key as String
-                        dragSelectTarget = path !in latestSelected
+                        dragSelection.begin(path, latestSelected)
                         onToggleSearchSelection(path)
                     },
                     onDragOver = { startKey, currentKey ->
                         val paths = latestResults.map { it.item.path }
-                        val a = paths.indexOf(startKey)
-                        val b = paths.indexOf(currentKey)
-                        if (a >= 0 && b >= 0) {
-                            for (i in minOf(a, b)..maxOf(a, b)) {
-                                val isSel = paths[i] in latestSelected
-                                if (isSel != dragSelectTarget) onToggleSearchSelection(paths[i])
-                            }
+                        dragSelection.update(paths, startKey, currentKey) { i ->
+                            onToggleSearchSelection(paths[i])
                         }
                     }
                 ),

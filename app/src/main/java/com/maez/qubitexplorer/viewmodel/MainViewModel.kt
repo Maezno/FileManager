@@ -3,6 +3,7 @@ package com.maez.qubitexplorer.viewmodel
 import android.app.Application
 import android.content.Intent
 import android.os.Environment
+import android.content.ActivityNotFoundException
 import android.webkit.MimeTypeMap
 import android.widget.Toast
 import androidx.core.content.FileProvider
@@ -790,14 +791,30 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 val uri = FileProvider.getUriForFile(app, "${app.packageName}.provider", localFile)
                 val ext = localFile.extension.lowercase(Locale.ROOT)
-                val mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext) ?: "*/*"
-                val intent = Intent(Intent.ACTION_VIEW).apply {
-                    setDataAndType(uri, mime)
-                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+                val mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext)
+                // Muchos reproductores no declaran video/quicktime: se prueba de lo más exacto a lo más genérico
+                val family = when (item.category) {
+                    FileCategory.VIDEO -> listOf("video/mp4", "video/*")
+                    FileCategory.AUDIO -> listOf("audio/*")
+                    FileCategory.IMAGE -> listOf("image/*")
+                    else -> emptyList()
                 }
-                app.startActivity(intent)
+                val opened = (listOfNotNull(mime) + family + "*/*").distinct().any { type ->
+                    try {
+                        app.startActivity(Intent(Intent.ACTION_VIEW).apply {
+                            setDataAndType(uri, type)
+                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+                        })
+                        true
+                    } catch (_: ActivityNotFoundException) {
+                        false
+                    }
+                }
+                if (!opened) {
+                    Toast.makeText(app, "No hay aplicación instalada para abrir ${item.name}", Toast.LENGTH_SHORT).show()
+                }
             } catch (_: Exception) {
-                Toast.makeText(app, "No hay aplicación instalada para abrir ${item.name}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(app, "No se pudo abrir ${item.name}", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -1015,7 +1032,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             items = clip.items,
             targetParentPath = targetPath,
             targetProtocol = targetProto,
-            targetConnection = targetConn
+            targetConnection = targetConn,
+            sourceConnections = _savedConnections.value + listOfNotNull(_activeConnection.value)
         )
 
         TransferManager.enqueue(job)

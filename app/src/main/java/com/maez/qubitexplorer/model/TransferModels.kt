@@ -36,6 +36,7 @@ data class TransferJob(
     val targetParentPath: String,
     val targetProtocol: StorageProtocol,
     val targetConnection: NetworkConnection?,
+    val sourceConnections: List<NetworkConnection> = emptyList(),
     val currentFileName: String = "",
     val currentIndex: Int = 0,
     val totalFiles: Int = items.size,

@@ -2,4 +2,5 @@
 <paths>
     <external-path name="external_files" path="." />
     <cache-path name="cache_files" path="preview/" />
+    <cache-path name="remote_preview" path="remote_preview/" />
 </paths>

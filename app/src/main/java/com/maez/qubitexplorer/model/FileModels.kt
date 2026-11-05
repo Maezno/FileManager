@@ -53,7 +53,11 @@ enum class SortField(val label: String) {
     NAME("Nombre"),
     DATE("Fecha"),
     SIZE("Tamaño"),
-    TYPE("Tipo")
+    TYPE("Tipo");
+
+    // Fecha y tamaño arrancan por lo más nuevo y lo más pesado
+    val defaultAscending: Boolean
+        get() = this != DATE && this != SIZE
 }
 
 enum class SearchSortField(val label: String) {

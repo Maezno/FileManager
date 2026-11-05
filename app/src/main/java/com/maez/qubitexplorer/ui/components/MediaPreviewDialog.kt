@@ -1,6 +1,7 @@
 package com.maez.qubitexplorer.ui.components
 
 import android.graphics.BitmapFactory
+import android.media.MediaMetadataRetriever
 import android.widget.MediaController
 import android.widget.VideoView
 import androidx.compose.foundation.BorderStroke
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -61,6 +63,28 @@ import com.maez.qubitexplorer.ui.theme.TextSecondary
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
+private fun readVideoDisplayRatio(path: String): Float? {
+    val retriever = MediaMetadataRetriever()
+    return try {
+        retriever.setDataSource(path)
+        val width = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)?.toFloatOrNull() ?: 0f
+        val height = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)?.toFloatOrNull() ?: 0f
+        val rotation = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION)?.toIntOrNull() ?: 0
+        when {
+            width <= 0f || height <= 0f -> null
+            rotation % 180 != 0 -> height / width
+            else -> width / height
+        }
+    } catch (_: Exception) {
+        null
+    } finally {
+        try {
+            retriever.release()
+        } catch (_: Exception) {
+        }
+    }
+}
+
 /**
  * Diálogo de vista previa integrada para Fotos y Videos (estilo MediaRecoveryMobile).
  */
@@ -76,6 +100,14 @@ fun MediaPreviewDialog(
 ) {
     var errorMsg by remember(localPreviewPath) { mutableStateOf<String?>(null) }
     var imageBitmap by remember(localPreviewPath) { mutableStateOf<ImageBitmap?>(null) }
+    var videoRatio by remember(localPreviewPath) { mutableStateOf<Float?>(null) }
+
+    // VideoView deforma la imagen si el alto máximo recorta su medida: el visor se ajusta a la proporción real
+    LaunchedEffect(localPreviewPath, item.category) {
+        if (localPreviewPath != null && item.category == FileCategory.VIDEO) {
+            videoRatio = withContext(Dispatchers.IO) { readVideoDisplayRatio(localPreviewPath) }
+        }
+    }
 
     LaunchedEffect(localPreviewPath, item.category) {
         if (localPreviewPath != null && item.category == FileCategory.IMAGE) {
@@ -213,7 +245,9 @@ fun MediaPreviewDialog(
                                         requestFocus()
                                     }
                                 },
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = videoRatio?.let {
+                                    Modifier.aspectRatio(it, matchHeightConstraintsFirst = it < 1f)
+                                } ?: Modifier.fillMaxWidth()
                             )
                         }
                     }
