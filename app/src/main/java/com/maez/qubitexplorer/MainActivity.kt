@@ -5,6 +5,7 @@ import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.app.UiModeManager
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
@@ -51,6 +52,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -78,6 +80,7 @@ import com.maez.qubitexplorer.ui.screens.SmartSearchScreen
 import com.maez.qubitexplorer.ui.theme.Aqua
 import com.maez.qubitexplorer.ui.theme.QubitExplorerTheme
 import com.maez.qubitexplorer.ui.theme.TextMuted
+import com.maez.qubitexplorer.ui.theme.ThemeMode
 import com.maez.qubitexplorer.ui.theme.TextPrimary
 import com.maez.qubitexplorer.ui.theme.TextSecondary
 import com.maez.qubitexplorer.ui.theme.WarningAmber
@@ -109,13 +112,28 @@ class MainActivity : ComponentActivity() {
         // Si el usuario acepta o rechaza, la transferencia sigue funcionando de fondo
     }
 
+    /** Desde Android 12 el sistema recuerda el tema de la app y lo usa también en el arranque. */
+    private fun applySystemNightMode(mode: ThemeMode) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
+        getSystemService(UiModeManager::class.java).setApplicationNightMode(
+            when (mode) {
+                ThemeMode.SYSTEM -> UiModeManager.MODE_NIGHT_AUTO
+                ThemeMode.LIGHT -> UiModeManager.MODE_NIGHT_NO
+                ThemeMode.DARK -> UiModeManager.MODE_NIGHT_YES
+            }
+        )
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         updatePermissionState()
 
         setContent {
-            QubitExplorerTheme {
+            val themeMode by viewModel.themeMode.collectAsState()
+            LaunchedEffect(themeMode) { applySystemNightMode(themeMode) }
+
+            QubitExplorerTheme(themeMode = themeMode) {
                 val selectedTab by viewModel.selectedTab.collectAsState()
                 val previewItem by viewModel.previewItem.collectAsState()
                 val previewLocalPath by viewModel.previewLocalPath.collectAsState()

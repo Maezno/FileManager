@@ -132,6 +132,13 @@ import com.maez.qubitexplorer.ui.theme.GlassTint
 import com.maez.qubitexplorer.ui.theme.GlowAqua
 import com.maez.qubitexplorer.ui.theme.GlowViolet
 import com.maez.qubitexplorer.ui.theme.NavBg
+import com.maez.qubitexplorer.ui.theme.ButtonDisabledBorder
+import com.maez.qubitexplorer.ui.theme.ButtonDisabledBg
+import com.maez.qubitexplorer.ui.theme.ButtonSecondaryBorder
+import com.maez.qubitexplorer.ui.theme.ButtonSecondaryBg
+import com.maez.qubitexplorer.ui.theme.SwitchUncheckedThumb
+import com.maez.qubitexplorer.ui.theme.OnAccent
+import com.maez.qubitexplorer.ui.theme.NavSelectedPill
 import com.maez.qubitexplorer.ui.theme.PopupBorder
 import com.maez.qubitexplorer.ui.theme.PopupSurface
 import com.maez.qubitexplorer.ui.theme.SelectedAqua
@@ -296,7 +303,7 @@ fun PrimaryButton(
     enabled: Boolean = true,
     colors: List<Color> = listOf(Color(0xFF4F46E5), Color(0xFF4338CA))
 ) {
-    val bgColor = if (enabled) colors[0] else Color(0xFF1F2430)
+    val bgColor = if (enabled) colors[0] else ButtonDisabledBg
     val contentColor = if (enabled) Color.White else TextMuted
 
     Box(
@@ -304,7 +311,7 @@ fun PrimaryButton(
             .heightIn(min = 44.dp)
             .clip(GlassButtonShape)
             .background(bgColor)
-            .border(1.dp, if (enabled) Color(0xFF6366F1).copy(alpha = 0.5f) else Color(0xFF2A303C), GlassButtonShape)
+            .border(1.dp, if (enabled) Color(0xFF6366F1).copy(alpha = 0.5f) else ButtonDisabledBorder, GlassButtonShape)
             .clickable(enabled = enabled, onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 10.dp),
         contentAlignment = Alignment.Center
@@ -370,7 +377,7 @@ fun SecondaryButton(
     enabled: Boolean = true,
     tint: Color = Aqua
 ) {
-    val bgColor = Color(0xFF1E2330)
+    val bgColor = ButtonSecondaryBg
     val contentColor = if (enabled) tint else TextMuted
 
     Box(
@@ -378,7 +385,7 @@ fun SecondaryButton(
             .heightIn(min = 44.dp)
             .clip(GlassButtonShape)
             .background(bgColor)
-            .border(1.dp, Color(0xFF2E384D), GlassButtonShape)
+            .border(1.dp, ButtonSecondaryBorder, GlassButtonShape)
             .clickable(enabled = enabled, onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 10.dp),
         contentAlignment = Alignment.Center
@@ -444,9 +451,9 @@ fun SegmentedTabs(
         ) {
             options.forEachIndexed { index, (label, icon) ->
                 val selected = index == selectedIndex
-                val bg by animateColorAsState(if (selected) Color(0xFF232938) else Color.Transparent, animationSpec = Motion.fade(), label = "segBg")
-                val border by animateColorAsState(if (selected) Color(0xFF4F46E5) else Color.Transparent, animationSpec = Motion.fade(), label = "segBorder")
-                val fg by animateColorAsState(if (selected) Color(0xFFF3F4F6) else TextMuted, animationSpec = Motion.fade(), label = "segFg")
+                val bg by animateColorAsState(if (selected) NavSelectedPill else Color.Transparent, animationSpec = Motion.fade(), label = "segBg")
+                val border by animateColorAsState(if (selected) SelectedVioletBorder else Color.Transparent, animationSpec = Motion.fade(), label = "segBorder")
+                val fg by animateColorAsState(if (selected) TextPrimary else TextMuted, animationSpec = Motion.fade(), label = "segFg")
 
                 Box(
                     modifier = Modifier
@@ -680,11 +687,11 @@ fun SettingSwitchRow(
             checked = checked,
             onCheckedChange = onCheckedChange,
             colors = SwitchDefaults.colors(
-                checkedThumbColor = Color(0xFF0D1424),
+                checkedThumbColor = OnAccent,
                 checkedTrackColor = Aqua,
                 checkedBorderColor = Aqua,
-                uncheckedThumbColor = Color.White,
-                uncheckedTrackColor = Color.White.copy(alpha = 0.12f),
+                uncheckedThumbColor = SwitchUncheckedThumb,
+                uncheckedTrackColor = TextPrimary.copy(alpha = 0.12f),
                 uncheckedBorderColor = GlassBorder
             )
         )
@@ -878,7 +885,7 @@ fun GlassPanel(
 ) {
     GlassSurface(
         shape = GlassChipShape,
-        fillColor = Color.White.copy(alpha = 0.05f),
+        fillColor = TextPrimary.copy(alpha = 0.05f),
         borderColor = GlassBorder,
         modifier = modifier.fillMaxWidth()
     ) {
@@ -1048,8 +1055,8 @@ fun GlassBottomBar(
                         .fillMaxHeight()
                         .padding(vertical = 2.dp, horizontal = 2.dp)
                         .clip(RoundedCornerShape(16.dp))
-                        .background(Color(0xFF232938))
-                        .border(1.dp, Color(0xFF4F46E5), RoundedCornerShape(16.dp))
+                        .background(NavSelectedPill)
+                        .border(1.dp, SelectedVioletBorder, RoundedCornerShape(16.dp))
                 )
 
                 Row(
@@ -1060,7 +1067,7 @@ fun GlassBottomBar(
                         val selected = item.index == selectedTab
                         val tabItemWidth = if (selected) activeWidth else baseInactiveWidth
                         val iconColor by animateColorAsState(if (selected) Aqua else TextMuted, animationSpec = Motion.fade(), label = "iconColor")
-                        val textColor by animateColorAsState(if (selected) Color.White else TextMuted, animationSpec = Motion.fade(), label = "textColor")
+                        val textColor by animateColorAsState(if (selected) TextPrimary else TextMuted, animationSpec = Motion.fade(), label = "textColor")
 
                         Box(
                             modifier = Modifier

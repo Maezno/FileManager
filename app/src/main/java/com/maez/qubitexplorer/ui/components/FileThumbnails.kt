@@ -63,6 +63,7 @@ import com.maez.qubitexplorer.ui.theme.QubitExplorerTheme
 import com.maez.qubitexplorer.ui.theme.AccentPurple
 import com.maez.qubitexplorer.ui.theme.BorderDark
 import com.maez.qubitexplorer.ui.theme.ConsoleBg
+import com.maez.qubitexplorer.ui.theme.MediaDanger
 import com.maez.qubitexplorer.ui.theme.DangerRedLight
 import com.maez.qubitexplorer.ui.theme.TextSecondary
 import com.maez.qubitexplorer.ui.theme.WarningAmber
@@ -309,7 +310,7 @@ fun FileThumbnailBox(
             ) {
                 Text(
                     text = if (item.sizeBytes == 0L) "0B" else item.extension.uppercase().take(4),
-                    color = if (item.sizeBytes == 0L) DangerRedLight else Color.White,
+                    color = if (item.sizeBytes == 0L) MediaDanger else Color.White,
                     fontSize = 7.5.sp,
                     fontWeight = FontWeight.Bold
                 )

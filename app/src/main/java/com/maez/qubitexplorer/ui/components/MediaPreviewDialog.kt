@@ -54,6 +54,9 @@ import com.maez.qubitexplorer.ui.theme.AccentGreenLight
 import com.maez.qubitexplorer.ui.theme.BorderDark
 import com.maez.qubitexplorer.ui.theme.CardDark
 import com.maez.qubitexplorer.ui.theme.ConsoleBg
+import com.maez.qubitexplorer.ui.theme.MediaTextMuted
+import com.maez.qubitexplorer.ui.theme.MediaDanger
+import com.maez.qubitexplorer.ui.theme.MediaAccent
 import com.maez.qubitexplorer.ui.theme.DangerRedLight
 import com.maez.qubitexplorer.ui.theme.QubitExplorerTheme
 import com.maez.qubitexplorer.ui.theme.PopupBorder
@@ -182,14 +185,14 @@ fun MediaPreviewDialog(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                CircularProgressIndicator(color = AccentGreenLight)
-                                Text("Cargando vista previa desde red...", color = TextSecondary, fontSize = 12.sp)
+                                CircularProgressIndicator(color = MediaAccent)
+                                Text("Cargando vista previa desde red...", color = MediaTextMuted, fontSize = 12.sp)
                             }
                         }
                         item.sizeBytes == 0L -> {
                             Text(
                                 text = "Archivo vacío (0 B) — Sin contenido para previsualizar",
-                                color = DangerRedLight,
+                                color = MediaDanger,
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = 13.sp,
                                 modifier = Modifier.padding(16.dp)
@@ -203,13 +206,13 @@ fun MediaPreviewDialog(
                             ) {
                                 Text(
                                     text = "No se pudo mostrar la vista previa integrada",
-                                    color = DangerRedLight,
+                                    color = MediaDanger,
                                     fontWeight = FontWeight.SemiBold,
                                     fontSize = 13.sp
                                 )
                                 Text(
                                     text = errorMsg ?: "Puedes abrir el archivo con un reproductor externo.",
-                                    color = TextSecondary,
+                                    color = MediaTextMuted,
                                     fontSize = 12.sp
                                 )
                             }
@@ -223,7 +226,7 @@ fun MediaPreviewDialog(
                                     modifier = Modifier.fillMaxWidth()
                                 )
                             } else {
-                                CircularProgressIndicator(color = AccentBlueLight)
+                                CircularProgressIndicator(color = MediaAccent)
                             }
                         }
                         item.category == FileCategory.VIDEO || item.category == FileCategory.AUDIO -> {

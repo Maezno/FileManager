@@ -150,6 +150,7 @@ import com.maez.qubitexplorer.ui.components.SettingSwitchRow
 import com.maez.qubitexplorer.ui.components.Tag
 import com.maez.qubitexplorer.ui.components.appTextFieldColors
 import com.maez.qubitexplorer.ui.theme.Aqua
+import com.maez.qubitexplorer.ui.theme.OnAccent
 import com.maez.qubitexplorer.ui.theme.BgElevated
 import com.maez.qubitexplorer.ui.theme.BorderDark
 import com.maez.qubitexplorer.ui.theme.CardDark
@@ -622,7 +623,7 @@ fun SmartSearchScreenContent(
                                 ) {
                                     Text(
                                         text = activeFilterCount.toString(),
-                                        color = Color.Black,
+                                        color = OnAccent,
                                         fontSize = 10.sp,
                                         fontWeight = FontWeight.Bold
                                     )

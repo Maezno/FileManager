@@ -15,13 +15,17 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BrightnessAuto
 import androidx.compose.material.icons.filled.CleaningServices
 import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FolderSpecial
 import androidx.compose.material.icons.filled.GridOn
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.PrivacyTip
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Settings
@@ -53,12 +57,14 @@ import com.maez.qubitexplorer.ui.components.IconBadge
 import com.maez.qubitexplorer.ui.components.PrimaryButton
 import com.maez.qubitexplorer.ui.components.SecondaryButton
 import com.maez.qubitexplorer.ui.components.SectionCard
+import com.maez.qubitexplorer.ui.components.SegmentedTabs
 import com.maez.qubitexplorer.ui.components.SettingSwitchRow
 import com.maez.qubitexplorer.ui.theme.Aqua
 import com.maez.qubitexplorer.ui.theme.Danger
 import com.maez.qubitexplorer.ui.theme.QubitExplorerTheme
 import com.maez.qubitexplorer.ui.theme.TextMuted
 import com.maez.qubitexplorer.ui.theme.TextPrimary
+import com.maez.qubitexplorer.ui.theme.ThemeMode
 import com.maez.qubitexplorer.ui.theme.Violet
 import com.maez.qubitexplorer.ui.theme.WarningAmber
 import com.maez.qubitexplorer.viewmodel.MainViewModel
@@ -74,6 +80,7 @@ fun SettingsScreen(
     val remoteCacheSize by viewModel.remoteCacheSizeBytes.collectAsState()
     val autoClearRemoteCache by viewModel.autoClearRemoteCache.collectAsState()
 
+    val themeMode by viewModel.themeMode.collectAsState()
     val showHiddenFiles by viewModel.showHiddenFiles.collectAsState()
     val isGridView by viewModel.isGridView.collectAsState()
     val confirmBeforeDelete by viewModel.confirmBeforeDelete.collectAsState()
@@ -114,7 +121,27 @@ fun SettingsScreen(
                 }
             }
 
-            // 1. SECCIÓN: Almacenamiento y Caché
+            // 1. SECCIÓN: Apariencia
+            item {
+                SectionCard(
+                    title = "Apariencia",
+                    icon = Icons.Default.Palette,
+                    iconTint = Violet,
+                    subtitle = "Elegí el tema de la app o usá el del teléfono"
+                ) {
+                    SegmentedTabs(
+                        options = listOf(
+                            "Sistema" to Icons.Default.BrightnessAuto,
+                            "Claro" to Icons.Default.LightMode,
+                            "Oscuro" to Icons.Default.DarkMode
+                        ),
+                        selectedIndex = themeMode.ordinal,
+                        onSelect = { viewModel.setThemeMode(ThemeMode.entries[it]) }
+                    )
+                }
+            }
+
+            // 2. SECCIÓN: Almacenamiento y Caché
             item {
                 SectionCard(
                     title = "Almacenamiento y Caché",
@@ -196,7 +223,7 @@ fun SettingsScreen(
                 }
             }
 
-            // 2. SECCIÓN: Explorador y Visualización
+            // 3. SECCIÓN: Explorador y Visualización
             item {
                 SectionCard(
                     title = "Explorador y Visualización",
@@ -249,7 +276,7 @@ fun SettingsScreen(
                 }
             }
 
-            // 3. SECCIÓN: Permisos del Sistema
+            // 4. SECCIÓN: Permisos del Sistema
             item {
                 SectionCard(
                     title = "Permisos del Sistema",
@@ -295,7 +322,7 @@ fun SettingsScreen(
                 }
             }
 
-            // 4. SECCIÓN: Acerca de y Privacidad
+            // 5. SECCIÓN: Acerca de y Privacidad
             item {
                 SectionCard(
                     title = "Acerca de y Privacidad",

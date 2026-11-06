@@ -10,6 +10,7 @@ import androidx.core.content.FileProvider
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.maez.qubitexplorer.model.ClipboardState
+import com.maez.qubitexplorer.ui.theme.ThemeMode
 import com.maez.qubitexplorer.model.ConflictRequest
 import com.maez.qubitexplorer.model.ConflictResolution
 import com.maez.qubitexplorer.model.DeviceSummary
@@ -132,6 +133,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _isGridView = MutableStateFlow(false)
     val isGridView: StateFlow<Boolean> = _isGridView.asStateFlow()
+
+    private val _themeMode = MutableStateFlow(ThemeMode.SYSTEM)
+    val themeMode: StateFlow<ThemeMode> = _themeMode.asStateFlow()
 
     private val _showHiddenFiles = MutableStateFlow(false)
     val showHiddenFiles: StateFlow<Boolean> = _showHiddenFiles.asStateFlow()
@@ -295,6 +299,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val lanScanProgress: StateFlow<Float> = _lanScanProgress.asStateFlow()
 
     init {
+        _themeMode.value = ThemeMode.entries.find { it.name == connectionStorage.getThemeMode() } ?: ThemeMode.SYSTEM
         _showHiddenFiles.value = connectionStorage.getShowHiddenFiles()
         _isGridView.value = connectionStorage.getDefaultGridView()
         _savedConnections.value = connectionStorage.loadConnections()
@@ -627,6 +632,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val newValue = !_isGridView.value
         _isGridView.value = newValue
         connectionStorage.setDefaultGridView(newValue)
+    }
+
+    fun setThemeMode(mode: ThemeMode) {
+        _themeMode.value = mode
+        connectionStorage.setThemeMode(mode.name)
     }
 
     fun toggleHiddenFiles() {

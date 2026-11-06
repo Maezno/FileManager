@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <style name="Theme.QubitExplorer" parent="android:Theme.Material.NoActionBar">
-        <item name="android:statusBarColor">#FF0D1117</item>
-        <item name="android:navigationBarColor">#FF0D1117</item>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <style name="Theme.QubitExplorer" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">#FFF6F7F9</item>
+        <item name="android:windowSplashScreenBackground" tools:targetApi="31">#FFF6F7F9</item>
+        <item name="android:statusBarColor">#FFF6F7F9</item>
+        <item name="android:navigationBarColor">#FFF6F7F9</item>
     </style>
 </resources>

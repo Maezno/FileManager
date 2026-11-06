@@ -240,6 +240,9 @@ class ConnectionStorage(context: Context) {
     // PERSISTENCIA DE AJUSTES GENERALES DEL USUARIO
     // ─────────────────────────────────────────────────────────────────────────────
 
+    fun getThemeMode(): String? = prefs.getString("pref_theme_mode", null)
+    fun setThemeMode(value: String) = prefs.edit().putString("pref_theme_mode", value).apply()
+
     fun getShowHiddenFiles(): Boolean = prefs.getBoolean("pref_show_hidden_files", false)
     fun setShowHiddenFiles(value: Boolean) = prefs.edit().putBoolean("pref_show_hidden_files", value).apply()
 
