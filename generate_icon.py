@@ -1,140 +1,112 @@
+"""Genera el ícono de Qubit Explorer: una Q con carpeta y un qubit al final de la cola."""
 import os
+
 from PIL import Image, ImageDraw, ImageFilter
 
-size = 512
-img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+S = 2048
+VIOLET, AQUA, WHITE = (129, 140, 248), (56, 189, 248), (243, 244, 246)
+CX, CY = S * 0.49, S * 0.49
 
-# 1. Fondo estilizado con esquinas redondeadas idéntico a MediaRecovery PC
-bg = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-bg_draw = ImageDraw.Draw(bg)
 
-margin = 28
-r = 110
-rect = [margin, margin, size - margin, size - margin]
+def gradient(c1, c2):
+    small = Image.new("RGB", (64, 64))
+    for y in range(64):
+        for x in range(64):
+            t = min(max(((x + y) / 126 - 0.25) / 0.5, 0), 1)
+            small.putpixel((x, y), tuple(int(a + (b - a) * t) for a, b in zip(c1, c2)))
+    return small.resize((S, S), Image.BICUBIC)
 
-mask = Image.new("L", (size, size), 0)
-mask_draw = ImageDraw.Draw(mask)
-mask_draw.rounded_rectangle(rect, radius=r, fill=255)
 
-# Gradiente de fondo oscuro elegante (#0D1117 a #161F30)
-for y in range(size):
-    factor = y / size
-    r_col = int(13 + (22 - 13) * factor)
-    g_col = int(17 + (31 - 17) * factor)
-    b_col = int(23 + (48 - 23) * factor)
-    bg_draw.line([(0, y), (size, y)], fill=(r_col, g_col, b_col, 255))
+def background():
+    return gradient((30, 35, 54), (10, 12, 18)).convert("RGBA")
 
-base = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-base.paste(bg, (0, 0), mask)
 
-# Borde acentuado con resplandor cian/azul (#388BFD)
-border_layer = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-border_draw = ImageDraw.Draw(border_layer)
-border_draw.rounded_rectangle(rect, radius=r, outline=(56, 139, 253, 220), width=6)
-base = Image.alpha_composite(base, border_layer)
+def masks():
+    ring = Image.new("L", (S, S), 0)
+    d = ImageDraw.Draw(ring)
+    R, w = S * 0.245, S * 0.058
+    d.ellipse([CX - R, CY - R, CX + R, CY + R], fill=255)
+    r = R - w
+    d.ellipse([CX - r, CY - r, CX + r, CY + r], fill=0)
+    # Corte de la Q alrededor de la cola
+    k = 0.7071
+    a, b = R * 0.70, R * 1.22
+    p1, p2 = (CX + a * k, CY + a * k), (CX + b * k, CY + b * k)
+    d.line([p1, p2], fill=0, width=int(w * 2.0))
+    # Cola
+    tail = Image.new("L", (S, S), 0)
+    t = ImageDraw.Draw(tail)
+    a2, b2 = R * 0.74, R * 1.17
+    q1, q2 = (CX + a2 * k, CY + a2 * k), (CX + b2 * k, CY + b2 * k)
+    t.line([q1, q2], fill=255, width=int(w * 0.8))
+    t.ellipse([q1[0] - w * .4, q1[1] - w * .4, q1[0] + w * .4, q1[1] + w * .4], fill=255)
+    # Carpeta
+    folder = Image.new("L", (S, S), 0)
+    f = ImageDraw.Draw(folder)
+    fw, fh = S * 0.118, S * 0.082
+    rad = S * 0.018
+    f.rounded_rectangle([CX - fw, CY - fh * 1.28, CX - fw * .1, CY], radius=rad, fill=255)
+    f.rounded_rectangle([CX - fw, CY - fh * .95, CX + fw, CY + fh * 1.05], radius=rad, fill=255)
+    # Qubit: el punto al final de la cola
+    dot = Image.new("L", (S, S), 0)
+    g = ImageDraw.Draw(dot)
+    dr = w * 0.78
+    g.ellipse([q2[0] - dr, q2[1] - dr, q2[0] + dr, q2[1] + dr], fill=255)
+    return ring, tail, folder, dot
 
-center_x, center_y = size // 2, size // 2
 
-# Aro exterior de disco / escaneo (mismo estilo MediaRecovery)
-draw_main = ImageDraw.Draw(base)
-outer_ring = [88, 88, size - 88, size - 88]
-draw_main.ellipse(outer_ring, outline=(25, 38, 58, 210), width=14)
+def foreground(mono=False):
+    ring, tail, folder, dot = masks()
+    out = Image.new("RGBA", (S, S), (0, 0, 0, 0))
+    if mono:
+        out.paste((255, 255, 255, 255), mask=ring)
+        out.paste((255, 255, 255, 255), mask=tail)
+        out.paste((255, 255, 255, 255), mask=folder)
+        out.paste((255, 255, 255, 255), mask=dot)
+        return out
+    grad = gradient(VIOLET, AQUA).convert("RGBA")
+    out.paste(grad, mask=ring)
+    out.paste(grad, mask=tail)
+    out.paste(WHITE + (255,), mask=folder)
+    glow = dot.filter(ImageFilter.GaussianBlur(S * 0.022)).point(lambda v: int(v * .7))
+    layer = Image.new("RGBA", (S, S), AQUA + (0,))
+    layer.putalpha(glow)
+    out = Image.alpha_composite(out, layer)
+    out.paste(WHITE + (255,), mask=dot)
+    return out
 
-# Arco de progreso circular brillante (#58A6FF)
-draw_main.arc(outer_ring, start=-35, end=205, fill=(88, 166, 255, 255), width=14)
-# Arco verde éxito / búsqueda inteligente (#3FB950)
-draw_main.arc(outer_ring, start=205, end=275, fill=(63, 185, 80, 255), width=14)
 
-# Sombra suave de la carpeta central
-shadow = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-sh_draw = ImageDraw.Draw(shadow)
-sh_draw.rounded_rectangle([148, 195, 372, 345], radius=24, fill=(0, 0, 0, 160))
-shadow = shadow.filter(ImageFilter.GaussianBlur(10))
-base = Image.alpha_composite(base, shadow)
-draw_main = ImageDraw.Draw(base)
+def full(fg, zoom=1.0):
+    im = Image.alpha_composite(background(), fg)
+    if zoom != 1.0:
+        c = int(S / zoom)
+        o = (S - c) // 2
+        im = im.crop((o, o, o + c, o + c))
+    return im
 
-# 2. Carpeta central estilizada
-# Solapa trasera + pestaña superior de la carpeta (#1F6FEB)
-draw_main.rounded_rectangle([148, 174, 248, 235], radius=16, fill=(31, 111, 235, 255))
-draw_main.rounded_rectangle([148, 196, 366, 336], radius=22, fill=(31, 111, 235, 255))
-# Conector diagonal suave de la pestaña de la carpeta
-draw_main.polygon([(232, 174), (264, 196), (232, 210)], fill=(31, 111, 235, 255))
 
-# Hoja / documento asomando dentro de la carpeta (#A5D6FF)
-draw_main.rounded_rectangle([172, 192, 342, 240], radius=10, fill=(165, 214, 255, 235))
+def rounded(im, size, ratio):
+    im = im.resize((size * 4, size * 4), Image.LANCZOS)
+    m = Image.new("L", im.size, 0)
+    ImageDraw.Draw(m).rounded_rectangle([0, 0, size * 4 - 1, size * 4 - 1], radius=int(size * 4 * ratio), fill=255)
+    im.putalpha(m)
+    return im.resize((size, size), Image.LANCZOS)
 
-# Cuerpo frontal de la carpeta (#58A6FF) con borde luminoso
-draw_main.rounded_rectangle(
-    [146, 214, 366, 340],
-    radius=22,
-    fill=(88, 166, 255, 255),
-    outline=(165, 214, 255, 255),
-    width=3
-)
 
-# Líneas de índice / metadatos dentro de la carpeta
-draw_main.line([(176, 252), (265, 252)], fill=(13, 17, 23, 190), width=8)
-draw_main.line([(176, 276), (242, 276)], fill=(13, 17, 23, 150), width=8)
-draw_main.line([(176, 300), (225, 300)], fill=(13, 17, 23, 120), width=8)
+res = os.path.join("app", "src", "main", "res")
+fg = foreground()
+mono = foreground(mono=True)
+icon = full(fg, 1.45)
 
-# 3. Lupa / Nodo de búsqueda inteligente en verde esmeralda (#3FB950)
-mag_cx, mag_cy, mag_r = 316, 296, 38
-# Mango de la lupa
-draw_main.line([(mag_cx + 24, mag_cy + 24), (mag_cx + 52, mag_cy + 52)], fill=(13, 17, 23, 230), width=20)
-draw_main.line([(mag_cx + 24, mag_cy + 24), (mag_cx + 50, mag_cy + 50)], fill=(63, 185, 80, 255), width=13)
+for name, px in {"mdpi": 48, "hdpi": 72, "xhdpi": 96, "xxhdpi": 144, "xxxhdpi": 192}.items():
+    folder = os.path.join(res, "mipmap-" + name)
+    layer = px * 108 // 48
+    fg.resize((layer, layer), Image.LANCZOS).save(os.path.join(folder, "ic_launcher_foreground.png"))
+    mono.resize((layer, layer), Image.LANCZOS).save(os.path.join(folder, "ic_launcher_monochrome.png"))
+    rounded(icon, px, 0.22).save(os.path.join(folder, "ic_launcher.png"))
+    rounded(icon, px, 0.5).save(os.path.join(folder, "ic_launcher_round.png"))
 
-# Círculo de la lupa
-draw_main.ellipse(
-    [mag_cx - mag_r, mag_cy - mag_r, mag_cx + mag_r, mag_cy + mag_r],
-    fill=(13, 17, 23, 240),
-    outline=(63, 185, 80, 255),
-    width=10
-)
-
-# Pulso / onda dentro de la lupa (guiño directo a MediaRecovery)
-pulse_pts = [
-    (mag_cx - 22, mag_cy + 4),
-    (mag_cx - 10, mag_cy + 4),
-    (mag_cx - 3, mag_cy - 14),
-    (mag_cx + 5, mag_cy + 16),
-    (mag_cx + 12, mag_cy - 6),
-    (mag_cx + 22, mag_cy + 4)
-]
-draw_main.line(pulse_pts, fill=(63, 185, 80, 255), width=5, joint="curve")
-
-os.makedirs("Resources", exist_ok=True)
-ico_sizes = [(256, 256), (128, 128), (64, 64), (48, 48), (32, 32), (16, 16)]
-base.save(os.path.join("Resources", "app_icon.ico"), format="ICO", sizes=ico_sizes)
-base.save(os.path.join("Resources", "app_icon.png"), format="PNG")
-
-# Guardar drawable para la UI interna de Android
-drawable_dir = os.path.join("app", "src", "main", "res", "drawable")
-os.makedirs(drawable_dir, exist_ok=True)
-base.resize((256, 256), Image.Resampling.LANCZOS).save(os.path.join(drawable_dir, "app_logo.png"), format="PNG")
-
-# Generar mipmaps para todas las densidades de Android
-mipmaps = {
-    "mipmap-mdpi": 48,
-    "mipmap-hdpi": 72,
-    "mipmap-xhdpi": 96,
-    "mipmap-xxhdpi": 144,
-    "mipmap-xxxhdpi": 192,
-}
-
-# Crear versión circular para ic_launcher_round
-round_mask = Image.new("L", (size, size), 0)
-round_draw = ImageDraw.Draw(round_mask)
-round_draw.ellipse([margin, margin, size - margin, size - margin], fill=255)
-round_img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-round_img.paste(base, (0, 0), round_mask)
-round_border = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-ImageDraw.Draw(round_border).ellipse([margin, margin, size - margin, size - margin], outline=(56, 139, 253, 220), width=6)
-round_img = Image.alpha_composite(round_img, round_border)
-
-for folder, px in mipmaps.items():
-    out_dir = os.path.join("app", "src", "main", "res", folder)
-    os.makedirs(out_dir, exist_ok=True)
-    base.resize((px, px), Image.Resampling.LANCZOS).save(os.path.join(out_dir, "ic_launcher.png"), format="PNG")
-    round_img.resize((px, px), Image.Resampling.LANCZOS).save(os.path.join(out_dir, "ic_launcher_round.png"), format="PNG")
-
-print("OK: Iconos generados en Resources/ y app/src/main/res/")
+icon.resize((256, 256), Image.LANCZOS).save(os.path.join(res, "drawable", "app_logo.png"))
+icon.resize((1024, 1024), Image.LANCZOS).save(os.path.join("Resources", "app_icon.png"))
+icon.resize((512, 512), Image.LANCZOS).save(os.path.join("Resources", "app_icon_play_store.png"))
+icon.resize((256, 256), Image.LANCZOS).save(os.path.join("Resources", "app_icon.ico"), sizes=[(16, 16), (32, 32), (48, 48), (256, 256)])
