@@ -1,13 +1,13 @@
 # Manual de Identidad Visual, Estética y Sistema de Animaciones (UI/UX)
-> **FileManager Studio Mobile Design System — Estilo Charcoal / GitHub Dark Sólido**  
+> **Qubit Explorer y VidForge Design System — Estilo sólido con tema claro y oscuro**  
 > Guía técnica completa de diseño, tokens, componentes, interacciones y especificaciones de animación para ser replicado en otra aplicación (Jetpack Compose, Flutter, React Native, Web, etc.).
 
 ---
 
 ## 1. Filosofía y Dirección de Arte
 
-El lenguaje visual de la aplicación se define como **Dark Charcoal / GitHub Dark Sólido de Alto Contraste**:
-- **Superficies 100% Sólidas (Sin Glassmorfismo):** Se eliminan por completo los efectos de desenfoque translúcido (*blur / frosted glass*), transparencias complejas, sombras difusas y orbes resplandecientes. Toda la interfaz se asienta sobre superficies oscuras opacas, limpias y de alto rendimiento.
+El lenguaje visual de la aplicación se define como **superficies sólidas de alto contraste, con tema claro y oscuro**. El oscuro parte del estilo Charcoal / GitHub Dark. Los valores hexadecimales de este manual corresponden al tema oscuro, salvo en la sección 2.5, que define el tema claro:
+- **Superficies 100% Sólidas (Sin Glassmorfismo):** Se eliminan por completo los efectos de desenfoque translúcido (*blur / frosted glass*), transparencias complejas, sombras difusas y orbes resplandecientes. Toda la interfaz se asienta sobre superficies opacas, limpias y de alto rendimiento.
 - **Definición por Bordes Nítidos (1 dp Stroke):** La profundidad y separación entre capas no se logra mediante sombras ni refracción, sino mediante una jerarquía tonal sutil en los fondos acompañada de bordes nítidos de `1 dp` (`#262C38`).
 - **Semántica Limpia sin Emojis:** En interfaces, etiquetas, diálogos y botones solo se utilizan **iconos vectoriales Google Material** limpios y precisos, evitando por completo el uso de emojis.
 - **Micro-interacciones Orgánicas:** Animaciones ágiles basadas en físicas de resorte (*Spring physics*) para elementos interactivos como la barra de navegación, asegurando una respuesta táctil inmediata sin lag gráfico.
@@ -58,6 +58,48 @@ El lenguaje visual de la aplicación se define como **Dark Charcoal / GitHub Dar
 | `TextPrimary` | `#F3F4F6` | Blanco nítido de alto contraste para títulos principales y datos |
 | `TextMuted` / `TextSecondary` | `#9CA3AF` | Gris neutro para subtítulos, metadatos, detalles y placeholders |
 
+### 2.5 Temas Claro y Oscuro
+
+Cada app ofrece en **Ajustes → Apariencia** tres opciones: **Sistema** (por defecto), **Claro** y **Oscuro**. El cambio se aplica en vivo y se conserva entre aperturas. La pantalla de inicio y las barras del sistema siguen el tema elegido.
+
+Los tokens tienen el mismo nombre en ambos temas y sus valores viven en `ui/theme/Theme.kt`. Los colores no se escriben directamente en pantallas ni componentes.
+
+| Token | Oscuro | Claro |
+|---|---|---|
+| `BgTop` | `#0F1117` | `#F8F9FB` |
+| `BgMid` / `BgDark` | `#0D0F14` | `#F6F7F9` |
+| `BgBottom` | `#090A0D` | `#F1F3F6` |
+| `CardDark` / `PopupSurface` | `#161922` | `#FFFFFF` |
+| `InputDark` | `#11141A` | `#F1F3F6` |
+| `BgElevated` | `#1E232F` | `#EEF0F4` |
+| `BorderDark` / `GlassBorder` | `#262C38` | `#E3E6EC` |
+| `PopupBorder` | `#2E3545` | `#D8DCE4` |
+| `TextPrimary` | `#F3F4F6` | `#111827` |
+| `TextMuted` / `TextSecondary` | `#9CA3AF` | `#4B5563` |
+| `Violet` | `#818CF8` | `#4F46E5` |
+| `Aqua` | `#38BDF8` | `#0369A1` |
+| `Danger` / `DangerRedLight` | `#F87171` | `#DC2626` |
+| `WarningAmber` | `#FBBF24` | `#B45309` |
+| `SelectedViolet` / `SelectedVioletBg` | `#282D3D` | `#E0E7FF` |
+| `SelectedAqua` / `SelectedAquaBg` | `#162B3D` | `#E0F2FE` |
+| `NavSelectedPill` | `#232938` | `#E0E7FF` |
+| `ButtonSecondaryBg` | `#1E2330` | `#F1F3F6` |
+| `ButtonDisabledBg` | `#1F2430` | `#E5E7EB` |
+| `ButtonDisabledBorder` | `#2A303C` | `#D1D5DB` |
+| `OnAccent` | `#0D1424` | `#FFFFFF` |
+
+**Diferencias entre apps:**
+- `NavBg`: Qubit Explorer usa `#12151D` al 95% en oscuro y `#FFFFFF` al 95% en claro. VidForge usa `#12151D` y `#FFFFFF` opacos.
+- `ButtonSecondaryBorder` (`#2E384D` / `#D8DCE4`) y `SwitchUncheckedThumb` (`#FFFFFF` / `#6B7280`) solo existen en Qubit Explorer. VidForge usa `BorderElevated` con esos mismos valores para el borde.
+
+**Colores que no cambian con el tema:**
+- El botón primario mantiene fondo `#4F46E5`, borde `#6366F1` y contenido blanco.
+- La consola y las áreas de foto y video siguen oscuras: `ConsoleBg` `#0B0D12`, `ConsoleText` `#38BDF8`, `MediaTextMuted` `#9CA3AF` y `MediaDanger` `#F87171`.
+
+### 2.6 Icono de la Familia
+
+Los iconos de Qubit Explorer y VidForge comparten fondo con degradado diagonal (`#1E2336` a `#0A0C12`), aro con degradado `#818CF8` a `#38BDF8`, símbolo central `#F3F4F6` y un nodo blanco con brillo aqua abajo a la derecha. Cada app cambia el símbolo: carpeta y cola de Q en Qubit Explorer, play y aro de progreso en VidForge. Los recursos se regeneran con `generate_icon.py` en cada proyecto e incluyen una capa monocroma para iconos temáticos.
+
 ---
 
 ## 3. Tipografía y Jerarquía Textual
@@ -72,7 +114,7 @@ Se recomienda el uso de tipografías geométricas o neo-grotescas limpias (ej. *
 | **Cuerpo / Descripción** | `13.sp` | `Normal` (400) | `TextMuted` | Subtítulos de tarjeta, rutas y metadatos |
 | **Botón Primario** | `13.5.sp` | `SemiBold` (600) | `#FFFFFF` | Texto de botón principal |
 | **Botón Secundario / Chips** | `13.sp` | `SemiBold` / `Medium` | `Aqua` / `TextPrimary` | Botones secundarios y chips de filtros |
-| **Texto Pestaña Activa** | `11.5.sp` | `Bold` (700) | `#FFFFFF` | Etiqueta en barra de navegación inferior |
+| **Texto Pestaña Activa** | `11.5.sp` | `Bold` (700) | `TextPrimary` | Etiqueta en barra de navegación inferior |
 | **Tags / Badges** | `11.sp` | `SemiBold` (600) | Color del acento | Badges compactos de formato, cámara o estado |
 
 ---
