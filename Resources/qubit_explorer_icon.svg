@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="317.8 317.8 1412.4 1412.4">
+  <defs>
+    <linearGradient id="fondo" gradientUnits="userSpaceOnUse" x1="512.0" y1="512.0" x2="1536.0" y2="1536.0">
+      <stop offset="0" stop-color="#1E2336"/>
+      <stop offset="1" stop-color="#0A0C12"/>
+    </linearGradient>
+    <linearGradient id="acento" gradientUnits="userSpaceOnUse" x1="512.0" y1="512.0" x2="1536.0" y2="1536.0">
+      <stop offset="0" stop-color="#818CF8"/>
+      <stop offset="1" stop-color="#38BDF8"/>
+    </linearGradient>
+    <mask id="corte-aro" maskUnits="userSpaceOnUse" x="0" y="0" width="2048" height="2048">
+      <rect x="0" y="0" width="2048" height="2048" fill="#fff"/>
+      <circle cx="1373.0" cy="1373.0" r="172.7" fill="#000"/>
+    </mask>
+    <filter id="brillo" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="45.1"/>
+    </filter>
+  </defs>
+  <rect id="fondo-icono" x="0" y="0" width="2048" height="2048" fill="url(#fondo)"/>
+  <circle id="aro" cx="1024.0" cy="1024.0" r="493.6" fill="none" stroke="url(#acento)" stroke-width="127.0" mask="url(#corte-aro)"/>
+  <g id="carpeta" fill="#F3F4F6">
+    <rect x="757.8" y="809.3" width="239.6" height="235.9" rx="41.0"/>
+    <rect x="757.8" y="870.1" width="532.5" height="368.6" rx="41.0"/>
+  </g>
+  <circle id="brillo-nodo" cx="1373.0" cy="1373.0" r="109.2" fill="#38BDF8" opacity="0.7" filter="url(#brillo)"/>
+  <circle id="nodo" cx="1373.0" cy="1373.0" r="109.2" fill="#F3F4F6"/>
+</svg>

@@ -1,11 +1,11 @@
-"""Genera el ícono de Qubit Explorer: una Q con carpeta y un qubit al final de la cola."""
+"""Genera el ícono de Qubit Explorer: un aro con carpeta y un nodo encendido en el corte, igual que VidForge."""
 import os
 
 from PIL import Image, ImageDraw, ImageFilter
 
 S = 2048
 VIOLET, AQUA, WHITE = (129, 140, 248), (56, 189, 248), (243, 244, 246)
-CX, CY = S * 0.49, S * 0.49
+CX, CY = S * 0.5, S * 0.5
 
 
 def gradient(c1, c2):
@@ -24,50 +24,42 @@ def background():
 def masks():
     ring = Image.new("L", (S, S), 0)
     d = ImageDraw.Draw(ring)
-    R, w = S * 0.245, S * 0.058
+    R, w = S * 0.272, S * 0.062
     d.ellipse([CX - R, CY - R, CX + R, CY + R], fill=255)
     r = R - w
     d.ellipse([CX - r, CY - r, CX + r, CY + r], fill=0)
-    # Corte de la Q alrededor de la cola
+    # Nodo: va sobre la línea media del aro, en el mismo eje de la cola de la Q
     k = 0.7071
-    a, b = R * 0.70, R * 1.22
-    p1, p2 = (CX + a * k, CY + a * k), (CX + b * k, CY + b * k)
-    d.line([p1, p2], fill=0, width=int(w * 2.0))
-    # Cola
-    tail = Image.new("L", (S, S), 0)
-    t = ImageDraw.Draw(tail)
-    a2, b2 = R * 0.74, R * 1.17
-    q1, q2 = (CX + a2 * k, CY + a2 * k), (CX + b2 * k, CY + b2 * k)
-    t.line([q1, q2], fill=255, width=int(w * 0.8))
-    t.ellipse([q1[0] - w * .4, q1[1] - w * .4, q1[0] + w * .4, q1[1] + w * .4], fill=255)
-    # Carpeta
-    folder = Image.new("L", (S, S), 0)
-    f = ImageDraw.Draw(folder)
-    fw, fh = S * 0.118, S * 0.082
-    rad = S * 0.018
-    f.rounded_rectangle([CX - fw, CY - fh * 1.28, CX - fw * .1, CY], radius=rad, fill=255)
-    f.rounded_rectangle([CX - fw, CY - fh * .95, CX + fw, CY + fh * 1.05], radius=rad, fill=255)
-    # Qubit: el punto al final de la cola
+    mid = R - w / 2
+    nx, ny = CX + mid * k, CY + mid * k
+    dr = w * 0.86
+    # Corte del aro alrededor del nodo
+    cut = dr + w * 0.5
+    d.ellipse([nx - cut, ny - cut, nx + cut, ny + cut], fill=0)
+    # Carpeta: centrada contando la pestaña
+    glyph = Image.new("L", (S, S), 0)
+    f = ImageDraw.Draw(glyph)
+    fw, fh = S * 0.13, S * 0.09
+    rad = S * 0.02
+    oy = CY + fh * 0.115
+    f.rounded_rectangle([CX - fw, oy - fh * 1.28, CX - fw * .1, oy], radius=rad, fill=255)
+    f.rounded_rectangle([CX - fw, oy - fh * .95, CX + fw, oy + fh * 1.05], radius=rad, fill=255)
     dot = Image.new("L", (S, S), 0)
-    g = ImageDraw.Draw(dot)
-    dr = w * 0.78
-    g.ellipse([q2[0] - dr, q2[1] - dr, q2[0] + dr, q2[1] + dr], fill=255)
-    return ring, tail, folder, dot
+    ImageDraw.Draw(dot).ellipse([nx - dr, ny - dr, nx + dr, ny + dr], fill=255)
+    return ring, glyph, dot
 
 
 def foreground(mono=False):
-    ring, tail, folder, dot = masks()
+    ring, glyph, dot = masks()
     out = Image.new("RGBA", (S, S), (0, 0, 0, 0))
     if mono:
         out.paste((255, 255, 255, 255), mask=ring)
-        out.paste((255, 255, 255, 255), mask=tail)
-        out.paste((255, 255, 255, 255), mask=folder)
+        out.paste((255, 255, 255, 255), mask=glyph)
         out.paste((255, 255, 255, 255), mask=dot)
         return out
     grad = gradient(VIOLET, AQUA).convert("RGBA")
     out.paste(grad, mask=ring)
-    out.paste(grad, mask=tail)
-    out.paste(WHITE + (255,), mask=folder)
+    out.paste(WHITE + (255,), mask=glyph)
     glow = dot.filter(ImageFilter.GaussianBlur(S * 0.022)).point(lambda v: int(v * .7))
     layer = Image.new("RGBA", (S, S), AQUA + (0,))
     layer.putalpha(glow)
@@ -107,6 +99,7 @@ for name, px in {"mdpi": 48, "hdpi": 72, "xhdpi": 96, "xxhdpi": 144, "xxxhdpi": 
     rounded(icon, px, 0.5).save(os.path.join(folder, "ic_launcher_round.png"))
 
 icon.resize((256, 256), Image.LANCZOS).save(os.path.join(res, "drawable", "app_logo.png"))
+os.makedirs("Resources", exist_ok=True)
 icon.resize((1024, 1024), Image.LANCZOS).save(os.path.join("Resources", "app_icon.png"))
 icon.resize((512, 512), Image.LANCZOS).save(os.path.join("Resources", "app_icon_play_store.png"))
 icon.resize((256, 256), Image.LANCZOS).save(os.path.join("Resources", "app_icon.ico"), sizes=[(16, 16), (32, 32), (48, 48), (256, 256)])
