@@ -74,6 +74,9 @@ dependencies {
     implementation(libs.smbj)
     implementation(libs.jcifs.ng)
     implementation(libs.commons.net)
+    implementation(libs.commons.compress)
+    implementation(libs.xz)
+    implementation(libs.junrar)
 
     debugImplementation(libs.androidx.ui.tooling)
 }

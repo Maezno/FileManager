@@ -252,6 +252,16 @@ class ConnectionStorage(context: Context) {
     fun getConfirmBeforeDelete(): Boolean = prefs.getBoolean("pref_confirm_before_delete", true)
     fun setConfirmBeforeDelete(value: Boolean) = prefs.edit().putBoolean("pref_confirm_before_delete", value).apply()
 
+    fun getMetadataCopyOptions(): MetadataCopyOptions = MetadataCopyOptions(
+        preserveDates = prefs.getBoolean("pref_meta_preserve_dates", true),
+        exifMode = ExifCopyMode.entries.find { it.name == prefs.getString("pref_meta_exif_mode", null) }
+            ?: ExifCopyMode.KEEP_ALL
+    )
+    fun setMetadataCopyOptions(o: MetadataCopyOptions) = prefs.edit()
+        .putBoolean("pref_meta_preserve_dates", o.preserveDates)
+        .putString("pref_meta_exif_mode", o.exifMode.name)
+        .apply()
+
     fun getAutoClearRemoteCache(): Boolean = prefs.getBoolean("pref_auto_clear_remote_cache", true)
     fun setAutoClearRemoteCache(value: Boolean) = prefs.edit().putBoolean("pref_auto_clear_remote_cache", value).apply()
 

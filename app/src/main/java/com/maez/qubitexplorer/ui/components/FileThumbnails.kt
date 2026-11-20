@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -26,6 +27,16 @@ import androidx.compose.material.icons.filled.AudioFile
 import androidx.compose.material.icons.filled.BrokenImage
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.Storage
+import androidx.compose.material.icons.filled.Terminal
+import androidx.compose.material.icons.filled.Album
+import androidx.compose.material.icons.filled.FontDownload
+import androidx.compose.material.icons.filled.MenuBook
+import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.Article
+import androidx.compose.material.icons.filled.Slideshow
+import androidx.compose.material.icons.filled.TableChart
+import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.VideoFile
@@ -98,7 +109,12 @@ object ThumbnailCache {
                     FileCategory.IMAGE -> decodeLocalImageThumbnail(file, targetPx)
                     FileCategory.VIDEO -> decodeLocalVideoThumbnail(file, targetPx)
                     FileCategory.APK -> decodeLocalApkIcon(context, file)
-                    else -> null
+                    FileCategory.AUDIO -> decodeAudioArt(file, targetPx)
+                    else -> when (item.extension) {
+                        "pdf" -> decodePdfFirstPage(file, targetPx)
+                        in OFFICE_THUMB_EXTS -> decodeZipEmbeddedThumbnail(file, targetPx)
+                        else -> null
+                    }
                 }
             } else if (vfsManager != null && item.category == FileCategory.IMAGE && item.sizeBytes <= 12 * 1024 * 1024L) {
                 // Para imágenes en red SMB/FTP (hasta 12 MB), cachear en carpeta temporal y generar miniatura
@@ -188,6 +204,68 @@ object ThumbnailCache {
         }
     }
 
+    /** Formatos ZIP (OOXML / ODF) que suelen guardar una miniatura interna. */
+    val OFFICE_THUMB_EXTS = setOf("docx", "xlsx", "pptx", "odt", "ods", "odp")
+
+    private fun decodePdfFirstPage(file: File, targetPx: Int): Bitmap? {
+        return try {
+            android.os.ParcelFileDescriptor.open(file, android.os.ParcelFileDescriptor.MODE_READ_ONLY).use { pfd ->
+                android.graphics.pdf.PdfRenderer(pfd).use { renderer ->
+                    if (renderer.pageCount == 0) return null
+                    renderer.openPage(0).use { page ->
+                        val scale = targetPx.toFloat() / maxOf(page.width, page.height)
+                        val w = (page.width * scale).toInt().coerceAtLeast(1)
+                        val h = (page.height * scale).toInt().coerceAtLeast(1)
+                        val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+                        bmp.eraseColor(android.graphics.Color.WHITE)
+                        page.render(bmp, null, null, android.graphics.pdf.PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+                        bmp
+                    }
+                }
+            }
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun decodeAudioArt(file: File, targetPx: Int): Bitmap? {
+        val r = MediaMetadataRetriever()
+        return try {
+            r.setDataSource(file.absolutePath)
+            val bytes = r.embeddedPicture ?: return null
+            decodeSampledBytes(bytes, targetPx)
+        } catch (_: Exception) {
+            null
+        } finally {
+            try { r.release() } catch (_: Exception) { }
+        }
+    }
+
+    private fun decodeZipEmbeddedThumbnail(file: File, targetPx: Int): Bitmap? {
+        return try {
+            java.util.zip.ZipFile(file).use { zip ->
+                val entry = zip.entries().asSequence().firstOrNull {
+                    val n = it.name.lowercase()
+                    n == "docprops/thumbnail.jpeg" || n == "docprops/thumbnail.jpg" ||
+                        n == "docprops/thumbnail.png" || n == "thumbnails/thumbnail.png"
+                } ?: return null
+                if (entry.size > 4 * 1024 * 1024) return null
+                decodeSampledBytes(zip.getInputStream(entry).use { it.readBytes() }, targetPx)
+            }
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun decodeSampledBytes(bytes: ByteArray, targetPx: Int): Bitmap? {
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+        if (bounds.outWidth <= 0) return null
+        var sample = 1
+        while (bounds.outWidth / sample > targetPx * 2 || bounds.outHeight / sample > targetPx * 2) sample *= 2
+        return BitmapFactory.decodeByteArray(bytes, 0, bytes.size, BitmapFactory.Options().apply { inSampleSize = sample })
+    }
+
     private fun decodeLocalApkIcon(context: Context, file: File): Bitmap? {
         return try {
             val pm = context.packageManager
@@ -213,7 +291,8 @@ fun FileThumbnailBox(
     cornerRadius: Dp = 12.dp,
     vfsManager: VfsManager? = null,
     connection: NetworkConnection? = null,
-    showBadge: Boolean = true
+    showBadge: Boolean = true,
+    showBorder: Boolean = true
 ) {
     val context = LocalContext.current
     val cacheKey = "${item.protocol}:${item.path}:${item.sizeBytes}:${item.lastModified}:280"
@@ -223,7 +302,12 @@ fun FileThumbnailBox(
     val canHaveVisualThumb = !item.isDirectory && item.sizeBytes > 0L && (
         item.category == FileCategory.IMAGE ||
             item.category == FileCategory.VIDEO ||
-            item.category == FileCategory.APK
+            item.category == FileCategory.APK ||
+            (item.protocol == StorageProtocol.LOCAL && (
+                item.category == FileCategory.AUDIO ||
+                    item.extension == "pdf" ||
+                    item.extension in ThumbnailCache.OFFICE_THUMB_EXTS
+                ))
         )
 
     LaunchedEffect(cacheKey) {
@@ -234,23 +318,17 @@ fun FileThumbnailBox(
     }
 
     val shape = RoundedCornerShape(cornerRadius)
-    val categoryColor = when {
-        item.isDirectory -> AccentBlueLight
-        item.sizeBytes == 0L -> DangerRedLight
-        item.category == FileCategory.VIDEO -> AccentPurple
-        item.category == FileCategory.IMAGE -> AccentGreenLight
-        item.category == FileCategory.AUDIO -> WarningAmber
-        item.category == FileCategory.DOCUMENT -> AccentBlueLight
-        item.category == FileCategory.ARCHIVE -> WarningAmber
-        item.category == FileCategory.APK -> AccentGreenLight
-        else -> TextSecondary
-    }
+    val typeStyle = fileTypeStyle(item)
+    val categoryColor = typeStyle.color
 
     Box(
         modifier = modifier
             .clip(shape)
-            .background(if (bitmap != null) ConsoleBg else categoryColor.copy(alpha = 0.12f))
-            .border(1.dp, if (bitmap != null) BorderDark else categoryColor.copy(alpha = 0.28f), shape),
+            .background(if (bitmap != null) ConsoleBg else categoryColor.copy(alpha = 0.16f))
+            .then(
+                if (showBorder) Modifier.border(1.dp, if (bitmap != null) BorderDark else categoryColor.copy(alpha = 0.28f), shape)
+                else Modifier
+            ),
         contentAlignment = Alignment.Center
     ) {
         if (bitmap != null) {
@@ -279,23 +357,12 @@ fun FileThumbnailBox(
                 }
             }
         } else {
-            val icon = when {
-                item.isDirectory -> Icons.Default.Folder
-                item.sizeBytes == 0L && (item.category == FileCategory.VIDEO || item.category == FileCategory.IMAGE) -> Icons.Default.BrokenImage
-                loadAttempted && item.category == FileCategory.VIDEO -> Icons.Default.VideoFile
-                item.category == FileCategory.VIDEO -> Icons.Default.VideoFile
-                item.category == FileCategory.IMAGE -> Icons.Default.Image
-                item.category == FileCategory.AUDIO -> Icons.Default.AudioFile
-                item.category == FileCategory.DOCUMENT -> Icons.Default.Description
-                item.category == FileCategory.ARCHIVE -> Icons.Default.Archive
-                item.category == FileCategory.APK -> Icons.Default.Android
-                else -> Icons.AutoMirrored.Filled.InsertDriveFile
-            }
+            val icon = typeStyle.icon
             Icon(
                 imageVector = icon,
                 contentDescription = null,
                 tint = categoryColor,
-                modifier = Modifier.size(32.dp)
+                modifier = Modifier.fillMaxSize(0.55f).widthIn(max = 48.dp)
             )
         }
 
@@ -335,5 +402,46 @@ fun FileThumbnailBoxPreview() {
             ),
             modifier = Modifier.size(64.dp)
         )
+    }
+}
+
+
+/** Ícono y color según el tipo de archivo, para distinguir carpetas, PDF, Office, etc. de un vistazo. */
+data class FileTypeStyle(
+    val icon: androidx.compose.ui.graphics.vector.ImageVector,
+    val color: Color,
+    val label: String
+)
+
+fun fileTypeStyle(item: VfsItem): FileTypeStyle {
+    val i = Icons.Default
+    if (item.isDirectory) return FileTypeStyle(i.Folder, Color(0xFF5B5BD6), "Carpeta")
+    if (item.sizeBytes == 0L && (item.category == FileCategory.VIDEO || item.category == FileCategory.IMAGE)) {
+        return FileTypeStyle(i.BrokenImage, DangerRedLight, "Vacío")
+    }
+    return when (item.extension) {
+        "pdf" -> FileTypeStyle(i.PictureAsPdf, Color(0xFFE5392F), "PDF")
+        "doc", "docx", "odt", "rtf" -> FileTypeStyle(i.Description, Color(0xFF2B6CD9), "Texto")
+        "xls", "xlsx", "ods", "csv", "tsv" -> FileTypeStyle(i.TableChart, Color(0xFF1E9E5A), "Planilla")
+        "ppt", "pptx", "odp", "key" -> FileTypeStyle(i.Slideshow, Color(0xFFE8711C), "Presentación")
+        "txt", "md", "log", "ini", "cfg", "conf" -> FileTypeStyle(i.Article, Color(0xFF6B7A90), "Texto plano")
+        "html", "htm", "xml", "json", "yaml", "yml", "js", "ts", "kt", "java", "py", "c", "cpp", "h",
+        "cs", "go", "rs", "sh", "bat", "ps1", "css", "sql", "php", "rb", "swift" ->
+            FileTypeStyle(i.Code, Color(0xFF0F9DA8), "Código")
+        "zip", "rar", "7z", "tar", "gz", "bz2", "xz", "zst" -> FileTypeStyle(i.Archive, Color(0xFFC99212), "Comprimido")
+        "epub", "mobi", "azw3", "fb2" -> FileTypeStyle(i.MenuBook, Color(0xFF8E5CD6), "Libro")
+        "ttf", "otf", "woff", "woff2" -> FileTypeStyle(i.FontDownload, Color(0xFF7A6F5A), "Fuente")
+        "iso", "img", "dmg" -> FileTypeStyle(i.Album, Color(0xFF5A6B7A), "Imagen de disco")
+        "exe", "msi" -> FileTypeStyle(i.Terminal, Color(0xFF52606D), "Ejecutable")
+        "db", "sqlite", "sqlite3" -> FileTypeStyle(i.Storage, Color(0xFF3C7DA8), "Base de datos")
+        else -> when (item.category) {
+            FileCategory.IMAGE -> FileTypeStyle(i.Image, Color(0xFF2FA866), "Imagen")
+            FileCategory.VIDEO -> FileTypeStyle(i.VideoFile, Color(0xFF9B4DE0), "Video")
+            FileCategory.AUDIO -> FileTypeStyle(i.AudioFile, Color(0xFFE0457B), "Audio")
+            FileCategory.APK -> FileTypeStyle(i.Android, Color(0xFF3DAA4F), "APK")
+            FileCategory.ARCHIVE -> FileTypeStyle(i.Archive, Color(0xFFC99212), "Comprimido")
+            FileCategory.DOCUMENT -> FileTypeStyle(i.Description, Color(0xFF2B6CD9), "Documento")
+            else -> FileTypeStyle(Icons.AutoMirrored.Filled.InsertDriveFile, TextSecondary, "Archivo")
+        }
     }
 }

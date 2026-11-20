@@ -43,6 +43,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.io.File
@@ -51,6 +52,8 @@ import java.util.UUID
 
 private const val DEFAULT_HEAVY_MB = 100f
 private const val DEEP_SEARCH_LIMIT = 500
+
+private const val VIDFORGE_PACKAGE = "com.maez.vidforge.app"
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -71,6 +74,32 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _isPreviewLoading = MutableStateFlow(false)
     val isPreviewLoading: StateFlow<Boolean> = _isPreviewLoading.asStateFlow()
+
+    // ── Herramientas integradas: lector PDF, editor de texto y extractor ──
+    data class PdfViewerState(val item: VfsItem, val localPath: String? = null, val loading: Boolean = true)
+    data class EditorState(
+        val item: VfsItem,
+        val text: String? = null,
+        val error: String? = null,
+        val readOnlyReason: String? = null
+    )
+
+    data class OfficeViewerState(val item: VfsItem, val localPath: String? = null)
+    private val _officeViewer = MutableStateFlow<OfficeViewerState?>(null)
+    val officeViewer: StateFlow<OfficeViewerState?> = _officeViewer.asStateFlow()
+
+    private val _pdfViewer = MutableStateFlow<PdfViewerState?>(null)
+    val pdfViewer: StateFlow<PdfViewerState?> = _pdfViewer.asStateFlow()
+
+    private val _textEditor = MutableStateFlow<EditorState?>(null)
+    val textEditor: StateFlow<EditorState?> = _textEditor.asStateFlow()
+
+    private val _archive = MutableStateFlow<com.maez.qubitexplorer.ui.components.ArchiveUiState?>(null)
+    val archive: StateFlow<com.maez.qubitexplorer.ui.components.ArchiveUiState?> = _archive.asStateFlow()
+    private var archiveItem: VfsItem? = null
+    private var archiveLocalFile: File? = null
+    private var archiveDestination: File? = null
+    private var archiveJob: Job? = null
 
     // ─────────────────────────────────────────────────────────────────────────────
     // ESTADO DEL EXPLORADOR DE ARCHIVOS (LOCAL + SMB + FTP)
@@ -131,6 +160,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _sortAscending = MutableStateFlow(true)
     val sortAscending: StateFlow<Boolean> = _sortAscending.asStateFlow()
 
+    // La pestaña Cámara tiene su propio orden (por defecto: más nuevo primero)
+    private var generalSort = SortField.NAME to true
+    private var cameraSort = SortField.DATE to false
+    private fun isCameraShortcut(key: String) = key == "LOCAL_DCIM"
+
     private val _isGridView = MutableStateFlow(false)
     val isGridView: StateFlow<Boolean> = _isGridView.asStateFlow()
 
@@ -142,6 +176,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _confirmBeforeDelete = MutableStateFlow(connectionStorage.getConfirmBeforeDelete())
     val confirmBeforeDelete: StateFlow<Boolean> = _confirmBeforeDelete.asStateFlow()
+
+    private val _metadataCopyOptions = MutableStateFlow(connectionStorage.getMetadataCopyOptions())
+    val metadataCopyOptions: StateFlow<com.maez.qubitexplorer.services.MetadataCopyOptions> = _metadataCopyOptions.asStateFlow()
 
     private val _autoClearRemoteCache = MutableStateFlow(connectionStorage.getAutoClearRemoteCache())
     val autoClearRemoteCache: StateFlow<Boolean> = _autoClearRemoteCache.asStateFlow()
@@ -299,6 +336,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val lanScanProgress: StateFlow<Float> = _lanScanProgress.asStateFlow()
 
     init {
+        com.maez.qubitexplorer.services.VfsManager.metadataCopyOptions = _metadataCopyOptions.value
         _themeMode.value = ThemeMode.entries.find { it.name == connectionStorage.getThemeMode() } ?: ThemeMode.SYSTEM
         _showHiddenFiles.value = connectionStorage.getShowHiddenFiles()
         _isGridView.value = connectionStorage.getDefaultGridView()
@@ -350,6 +388,29 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     // MÉTODOS DEL EXPLORADOR DE ARCHIVOS
     // ─────────────────────────────────────────────────────────────────────────────
 
+    /** Abre una ruta local recibida de otra app; si es un archivo, abre su carpeta. */
+    fun openExternalLocation(path: String, revealPath: String? = null) {
+        val target = java.io.File(path)
+        val dir = if (target.isDirectory) target else target.parentFile ?: return
+        // Si nos pasan un archivo (o la ruta apunta a uno), lo resaltamos dentro de su carpeta
+        val reveal = revealPath ?: path.takeIf { target.isFile }
+        _selectedTab.value = 0
+        loadDirectory(dir.absolutePath, StorageProtocol.LOCAL, null)
+        if (reveal != null && java.io.File(reveal).parentFile?.absolutePath == dir.absolutePath) {
+            viewModelScope.launch {
+                _isExplorerLoading.first { !it }
+                _selectedPaths.value = setOf(reveal)
+                _revealPath.value = reveal
+            }
+        }
+    }
+
+    private val _revealPath = MutableStateFlow<String?>(null)
+    val revealPath: StateFlow<String?> = _revealPath.asStateFlow()
+    fun consumeRevealPath() { _revealPath.value = null }
+
+    private var directoryLoadGeneration = 0
+
     fun loadDirectory(
         path: String,
         protocol: StorageProtocol = _currentProtocol.value,
@@ -366,6 +427,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             else -> _activeShortcutKey.value.takeIf { !it.startsWith("NET_") } ?: "LOCAL_ROOT"
         }
         _activeShortcutKey.value = resolvedShortcut
+        (if (isCameraShortcut(resolvedShortcut)) cameraSort else generalSort).let { (f, asc) ->
+            _sortField.value = f
+            _sortAscending.value = asc
+        }
         if (_currentPath.value != path || _currentProtocol.value != protocol) {
             _isSearchOpen.value = false
             _quickFilterQuery.value = ""
@@ -386,6 +451,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             markConnectionUsed(connection)
         }
 
+        // Una carga nueva descarta a la anterior (p. ej. la inicial al abrir desde otra app)
+        val generation = ++directoryLoadGeneration
         viewModelScope.launch {
             try {
                 val rawItems = vfsManager.listDirectory(
@@ -394,12 +461,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     connection = connection,
                     showHidden = _showHiddenFiles.value
                 )
-                _directoryItems.value = sortItems(rawItems)
+                if (generation == directoryLoadGeneration) _directoryItems.value = sortItems(rawItems)
             } catch (e: Exception) {
-                _explorerError.value = e.localizedMessage ?: "No se pudo abrir la carpeta ($path)"
-                _directoryItems.value = emptyList()
+                if (generation == directoryLoadGeneration) {
+                    _explorerError.value = e.localizedMessage ?: "No se pudo abrir la carpeta ($path)"
+                    _directoryItems.value = emptyList()
+                }
             } finally {
-                _isExplorerLoading.value = false
+                if (generation == directoryLoadGeneration) _isExplorerLoading.value = false
             }
         }
     }
@@ -624,6 +693,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun setSorting(field: SortField, ascending: Boolean = _sortAscending.value) {
         _sortField.value = field
         _sortAscending.value = ascending
+        if (isCameraShortcut(_activeShortcutKey.value)) cameraSort = field to ascending
+        else generalSort = field to ascending
         _directoryItems.value = sortItems(_directoryItems.value)
         _searchTab.value = _searchTab.value?.let { tab -> tab.copy(results = tab.results?.let(::sortItems)) }
     }
@@ -644,6 +715,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _showHiddenFiles.value = newValue
         connectionStorage.setShowHiddenFiles(newValue)
         refreshCurrentDirectory()
+    }
+
+    fun setMetadataCopyOptions(value: com.maez.qubitexplorer.services.MetadataCopyOptions) {
+        _metadataCopyOptions.value = value
+        com.maez.qubitexplorer.services.VfsManager.metadataCopyOptions = value
+        connectionStorage.setMetadataCopyOptions(value)
     }
 
     fun setConfirmBeforeDelete(value: Boolean) {
@@ -742,6 +819,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             return
         }
 
+        if (openWithBuiltInTool(item)) return
+
         // Si es Foto, Video o Audio, abrir primero en el diálogo de vista previa integrado (como MediaRecoveryMobile)
         if (item.category == FileCategory.IMAGE || item.category == FileCategory.VIDEO || item.category == FileCategory.AUDIO) {
             openIntegratedPreview(item)
@@ -770,6 +849,264 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 }
             }
         }
+    }
+
+    /** Abre PDF, comprimidos y texto con las herramientas integradas. Devuelve false si no aplica. */
+    fun openWithBuiltInTool(item: VfsItem): Boolean {
+        if (item.isDirectory) return false
+        when {
+            item.extension == "pdf" -> openPdfViewer(item)
+            com.maez.qubitexplorer.services.OfficeFormats.isSupported(item.extension) -> openOfficeViewer(item)
+            com.maez.qubitexplorer.services.ArchiveExtractor.isArchive(item.name) &&
+                item.extension !in setOf("apk", "epub", "jar", "aar") -> openArchive(item)
+            item.extension in com.maez.qubitexplorer.services.CodeLanguage.EDITABLE_EXTENSIONS ||
+                (item.extension.isEmpty() && item.sizeBytes in 1..(512 * 1024)) -> openTextEditor(item)
+            else -> return false
+        }
+        return true
+    }
+
+    /** Apertura por defecto de un archivo: herramienta integrada o vista previa. */
+    fun openFile(item: VfsItem) {
+        if (!openWithBuiltInTool(item)) openIntegratedPreview(item)
+    }
+
+    private fun connectionFor(item: VfsItem): NetworkConnection? =
+        item.connectionId?.let { id -> _savedConnections.value.find { it.id == id } } ?: _activeConnection.value
+
+    /** Devuelve el archivo local (descargándolo a caché si es remoto). */
+    private suspend fun ensureLocalCopy(item: VfsItem): File? {
+        if (item.protocol == StorageProtocol.LOCAL) return File(item.path).takeIf { it.exists() }
+        val app = getApplication<Application>()
+        val cacheDir = File(app.cacheDir, "remote_preview").apply { mkdirs() }
+        val dest = File(cacheDir, item.name)
+        if (dest.exists() && dest.length() == item.sizeBytes) return dest
+        return if (vfsManager.downloadToLocalFile(item, connectionFor(item), dest) && dest.exists()) dest else null
+    }
+
+    fun openPdfViewer(item: VfsItem) {
+        _pdfViewer.value = PdfViewerState(item)
+        viewModelScope.launch {
+            val f = ensureLocalCopy(item)
+            if (_pdfViewer.value?.item?.path != item.path) return@launch
+            if (f == null) {
+                _pdfViewer.value = null
+                Toast.makeText(getApplication(), "No se pudo abrir el PDF.", Toast.LENGTH_SHORT).show()
+            } else {
+                _pdfViewer.value = PdfViewerState(item, f.absolutePath, loading = false)
+            }
+        }
+    }
+
+    fun closePdfViewer() { _pdfViewer.value = null }
+
+    fun openOfficeViewer(item: VfsItem) {
+        _officeViewer.value = OfficeViewerState(item)
+        viewModelScope.launch {
+            val f = ensureLocalCopy(item)
+            if (_officeViewer.value?.item?.path != item.path) return@launch
+            if (f == null) {
+                _officeViewer.value = null
+                Toast.makeText(getApplication(), "No se pudo abrir el documento.", Toast.LENGTH_SHORT).show()
+            } else {
+                _officeViewer.value = OfficeViewerState(item, f.absolutePath)
+            }
+        }
+    }
+
+    fun closeOfficeViewer() { _officeViewer.value = null }
+
+    fun openTextEditor(item: VfsItem, forcedReadOnly: String? = null) {
+        val maxBytes = 5L * 1024 * 1024
+        if (item.sizeBytes > maxBytes) {
+            _textEditor.value = EditorState(item, error = "El archivo pesa ${formatBytes(item.sizeBytes)}. El editor abre archivos de hasta 5 MB.")
+            return
+        }
+        _textEditor.value = EditorState(item)
+        viewModelScope.launch {
+            val f = ensureLocalCopy(item)
+            val state = if (f == null) {
+                EditorState(item, error = "No se pudo leer el archivo.")
+            } else {
+                val bytes = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { f.readBytes() }
+                // Archivos binarios: muchos bytes nulos → no se editan
+                val nulls = bytes.take(8192).count { it == 0.toByte() }
+                if (nulls > 8) {
+                    EditorState(item, error = "Parece un archivo binario; no se puede editar como texto.")
+                } else {
+                    val text = decodeText(bytes)
+                    val ro = when {
+                        forcedReadOnly != null -> forcedReadOnly
+                        item.protocol == StorageProtocol.LOCAL && !File(item.path).canWrite() -> "sin permiso de escritura"
+                        else -> null
+                    }
+                    EditorState(item, text = text, readOnlyReason = ro)
+                }
+            }
+            if (_textEditor.value?.item?.path == item.path) _textEditor.value = state
+        }
+    }
+
+    private fun decodeText(bytes: ByteArray): String {
+        // BOM UTF-8 / UTF-16; si no es UTF-8 válido, se cae a Windows-1252 (Latin-1 extendido)
+        if (bytes.size >= 3 && bytes[0] == 0xEF.toByte() && bytes[1] == 0xBB.toByte() && bytes[2] == 0xBF.toByte()) {
+            return String(bytes, 3, bytes.size - 3, Charsets.UTF_8)
+        }
+        if (bytes.size >= 2 && bytes[0] == 0xFF.toByte() && bytes[1] == 0xFE.toByte()) return String(bytes, Charsets.UTF_16LE).drop(1)
+        if (bytes.size >= 2 && bytes[0] == 0xFE.toByte() && bytes[1] == 0xFF.toByte()) return String(bytes, Charsets.UTF_16BE).drop(1)
+        val decoder = Charsets.UTF_8.newDecoder()
+            .onMalformedInput(java.nio.charset.CodingErrorAction.REPORT)
+            .onUnmappableCharacter(java.nio.charset.CodingErrorAction.REPORT)
+        return try {
+            decoder.decode(java.nio.ByteBuffer.wrap(bytes)).toString()
+        } catch (_: java.nio.charset.CharacterCodingException) {
+            String(bytes, charset("windows-1252"))
+        }
+    }
+
+    suspend fun saveTextEditor(text: String): Boolean {
+        val item = _textEditor.value?.item ?: return false
+        return kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            try {
+                if (item.protocol == StorageProtocol.LOCAL) {
+                    val target = File(item.path)
+                    val tmp = File(target.parentFile, ".${target.name}.qe-tmp")
+                    tmp.writeText(text, Charsets.UTF_8)
+                    if (!tmp.renameTo(target)) {
+                        target.writeText(text, Charsets.UTF_8); tmp.delete()
+                    }
+                    true
+                } else {
+                    // Remoto: guardar en caché y subir reemplazando el original
+                    val app = getApplication<Application>()
+                    val local = File(File(app.cacheDir, "remote_preview").apply { mkdirs() }, item.name)
+                    local.writeText(text, Charsets.UTF_8)
+                    val tempItem = VfsItem(
+                        path = local.absolutePath, name = item.name, parentPath = local.parent ?: "",
+                        isDirectory = false, sizeBytes = local.length(), lastModified = local.lastModified()
+                    )
+                    vfsManager.transferFile(
+                        source = tempItem, sourceConn = null, targetParentPath = item.parentPath,
+                        targetProtocol = item.protocol, targetConn = connectionFor(item), targetFileName = item.name
+                    )
+                }
+            } catch (_: Exception) {
+                false
+            }
+        }.also { ok -> if (ok) refreshCurrentDirectory() }
+    }
+
+    fun closeTextEditor() { _textEditor.value = null }
+
+    fun openArchive(item: VfsItem) {
+        archiveJob?.cancel()
+        archiveItem = item
+        _archive.value = com.maez.qubitexplorer.ui.components.ArchiveUiState(fileName = item.name)
+        archiveJob = viewModelScope.launch {
+            val f = ensureLocalCopy(item)
+            if (f == null) {
+                _archive.value = _archive.value?.copy(error = "No se pudo acceder al comprimido.")
+                return@launch
+            }
+            archiveLocalFile = f
+            val dest = if (item.protocol == StorageProtocol.LOCAL) {
+                com.maez.qubitexplorer.services.ArchiveExtractor.defaultDestination(f)
+            } else {
+                val downloads = File(defaultLocalRoot, "Download")
+                com.maez.qubitexplorer.services.ArchiveExtractor.defaultDestination(File(downloads, f.name))
+            }
+            archiveDestination = dest
+            try {
+                val listing = com.maez.qubitexplorer.services.ArchiveExtractor.list(f)
+                _archive.value = _archive.value?.copy(listing = listing, destinationLabel = dest.absolutePath.removePrefix(defaultLocalRoot).ifEmpty { "/" })
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _archive.value = _archive.value?.copy(error = archiveErrorMessage(e))
+            }
+        }
+    }
+
+    private fun archiveErrorMessage(e: Exception): String {
+        val msg = (e.message ?: "").lowercase(Locale.ROOT)
+        return when {
+            e is com.github.junrar.exception.UnsupportedRarV5Exception || msg.contains("rar5") ->
+                "Este RAR usa el formato RAR5, que todavía no se puede extraer aquí. Probá abrirlo con otra app."
+            msg.contains("password") || msg.contains("contraseña") || msg.contains("encrypt") ->
+                "El comprimido está protegido con contraseña."
+            else -> "No se pudo leer el comprimido: ${e.message ?: e.javaClass.simpleName}"
+        }
+    }
+
+    fun extractArchive(include: ((String) -> Boolean)? = null) {
+        val f = archiveLocalFile ?: return
+        val dest = archiveDestination ?: return
+        val total = _archive.value?.listing?.entries
+            ?.filter { !it.isDirectory && (include == null || include(com.maez.qubitexplorer.services.ArchiveExtractor.normalizeName(it.name))) }
+            ?.sumOf { it.size.coerceAtLeast(0) } ?: 0L
+        _archive.value = _archive.value?.copy(extracting = true, bytesWritten = 0, bytesTotal = total, done = false, error = null)
+        archiveJob = viewModelScope.launch {
+            try {
+                val count = com.maez.qubitexplorer.services.ArchiveExtractor.extract(f, dest, include) { written ->
+                    _archive.value = _archive.value?.copy(bytesWritten = written)
+                }
+                _archive.value = _archive.value?.copy(extracting = false, done = true, extractedCount = count)
+                refreshCurrentDirectory()
+            } catch (e: CancellationException) {
+                _archive.value = _archive.value?.copy(extracting = false, error = "Extracción cancelada. Los archivos ya extraídos quedaron en el destino.")
+            } catch (e: Exception) {
+                _archive.value = _archive.value?.copy(extracting = false, error = archiveErrorMessage(e))
+            }
+        }
+    }
+
+    fun cancelArchiveExtraction() { archiveJob?.cancel() }
+
+    /** Extrae un único archivo a caché y lo abre con la herramienta que corresponda. */
+    fun openArchiveEntry(entryPath: String) {
+        val f = archiveLocalFile ?: return
+        if (_archive.value?.openingEntry != null) return
+        _archive.value = _archive.value?.copy(openingEntry = entryPath)
+        viewModelScope.launch {
+            try {
+                val app = getApplication<Application>()
+                val dir = File(app.cacheDir, "archive_preview/${f.absolutePath.hashCode().toUInt().toString(16)}")
+                com.maez.qubitexplorer.services.ArchiveExtractor.extract(f, dir, include = { it == entryPath })
+                val out = File(dir, entryPath)
+                if (!out.exists()) throw IllegalStateException("No se pudo extraer ${entryPath.substringAfterLast('/')}")
+                val item = VfsItem(
+                    path = out.absolutePath, name = out.name, parentPath = out.parent ?: "",
+                    isDirectory = false, sizeBytes = out.length(), lastModified = out.lastModified()
+                )
+                when {
+                    item.extension in com.maez.qubitexplorer.services.CodeLanguage.EDITABLE_EXTENSIONS ->
+                        openTextEditor(item, forcedReadOnly = "vista desde comprimido")
+                    com.maez.qubitexplorer.services.ArchiveExtractor.isArchive(item.name) ->
+                        Toast.makeText(app, "Extraé este comprimido para abrirlo.", Toast.LENGTH_SHORT).show()
+                    !openWithBuiltInTool(item) -> openInExternalApp(item)
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Toast.makeText(getApplication(), e.message ?: "No se pudo abrir el archivo.", Toast.LENGTH_SHORT).show()
+            } finally {
+                _archive.value = _archive.value?.copy(openingEntry = null)
+            }
+        }
+    }
+
+    fun openArchiveDestination() {
+        val dest = archiveDestination ?: return
+        closeArchive()
+        _selectedTab.value = 0
+        loadDirectory(dest.absolutePath, StorageProtocol.LOCAL, null)
+    }
+
+    fun closeArchive() {
+        archiveJob?.cancel()
+        _archive.value = null
+        archiveItem = null
+        archiveLocalFile = null
     }
 
     fun closePreview() {
@@ -961,7 +1298,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         shareItems(selectedFiles)
     }
 
-    fun shareItems(itemsToShare: List<VfsItem>) {
+    fun sendToVidForge(item: VfsItem) {
+        if (item.category != FileCategory.VIDEO) return
+        shareItems(listOf(item), VIDFORGE_PACKAGE)
+    }
+
+    fun shareItems(itemsToShare: List<VfsItem>, targetPackage: String? = null) {
         val filesOnly = itemsToShare.filter { !it.isDirectory }
         if (filesOnly.isEmpty()) return
         viewModelScope.launch {
@@ -1014,13 +1356,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                     }
                 }
-                val chooser = Intent.createChooser(shareIntent, "Compartir archivo").apply {
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                if (targetPackage != null) {
+                    shareIntent.setPackage(targetPackage).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    app.startActivity(shareIntent)
+                } else {
+                    val chooser = Intent.createChooser(shareIntent, "Compartir archivo").apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    app.startActivity(chooser)
                 }
-                app.startActivity(chooser)
                 _selectedPaths.value = emptySet()
             } catch (_: Exception) {
-                Toast.makeText(app, "No se encontró aplicación para compartir.", Toast.LENGTH_SHORT).show()
+                val msg = if (targetPackage != null) "VidForge no está instalado o no admite este archivo." else "No se encontró aplicación para compartir."
+                Toast.makeText(app, msg, Toast.LENGTH_SHORT).show()
             }
         }
     }

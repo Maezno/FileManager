@@ -50,6 +50,11 @@ import kotlin.math.min
 
 class VfsManager {
 
+    companion object {
+        /** Opciones de metadatos al copiar/mover, compartidas por todas las instancias (UI y transferencias). */
+        @Volatile var metadataCopyOptions: MetadataCopyOptions = MetadataCopyOptions()
+    }
+
     private val smbConfig = SmbConfig.builder()
         .withTimeout(8, TimeUnit.SECONDS)
         .withSoTimeout(10, TimeUnit.SECONDS)
@@ -821,6 +826,7 @@ class VfsManager {
                         }
                     }
                     if (tempFile.renameTo(dstFile)) {
+                        FileMetadataReader.applyCopyOptions(dstFile, source, metadataCopyOptions)
                         if (deleteSourceAfter) srcFile.delete()
                         return@withContext true
                     } else {
@@ -850,6 +856,15 @@ class VfsManager {
                     tempFile
                 }
 
+                // Al subir a la red, limpiar EXIF/GPS sobre una copia temporal (nunca sobre el original)
+                val uploadFile = if (targetProtocol != StorageProtocol.LOCAL &&
+                    metadataCopyOptions.exifMode != ExifCopyMode.KEEP_ALL
+                ) {
+                    if (localSourceFile != tempFile) localSourceFile.copyTo(tempFile, overwrite = true)
+                    FileMetadataReader.applyCopyOptions(tempFile, source, metadataCopyOptions.copy(preserveDates = false))
+                    tempFile
+                } else localSourceFile
+
                 when (targetProtocol) {
                     StorageProtocol.LOCAL -> {
                         val dst = File(targetParentPath, targetFileName)
@@ -875,6 +890,7 @@ class VfsManager {
                                 partFile.delete()
                                 return@withContext false
                             }
+                            FileMetadataReader.applyCopyOptions(dst, source, metadataCopyOptions)
                         } catch (e: Exception) {
                             if (partFile.exists()) partFile.delete()
                             return@withContext false
@@ -896,7 +912,7 @@ class VfsManager {
                             )
                             smbFile.use { rf ->
                                 rf.outputStream.use { out ->
-                                    FileInputStream(localSourceFile).use { ins ->
+                                    FileInputStream(uploadFile).use { ins ->
                                         val buffer = ByteArray(64 * 1024)
                                         var read: Int
                                         while (ins.read(buffer).also { read = it } >= 0) {
@@ -918,8 +934,15 @@ class VfsManager {
                         val conn = targetConn ?: return@withContext false
                         val remoteTarget = if (targetParentPath == "/") "/$targetFileName" else "${targetParentPath.trimEnd('/')}/$targetFileName"
                         val stored = withFtpClient(conn) { ftp ->
-                            FileInputStream(localSourceFile).use { ins ->
+                            FileInputStream(uploadFile).use { ins ->
                                 ftp.storeFile(remoteTarget, ins)
+                            }.also { ok ->
+                                if (ok && metadataCopyOptions.preserveDates && source.lastModified > 0) {
+                                    val ts = java.text.SimpleDateFormat("yyyyMMddHHmmss", java.util.Locale.US)
+                                        .apply { timeZone = java.util.TimeZone.getTimeZone("UTC") }
+                                        .format(java.util.Date(source.lastModified))
+                                    runCatching { ftp.setModificationTime(remoteTarget, ts) }
+                                }
                             }
                         }
                         if (!stored) return@withContext false

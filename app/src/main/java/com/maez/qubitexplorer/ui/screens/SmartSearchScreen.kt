@@ -257,7 +257,7 @@ fun SmartSearchScreen(viewModel: MainViewModel) {
         onCancelScan = { viewModel.cancelSmartScan() },
         onExportCsv = { viewModel.exportCsvReport(it) },
         onSelectDeviceFilter = { viewModel.setSelectedDeviceFilter(it) },
-        onOpenItem = { viewModel.openIntegratedPreview(it.item) },
+        onOpenItem = { viewModel.openFile(it.item) },
         onShareItem = { viewModel.shareItem(it.item) },
         onOpenParentFolder = { item ->
             viewModel.selectTab(0)

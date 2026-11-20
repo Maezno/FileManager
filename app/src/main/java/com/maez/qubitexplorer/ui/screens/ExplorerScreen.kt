@@ -20,6 +20,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -220,6 +221,7 @@ fun ExplorerScreen(
     val isGrid by viewModel.isGridView.collectAsState()
     val clipboard by viewModel.clipboard.collectAsState()
     val selectedPaths by viewModel.selectedPaths.collectAsState()
+    val revealPath by viewModel.revealPath.collectAsState()
     val savedConnections by viewModel.savedConnections.collectAsState()
     val confirmBeforeDelete by viewModel.confirmBeforeDelete.collectAsState()
 
@@ -258,6 +260,8 @@ fun ExplorerScreen(
         onSetFolderA = { viewModel.startHeavySearchFromCurrentFolder() },
         onSetFolderB = { viewModel.setCurrentFolderAsSearchFolderB() },
         onClearSelection = { viewModel.clearSelection() },
+        revealPath = revealPath,
+        onRevealHandled = { viewModel.consumeRevealPath() },
         onSelectAll = { viewModel.selectAllCurrent(it) },
         onCopySelected = { viewModel.copySelectedToClipboard(isMove = false) },
         onCutSelected = { viewModel.copySelectedToClipboard(isMove = true) },
@@ -279,13 +283,14 @@ fun ExplorerScreen(
             } else if (item.isDirectory) {
                 viewModel.loadDirectory(item.path, item.protocol, activeConnection)
             } else {
-                viewModel.openIntegratedPreview(item)
+                viewModel.openFile(item)
             }
         },
         onItemLongClick = { item -> viewModel.toggleSelection(item) },
         onToggleSelectPath = { item -> viewModel.toggleSelection(item) },
         onOpenExternal = { viewModel.openInExternalApp(it) },
         onShareItem = { viewModel.shareItem(it) },
+        onSendToVidForge = { viewModel.sendToVidForge(it) },
         onCopySingle = { viewModel.copyToClipboard(it, isMove = false) },
         onMoveSingle = { viewModel.copyToClipboard(it, isMove = true) },
         onRenameItem = { item, newName -> viewModel.renameItem(item, newName) },
@@ -473,6 +478,8 @@ fun ExplorerScreenContent(
     onSetFolderA: () -> Unit = {},
     onSetFolderB: () -> Unit = {},
     onClearSelection: () -> Unit = {},
+    revealPath: String? = null,
+    onRevealHandled: () -> Unit = {},
     onSelectAll: (List<VfsItem>) -> Unit = {},
     onCopySelected: () -> Unit = {},
     onCutSelected: () -> Unit = {},
@@ -493,6 +500,7 @@ fun ExplorerScreenContent(
     onToggleSelectPath: (VfsItem) -> Unit = {},
     onOpenExternal: (VfsItem) -> Unit = {},
     onShareItem: (VfsItem) -> Unit = {},
+    onSendToVidForge: (VfsItem) -> Unit = {},
     onCopySingle: (VfsItem) -> Unit = {},
     onMoveSingle: (VfsItem) -> Unit = {},
     onRenameItem: (VfsItem, String) -> Unit = { _, _ -> },
@@ -1072,6 +1080,16 @@ fun ExplorerScreenContent(
 
             val dragSelection = remember { DragSelection() }
 
+            // "Abrir ubicación" desde otra app: desplazar la lista hasta el archivo pedido
+            LaunchedEffect(revealPath, filteredItems) {
+                val target = revealPath ?: return@LaunchedEffect
+                val index = filteredItems.indexOfFirst { it.path == target }
+                if (index >= 0) {
+                    if (isGrid) lazyGridState.animateScrollToItem(index) else lazyListState.animateScrollToItem(index)
+                    onRevealHandled()
+                }
+            }
+
             val updatedItems by rememberUpdatedState(filteredItems)
             val updatedSelectedPaths by rememberUpdatedState(selectedPaths)
 
@@ -1111,8 +1129,8 @@ fun ExplorerScreenContent(
                         .weight(1f)
                         .onGloballyPositioned { listTop = it.positionInRoot().y.toInt() }
                         .then(dragGestureModifier),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     itemsIndexed(filteredItems, key = { _, item -> item.path }) { _, item ->
                         val isSelected = item.path in selectedPaths
@@ -1127,6 +1145,7 @@ fun ExplorerScreenContent(
                             onToggleSelect = { onToggleSelectPath(item) },
                             onOpenExternal = { onOpenExternal(item) },
                             onShare = { onShareItem(item) },
+                            onSendToVidForge = { onSendToVidForge(item) },
                             onCopy = { onCopySingle(item) },
                             onMove = { onMoveSingle(item) },
                             onRename = {
@@ -1170,6 +1189,7 @@ fun ExplorerScreenContent(
                             onToggleSelect = { onToggleSelectPath(item) },
                             onOpenExternal = { onOpenExternal(item) },
                             onShare = { onShareItem(item) },
+                            onSendToVidForge = { onSendToVidForge(item) },
                             onCopy = { onCopySingle(item) },
                             onMove = { onMoveSingle(item) },
                             onRename = {
@@ -1262,73 +1282,14 @@ fun ExplorerScreenContent(
         )
     }
 
-    // Diálogo de Propiedades
+    // Diálogo de Propiedades (metadatos detallados: EXIF, GPS, multimedia, hashes)
     propertyItem?.let { item ->
-        val formattedDate = remember(item.lastModified) {
-            if (item.lastModified > 0) {
-                java.text.SimpleDateFormat("dd/MM/yyyy HH:mm:ss", java.util.Locale.getDefault())
-                    .format(java.util.Date(item.lastModified))
-            } else "Desconocida"
-        }
-        GlassAlertDialog(
-            onDismissRequest = { propertyItem = null },
-            title = {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    FileThumbnailBox(item = item, modifier = Modifier.size(36.dp), vfsManager = vfsManager)
-                    Spacer(Modifier.width(10.dp))
-                    Text(
-                        text = "Propiedades",
-                        color = TextPrimary,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Column {
-                        Text("nombre completo", color = Violet, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                        Text(item.name, color = TextPrimary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                    }
-                    Column {
-                        Text("ruta completa", color = Violet, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                        Text(item.path, color = TextMuted, fontSize = 12.sp)
-                    }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Column {
-                            Text("protocolo", color = Violet, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                            Text(item.protocol.name, color = Violet, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                        }
-                        Column {
-                            Text("tipo", color = Violet, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                            Text(
-                                if (item.isDirectory) "Carpeta de archivos" else "${item.extension.uppercase()} (${item.category.name})",
-                                color = Aqua,
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
-                    if (!item.isDirectory) {
-                        Column {
-                            Text("tamaño", color = Violet, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                            Text("${item.sizeFormatted} (${item.sizeBytes} bytes)", color = TextPrimary, fontSize = 13.sp)
-                        }
-                    }
-                    Column {
-                        Text("última modificación", color = Violet, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                        Text(formattedDate, color = TextMuted, fontSize = 12.sp)
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { propertyItem = null }) {
-                    Text("Cerrar", color = Violet, fontWeight = FontWeight.Bold)
-                }
-            }
+        val conn = item.connectionId?.let { id -> savedConnections.find { it.id == id } } ?: activeConnection
+        com.maez.qubitexplorer.ui.components.PropertiesDialog(
+            item = item,
+            vfsManager = vfsManager,
+            connection = conn,
+            onDismiss = { propertyItem = null }
         )
     }
 
@@ -1649,6 +1610,7 @@ private fun ExplorerListRow(
     onToggleSelect: () -> Unit = {},
     onOpenExternal: () -> Unit = {},
     onShare: () -> Unit = {},
+    onSendToVidForge: () -> Unit = {},
     onCopy: () -> Unit = {},
     onMove: () -> Unit = {},
     onRename: () -> Unit = {},
@@ -1720,8 +1682,8 @@ private fun ExplorerListRow(
             }
 
             Box {
-                IconButton(onClick = { menuExpanded = true }, modifier = Modifier.size(32.dp)) {
-                    Icon(Icons.Default.MoreVert, contentDescription = "Menú", tint = TextMuted, modifier = Modifier.size(18.dp))
+                IconButton(onClick = { menuExpanded = true }, modifier = Modifier.size(26.dp)) {
+                    Icon(Icons.Default.MoreVert, contentDescription = "Menú", tint = TextMuted, modifier = Modifier.size(15.dp))
                 }
                 ItemContextMenu(
                     item = item,
@@ -1730,6 +1692,7 @@ private fun ExplorerListRow(
                     onToggleSelect = onToggleSelect,
                     onOpenExternal = onOpenExternal,
                     onShare = onShare,
+                    onSendToVidForge = onSendToVidForge,
                     onCopy = onCopy,
                     onMove = onMove,
                     onRename = onRename,
@@ -1756,6 +1719,7 @@ private fun ExplorerGridCard(
     onToggleSelect: () -> Unit = {},
     onOpenExternal: () -> Unit = {},
     onShare: () -> Unit = {},
+    onSendToVidForge: () -> Unit = {},
     onCopy: () -> Unit = {},
     onMove: () -> Unit = {},
     onRename: () -> Unit = {},
@@ -1766,92 +1730,123 @@ private fun ExplorerGridCard(
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
 
-    GlassSurface(
-        shape = GlassCardShape,
-        fillColor = if (isSelected) SelectedViolet else GlassFill,
-        borderColor = if (isSelected) SelectedVioletBorder else GlassBorder,
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-    ) {
-        Column(
-            modifier = Modifier.padding(12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+    // Tile compacto y uniforme: miniatura (o ícono por tipo) a sangre, con nombre y detalle superpuestos
+    run {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(1f)
+                .clip(RoundedCornerShape(8.dp))
+                .clickable(onClick = onClick)
         ) {
-            Box(modifier = Modifier.fillMaxWidth()) {
-                FileThumbnailBox(
-                    item = item,
-                    vfsManager = vfsManager,
-                    connection = connection,
-                    cornerRadius = 12.dp,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(84.dp)
-                )
-
-                androidx.compose.animation.AnimatedVisibility(
-                    visible = isSelectionMode,
-                    enter = Motion.softPopEnter,
-                    exit = Motion.softPopExit,
-                    modifier = Modifier.align(Alignment.TopStart)
-                ) {
-                    Icon(
-                        imageVector = if (isSelected) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
-                        contentDescription = "Seleccionar",
-                        tint = if (isSelected) Violet else TextMuted,
-                        modifier = Modifier
-                            .padding(4.dp)
-                            .size(20.dp)
-                            .clickable { onToggleSelect() }
+            FileThumbnailBox(
+                item = item,
+                vfsManager = vfsManager,
+                connection = connection,
+                cornerRadius = 0.dp,
+                showBadge = false,
+                showBorder = false,
+                modifier = Modifier.fillMaxSize()
+            )
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .fillMaxWidth()
+                    .background(
+                        androidx.compose.ui.graphics.Brush.verticalGradient(
+                            listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f))
+                        )
                     )
-                }
-
-                Box(modifier = Modifier.align(Alignment.TopEnd)) {
-                    IconButton(
-                        onClick = { menuExpanded = true },
-                        modifier = Modifier
-                            .padding(2.dp)
-                            .size(28.dp)
-                            .clip(CircleShape)
-                            .background(Color.Black.copy(alpha = 0.5f))
-                    ) {
-                        Icon(Icons.Default.MoreVert, contentDescription = "Opciones", tint = Color.White, modifier = Modifier.size(16.dp))
-                    }
-                    ItemContextMenu(
-                        item = item,
-                        expanded = menuExpanded,
-                        onDismiss = { menuExpanded = false },
-                        onToggleSelect = onToggleSelect,
-                        onOpenExternal = onOpenExternal,
-                        onShare = onShare,
-                        onCopy = onCopy,
-                        onMove = onMove,
-                        onRename = onRename,
-                        onDelete = onDelete,
-                        onSetFolderA = onSetFolderA,
-                        onSetFolderB = onSetFolderB,
-                        onShowProperties = onShowProperties
-                    )
-                }
-            }
-
-            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    .padding(start = 5.dp, end = 5.dp, top = 10.dp, bottom = 3.dp)
+            ) {
                 Text(
                     text = item.name,
-                    color = TextPrimary,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 13.sp,
-                    maxLines = 2,
-                    lineHeight = 15.sp,
-                    textAlign = TextAlign.Center,
+                    color = Color.White,
+                    fontSize = 9.sp,
+                    lineHeight = 10.sp,
+                    maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = if (item.isDirectory) "Carpeta" else item.sizeFormatted,
-                    color = TextMuted,
-                    fontSize = 11.sp,
-                    textAlign = TextAlign.Center
+                    text = if (item.isDirectory) "Carpeta"
+                    else listOf(
+                        Regex("""(?i)\.(tar\.\w+)$""").find(item.name)?.groupValues?.get(1)?.uppercase()
+                            ?: item.extension.uppercase().take(5),
+                        item.sizeFormatted
+                    )
+                        .filter { it.isNotBlank() }.joinToString(" · "),
+                    color = Color.White.copy(alpha = 0.75f),
+                    fontSize = 8.sp,
+                    lineHeight = 9.sp,
+                    maxLines = 1
+                )
+            }
+            // Distintivo de tipo (color + ícono) para documentos, audio, etc., aun con miniatura
+            if (!item.isDirectory && item.category != FileCategory.IMAGE && item.category != FileCategory.VIDEO && !isSelectionMode) {
+                val style = com.maez.qubitexplorer.ui.components.fileTypeStyle(item)
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(3.dp)
+                        .size(20.dp)
+                        .clip(RoundedCornerShape(5.dp))
+                        .background(style.color),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(style.icon, contentDescription = style.label, tint = Color.White, modifier = Modifier.size(13.dp))
+                }
+            }
+            if (isSelected) {
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .background(Violet.copy(alpha = 0.28f))
+                        .border(2.dp, Violet, RoundedCornerShape(8.dp))
+                )
+            }
+            androidx.compose.animation.AnimatedVisibility(
+                visible = isSelectionMode,
+                enter = Motion.softPopEnter,
+                exit = Motion.softPopExit,
+                modifier = Modifier.align(Alignment.TopStart)
+            ) {
+                Icon(
+                    imageVector = if (isSelected) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
+                    contentDescription = "Seleccionar",
+                    tint = if (isSelected) Violet else Color.White,
+                    modifier = Modifier
+                        .padding(3.dp)
+                        .size(18.dp)
+                        .clickable { onToggleSelect() }
+                )
+            }
+            Box(modifier = Modifier.align(Alignment.TopEnd)) {
+                Box(
+                    modifier = Modifier
+                        .padding(3.dp)
+                        .size(20.dp)
+                        .clip(CircleShape)
+                        .background(Color.Black.copy(alpha = 0.45f))
+                        .clickable { menuExpanded = true },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Default.MoreVert, contentDescription = "Opciones", tint = Color.White, modifier = Modifier.size(13.dp))
+                }
+                ItemContextMenu(
+                    item = item,
+                    expanded = menuExpanded,
+                    onDismiss = { menuExpanded = false },
+                    onToggleSelect = onToggleSelect,
+                    onOpenExternal = onOpenExternal,
+                    onShare = onShare,
+                    onSendToVidForge = onSendToVidForge,
+                    onCopy = onCopy,
+                    onMove = onMove,
+                    onRename = onRename,
+                    onDelete = onDelete,
+                    onSetFolderA = onSetFolderA,
+                    onSetFolderB = onSetFolderB,
+                    onShowProperties = onShowProperties
                 )
             }
         }
@@ -1866,6 +1861,7 @@ private fun ItemContextMenu(
     onToggleSelect: () -> Unit,
     onOpenExternal: () -> Unit,
     onShare: () -> Unit,
+    onSendToVidForge: () -> Unit,
     onCopy: () -> Unit,
     onMove: () -> Unit,
     onRename: () -> Unit,
@@ -1910,6 +1906,13 @@ private fun ItemContextMenu(
                 leadingIcon = { Icon(Icons.Default.Share, contentDescription = null, tint = Violet) },
                 onClick = { onDismiss(); onShare() }
             )
+            if (item.category == FileCategory.VIDEO) {
+                DropdownMenuItem(
+                    text = { Text("Convertir en VidForge", color = TextPrimary) },
+                    leadingIcon = { Icon(Icons.Default.Movie, contentDescription = null, tint = Aqua) },
+                    onClick = { onDismiss(); onSendToVidForge() }
+                )
+            }
             DropdownMenuItem(
                 text = { Text("Copiar", color = TextPrimary) },
                 leadingIcon = { Icon(Icons.Default.ContentCopy, contentDescription = null, tint = Violet) },

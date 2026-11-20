@@ -67,6 +67,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import com.maez.qubitexplorer.services.ExternalPathResolver
 import com.maez.qubitexplorer.ui.components.AppBackground
 import com.maez.qubitexplorer.ui.components.AppBottomNavigationBar
 import com.maez.qubitexplorer.ui.components.GlassAlertDialog
@@ -128,6 +129,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         updatePermissionState()
+        if (savedInstanceState == null) handleExternalIntent(intent)
 
         setContent {
             val themeMode by viewModel.themeMode.collectAsState()
@@ -138,6 +140,10 @@ class MainActivity : ComponentActivity() {
                 val previewItem by viewModel.previewItem.collectAsState()
                 val previewLocalPath by viewModel.previewLocalPath.collectAsState()
                 val isPreviewLoading by viewModel.isPreviewLoading.collectAsState()
+                val pdfViewer by viewModel.pdfViewer.collectAsState()
+                val textEditor by viewModel.textEditor.collectAsState()
+                val archiveState by viewModel.archive.collectAsState()
+                val officeViewer by viewModel.officeViewer.collectAsState()
 
                 BackHandler(enabled = true) {
                     if (selectedTab != 0) {
@@ -215,6 +221,51 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
                         }
+                    }
+
+                    officeViewer?.let { ov ->
+                        com.maez.qubitexplorer.ui.components.OfficeViewerScreen(
+                            fileName = ov.item.name,
+                            localPath = ov.localPath,
+                            onOpenExternal = { viewModel.closeOfficeViewer(); viewModel.openInExternalApp(ov.item) },
+                            onShare = { viewModel.shareItem(ov.item) },
+                            onClose = { viewModel.closeOfficeViewer() }
+                        )
+                    }
+
+                    pdfViewer?.let { pdf ->
+                        com.maez.qubitexplorer.ui.components.PdfViewerScreen(
+                            fileName = pdf.item.name,
+                            localPath = pdf.localPath,
+                            isLoading = pdf.loading,
+                            onOpenExternal = { viewModel.closePdfViewer(); viewModel.openInExternalApp(pdf.item) },
+                            onShare = { viewModel.shareItem(pdf.item) },
+                            onClose = { viewModel.closePdfViewer() }
+                        )
+                    }
+
+                    textEditor?.let { ed ->
+                        androidx.compose.runtime.key(ed.item.path) {
+                            com.maez.qubitexplorer.ui.components.TextEditorScreen(
+                                fileName = ed.item.name,
+                                initialText = ed.text,
+                                loadError = ed.error,
+                                readOnlyReason = ed.readOnlyReason,
+                                onSave = { viewModel.saveTextEditor(it) },
+                                onClose = { viewModel.closeTextEditor() }
+                            )
+                        }
+                    }
+
+                    archiveState?.let { st ->
+                        com.maez.qubitexplorer.ui.components.ArchiveBrowserScreen(
+                            state = st,
+                            onExtract = { viewModel.extractArchive(it) },
+                            onOpenEntry = { viewModel.openArchiveEntry(it) },
+                            onOpenDestination = { viewModel.openArchiveDestination() },
+                            onCancel = { viewModel.cancelArchiveExtraction() },
+                            onClose = { viewModel.closeArchive() }
+                        )
                     }
 
                     if (showProminentDisclosure) {
@@ -303,6 +354,20 @@ class MainActivity : ComponentActivity() {
         } else {
             launchManageStorageIntent()
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleExternalIntent(intent)
+    }
+
+    /** Abre la carpeta pedida por otra app (p. ej. "Abrir ubicación" en Vidforge). */
+    private fun handleExternalIntent(intent: Intent?) {
+        if (intent?.action != Intent.ACTION_VIEW) return
+        val uri = intent.data ?: return
+        val path = ExternalPathResolver.resolve(this, uri) ?: return
+        viewModel.openExternalLocation(path, intent.getStringExtra("com.maez.qubitexplorer.extra.REVEAL_PATH"))
     }
 
     private fun launchManageStorageIntent() {

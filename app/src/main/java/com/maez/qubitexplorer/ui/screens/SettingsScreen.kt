@@ -15,6 +15,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.filled.LocationOff
+import androidx.compose.material.icons.filled.HideImage
 import androidx.compose.material.icons.filled.BrightnessAuto
 import androidx.compose.material.icons.filled.CleaningServices
 import androidx.compose.material.icons.filled.Code
@@ -85,6 +90,7 @@ fun SettingsScreen(
     val isGridView by viewModel.isGridView.collectAsState()
     val confirmBeforeDelete by viewModel.confirmBeforeDelete.collectAsState()
     val tabMemoryTimeoutMinutes by viewModel.tabMemoryTimeoutMinutes.collectAsState()
+    val metadataCopyOptions by viewModel.metadataCopyOptions.collectAsState()
 
     var showPrivacyDialog by remember { mutableStateOf(false) }
     var showLicensesDialog by remember { mutableStateOf(false) }
@@ -219,6 +225,53 @@ fun SettingsScreen(
                         checked = autoClearRemoteCache,
                         onCheckedChange = { viewModel.setAutoClearRemoteCache(it) },
                         icon = Icons.Default.CleaningServices
+                    )
+                }
+            }
+
+            // SECCIÓN: Metadatos al copiar
+            item {
+                SectionCard(
+                    title = "Metadatos al copiar",
+                    icon = Icons.Default.LocationOn,
+                    iconTint = Aqua,
+                    subtitle = "Qué conservar al copiar o mover fotos y archivos"
+                ) {
+                    SettingSwitchRow(
+                        title = "Conservar fecha de modificación",
+                        subtitle = "La copia mantiene la fecha original (local y FTP)",
+                        checked = metadataCopyOptions.preserveDates,
+                        onCheckedChange = { viewModel.setMetadataCopyOptions(metadataCopyOptions.copy(preserveDates = it)) },
+                        icon = Icons.Default.Schedule
+                    )
+                    Text(
+                        text = "Datos EXIF de las fotos",
+                        color = TextPrimary,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    SegmentedTabs(
+                        options = listOf(
+                            "Todo" to Icons.Default.PhotoCamera,
+                            "Sin GPS" to Icons.Default.LocationOff,
+                            "Ninguno" to Icons.Default.HideImage
+                        ),
+                        selectedIndex = metadataCopyOptions.exifMode.ordinal,
+                        onSelect = {
+                            viewModel.setMetadataCopyOptions(
+                                metadataCopyOptions.copy(exifMode = com.maez.qubitexplorer.services.ExifCopyMode.entries[it])
+                            )
+                        }
+                    )
+                    Text(
+                        text = when (metadataCopyOptions.exifMode) {
+                            com.maez.qubitexplorer.services.ExifCopyMode.KEEP_ALL -> "Las copias conservan cámara, fecha y ubicación."
+                            com.maez.qubitexplorer.services.ExifCopyMode.STRIP_GPS -> "Las copias pierden la ubicación GPS. El original no se modifica."
+                            com.maez.qubitexplorer.services.ExifCopyMode.STRIP_ALL -> "Las copias pierden cámara, fechas y GPS (JPG, PNG, WebP). El original no se modifica."
+                        },
+                        color = TextMuted,
+                        fontSize = 12.sp,
+                        lineHeight = 16.sp
                     )
                 }
             }
