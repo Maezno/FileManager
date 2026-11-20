@@ -1,5 +1,7 @@
 package com.maez.qubitexplorer.ui.screens
 
+import com.maez.qubitexplorer.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -193,9 +195,9 @@ fun NetworkScreenContent(
         // 1. Cabecera con estilo GlassCard
         item {
             SectionCard(
-                title = "Red local SMB y FTP",
+                title = stringResource(R.string.network_red_local_smb_y_ftp),
                 icon = Icons.Default.Lan,
-                subtitle = "Explora carpetas compartidas de Windows/NAS (SMBv2/v3) y servidores FTP sin descargar archivos enteros.",
+                subtitle = stringResource(R.string.network_explora_carpetas_compartidas_de_windows),
                 iconTint = Violet
             ) {
                 Row(
@@ -203,7 +205,7 @@ fun NetworkScreenContent(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     PrimaryButton(
-                        text = "Añadir servidor",
+                        text = stringResource(R.string.network_anadir_servidor),
                         icon = Icons.Default.Add,
                         onClick = { openNewConnectionDialog(StorageProtocol.SMB) },
                         modifier = Modifier.weight(1f)
@@ -235,7 +237,7 @@ fun NetworkScreenContent(
                 ) {
                     Icon(Icons.Default.WifiFind, contentDescription = null, tint = Aqua, modifier = Modifier.size(16.dp))
                     Text(
-                        text = "equipos detectados en tu red wi-fi (${discoveredHosts.size})",
+                        text = stringResource(R.string.network_equipos_detectados_en_tu_red, discoveredHosts.size),
                         color = Aqua,
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 13.sp
@@ -275,7 +277,7 @@ fun NetworkScreenContent(
             ) {
                 Icon(Icons.Default.Bookmark, contentDescription = null, tint = Violet, modifier = Modifier.size(16.dp))
                 Text(
-                    text = "servidores guardados (${savedConnections.size})",
+                    text = stringResource(R.string.network_servidores_guardados, savedConnections.size),
                     color = Violet,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 13.sp
@@ -287,8 +289,8 @@ fun NetworkScreenContent(
             item {
                 EmptyState(
                     icon = Icons.Default.Lan,
-                    title = "Sin servidores guardados",
-                    message = "Pulsa 'Escanear Wi-Fi' para detectar los equipos de tu red local automáticamente o 'Añadir servidor' para configurar uno."
+                    title = stringResource(R.string.network_sin_servidores_guardados),
+                    message = stringResource(R.string.network_pulsa_escanear_wi_fi_para)
                 )
             }
         } else {
@@ -318,7 +320,7 @@ fun NetworkScreenContent(
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         SelectChip(
-                            text = "SMB (Windows / NAS)",
+                            text = stringResource(R.string.network_smb_windows_nas),
                             selected = formProtocol == StorageProtocol.SMB,
                             onClick = {
                                 formProtocol = StorageProtocol.SMB
@@ -328,7 +330,7 @@ fun NetworkScreenContent(
                             modifier = Modifier.weight(1f)
                         )
                         SelectChip(
-                            text = "FTP / FTPS",
+                            text = stringResource(R.string.network_ftp_ftps),
                             selected = formProtocol == StorageProtocol.FTP,
                             onClick = {
                                 formProtocol = StorageProtocol.FTP
@@ -342,7 +344,7 @@ fun NetworkScreenContent(
                     OutlinedTextField(
                         value = formName,
                         onValueChange = { formName = it },
-                        label = { Text("Nombre del equipo") },
+                        label = { Text(stringResource(R.string.network_nombre_del_equipo)) },
                         singleLine = true,
                         shape = ControlShape,
                         colors = appTextFieldColors(),
@@ -353,7 +355,7 @@ fun NetworkScreenContent(
                         OutlinedTextField(
                             value = formHost,
                             onValueChange = { formHost = it },
-                            label = { Text("IP o Host (ej. 192.168.1.45)") },
+                            label = { Text(stringResource(R.string.network_ip_o_host_ej_192)) },
                             singleLine = true,
                             shape = ControlShape,
                             colors = appTextFieldColors(),
@@ -362,7 +364,7 @@ fun NetworkScreenContent(
                         OutlinedTextField(
                             value = formPort,
                             onValueChange = { formPort = it },
-                            label = { Text("Puerto") },
+                            label = { Text(stringResource(R.string.network_puerto)) },
                             singleLine = true,
                             shape = ControlShape,
                             colors = appTextFieldColors(),
@@ -374,7 +376,7 @@ fun NetworkScreenContent(
                         OutlinedTextField(
                             value = formShare,
                             onValueChange = { formShare = it },
-                            label = { Text("Carpeta compartida (Vacío = ver todas)") },
+                            label = { Text(stringResource(R.string.network_carpeta_compartida_vacio_ver_todas)) },
                             singleLine = true,
                             shape = ControlShape,
                             colors = appTextFieldColors(),
@@ -384,7 +386,7 @@ fun NetworkScreenContent(
 
                     if (formProtocol == StorageProtocol.FTP) {
                         SettingSwitchRow(
-                            title = "Cifrado TLS (FTPS)",
+                            title = stringResource(R.string.network_cifrado_tls_ftps),
                             subtitle = if (formTls) "Conexión y datos cifrados (AUTH TLS)" else "Sin cifrar: usuario y contraseña viajan en texto plano",
                             checked = formTls,
                             onCheckedChange = { formTls = it }
@@ -392,7 +394,7 @@ fun NetworkScreenContent(
                     }
 
                     SettingSwitchRow(
-                        title = "Acceso Invitado / Sin contraseña",
+                        title = stringResource(R.string.network_acceso_invitado_sin_contrasena),
                         subtitle = if (formAnon) "Conecta sin usuario" else "Ingresar usuario y contraseña de Windows/FTP",
                         checked = formAnon,
                         onCheckedChange = { formAnon = it }
@@ -402,7 +404,7 @@ fun NetworkScreenContent(
                         OutlinedTextField(
                             value = formUser,
                             onValueChange = { formUser = it },
-                            label = { Text("Usuario (ej. tu usuario de Windows)") },
+                            label = { Text(stringResource(R.string.network_usuario_ej_tu_usuario_de)) },
                             singleLine = true,
                             shape = ControlShape,
                             colors = appTextFieldColors(),
@@ -411,7 +413,7 @@ fun NetworkScreenContent(
                         OutlinedTextField(
                             value = formPass,
                             onValueChange = { formPass = it },
-                            label = { Text("Contraseña") },
+                            label = { Text(stringResource(R.string.explorer_contrasena)) },
                             singleLine = true,
                             shape = ControlShape,
                             colors = appTextFieldColors(),
@@ -439,12 +441,12 @@ fun NetworkScreenContent(
                     )
                     showDialog = false
                 }) {
-                    Text("Guardar")
+                    Text(stringResource(R.string.explorer_guardar))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDialog = false }) {
-                    Text("Cancelar")
+                    Text(stringResource(R.string.explorer_cancelar))
                 }
             }
         )
@@ -496,13 +498,13 @@ private fun SavedConnectionCard(
                     }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    GlassIconButton(icon = Icons.Default.Edit, onClick = onEdit, tint = Violet, contentDescription = "Editar")
-                    GlassIconButton(icon = Icons.Default.Delete, onClick = onDelete, tint = Danger, contentDescription = "Eliminar")
+                    GlassIconButton(icon = Icons.Default.Edit, onClick = onEdit, tint = Violet, contentDescription = stringResource(R.string.network_editar))
+                    GlassIconButton(icon = Icons.Default.Delete, onClick = onDelete, tint = Danger, contentDescription = stringResource(R.string.explorer_eliminar))
                 }
             }
 
             PrimaryButton(
-                text = "Conectar y explorar",
+                text = stringResource(R.string.network_conectar_y_explorar),
                 icon = Icons.Default.FolderOpen,
                 onClick = onConnect,
                 modifier = Modifier.fillMaxWidth()
@@ -550,8 +552,8 @@ private fun DiscoveredHostCard(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Tag(text = host.ip, color = Violet)
-                        if (host.supportsSmb) Tag(text = "SMB", color = Violet)
-                        if (host.supportsFtp) Tag(text = "FTP", color = Aqua)
+                        if (host.supportsSmb) Tag(text = stringResource(R.string.network_smb), color = Violet)
+                        if (host.supportsFtp) Tag(text = stringResource(R.string.network_ftp), color = Aqua)
                     }
                 }
             }
@@ -562,7 +564,7 @@ private fun DiscoveredHostCard(
             ) {
                 if (host.supportsSmb) {
                     SecondaryButton(
-                        text = "SMB",
+                        text = stringResource(R.string.network_smb),
                         icon = Icons.Default.Add,
                         onClick = onConfigureSmb,
                         tint = Violet
@@ -570,7 +572,7 @@ private fun DiscoveredHostCard(
                 }
                 if (host.supportsFtp) {
                     SecondaryButton(
-                        text = "FTP",
+                        text = stringResource(R.string.network_ftp),
                         icon = Icons.Default.Add,
                         onClick = onConfigureFtp,
                         tint = Aqua

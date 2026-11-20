@@ -555,7 +555,7 @@ fun SettingsScreenPreview() {
         Box(modifier = Modifier.padding(16.dp)) {
             GlassPanel {
                 Text(stringResource(R.string.settings_title), color = TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                Text("Demostración de panel de cristal para ajustes.", color = TextMuted, fontSize = 12.sp)
+                Text(stringResource(R.string.settings_demostracion_de_panel_de_cristal), color = TextMuted, fontSize = 12.sp)
             }
         }
     }

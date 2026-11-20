@@ -1,5 +1,7 @@
 package com.maez.qubitexplorer.ui.components
 
+import com.maez.qubitexplorer.R
+import androidx.compose.ui.res.stringResource
 import android.graphics.BitmapFactory
 import android.media.MediaMetadataRetriever
 import android.widget.MediaController
@@ -167,7 +169,7 @@ fun MediaPreviewDialog(
                         )
                     }
                     IconButton(onClick = onDismiss) {
-                        Icon(Icons.Default.Close, contentDescription = "Cerrar", tint = TextSecondary)
+                        Icon(Icons.Default.Close, contentDescription = stringResource(R.string.close), tint = TextSecondary)
                     }
                 }
 
@@ -186,12 +188,12 @@ fun MediaPreviewDialog(
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 CircularProgressIndicator(color = MediaAccent)
-                                Text("Cargando vista previa desde red...", color = MediaTextMuted, fontSize = 12.sp)
+                                Text(stringResource(R.string.media_preview_cargando_vista_previa_desde_red), color = MediaTextMuted, fontSize = 12.sp)
                             }
                         }
                         item.sizeBytes == 0L -> {
                             Text(
-                                text = "Archivo vacío (0 B) — Sin contenido para previsualizar",
+                                text = stringResource(R.string.media_preview_archivo_vacio_0_b_sin),
                                 color = MediaDanger,
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = 13.sp,
@@ -205,7 +207,7 @@ fun MediaPreviewDialog(
                                 verticalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
                                 Text(
-                                    text = "No se pudo mostrar la vista previa integrada",
+                                    text = stringResource(R.string.media_preview_no_se_pudo_mostrar_la),
                                     color = MediaDanger,
                                     fontWeight = FontWeight.SemiBold,
                                     fontSize = 13.sp
@@ -261,21 +263,21 @@ fun MediaPreviewDialog(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     SecondaryButton(
-                        text = "Carpeta",
+                        text = stringResource(R.string.media_preview_carpeta),
                         icon = Icons.Default.FolderOpen,
                         onClick = onOpenFolder,
                         tint = AccentBlueLight,
                         modifier = Modifier.weight(1f)
                     )
                     SecondaryButton(
-                        text = "Compartir",
+                        text = stringResource(R.string.explorer_compartir),
                         icon = Icons.Default.Share,
                         onClick = onShare,
                         tint = AccentBlueLight,
                         modifier = Modifier.weight(1f)
                     )
                     SecondaryButton(
-                        text = "Abrir",
+                        text = stringResource(R.string.media_preview_abrir),
                         icon = Icons.AutoMirrored.Filled.OpenInNew,
                         onClick = onOpenExternal,
                         tint = AccentGreenLight,

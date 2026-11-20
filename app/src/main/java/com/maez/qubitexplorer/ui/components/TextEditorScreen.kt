@@ -1,5 +1,7 @@
 package com.maez.qubitexplorer.ui.components
 
+import com.maez.qubitexplorer.R
+import androidx.compose.ui.res.stringResource
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -198,7 +200,7 @@ private fun CenterMessage(msg: String, palette: EditorPalette, onClose: () -> Un
     ) {
         Text(msg, color = palette.text, textAlign = TextAlign.Center)
         Spacer(Modifier.size(12.dp))
-        TextButton(onClick = onClose) { Text("Cerrar") }
+        TextButton(onClick = onClose) { Text(stringResource(R.string.close)) }
     }
 }
 
@@ -403,15 +405,15 @@ private fun EditorBody(
                         leadingIcon = { Icon(Icons.AutoMirrored.Filled.WrapText, null) },
                         onClick = { wrap = !wrap; showMenu = false }
                     )
-                    DropdownMenuItem(text = { Text("Agrandar texto") }, onClick = { fontSize = (fontSize + 1).coerceAtMost(24) })
-                    DropdownMenuItem(text = { Text("Achicar texto") }, onClick = { fontSize = (fontSize - 1).coerceAtLeast(9) })
+                    DropdownMenuItem(text = { Text(stringResource(R.string.text_editor_agrandar_texto)) }, onClick = { fontSize = (fontSize + 1).coerceAtMost(24) })
+                    DropdownMenuItem(text = { Text(stringResource(R.string.text_editor_achicar_texto)) }, onClick = { fontSize = (fontSize - 1).coerceAtLeast(9) })
                     DropdownMenuItem(
-                        text = { Text("Comentar / descomentar línea") },
+                        text = { Text(stringResource(R.string.text_editor_comentar_descomentar_linea)) },
                         enabled = readOnlyReason == null,
                         onClick = { toggleLineComment(); showMenu = false }
                     )
                     DropdownMenuItem(
-                        text = { Text("Duplicar línea") },
+                        text = { Text(stringResource(R.string.text_editor_duplicar_linea)) },
                         enabled = readOnlyReason == null,
                         onClick = {
                             val t = value.text
@@ -423,11 +425,11 @@ private fun EditorBody(
                         }
                     )
                     DropdownMenuItem(
-                        text = { Text("Ir al inicio") },
+                        text = { Text(stringResource(R.string.text_editor_ir_al_inicio)) },
                         onClick = { goToOffset(0); showMenu = false }
                     )
                     DropdownMenuItem(
-                        text = { Text("Ir al final") },
+                        text = { Text(stringResource(R.string.text_editor_ir_al_final)) },
                         onClick = { goToOffset(value.text.length); showMenu = false }
                     )
                 }
@@ -467,7 +469,7 @@ private fun EditorBody(
                             val m = matches.getOrNull(matchIndex) ?: return@TextButton
                             val t = value.text
                             applyEdit(TextFieldValue(t.replaceRange(m, replacement), TextRange(m.first + replacement.length)))
-                        }) { Text("Uno", fontSize = 12.sp) }
+                        }) { Text(stringResource(R.string.text_editor_uno), fontSize = 12.sp) }
                         TextButton(onClick = {
                             if (query.isEmpty()) return@TextButton
                             val n = matches.size
@@ -476,7 +478,7 @@ private fun EditorBody(
                                 TextRange(0)
                             ))
                             status = "$n reemplazos"
-                        }) { Text("Todos", fontSize = 12.sp) }
+                        }) { Text(stringResource(R.string.text_editor_todos), fontSize = 12.sp) }
                     }
                 }
             }
@@ -528,13 +530,12 @@ private fun EditorBody(
                         .clip(RoundedCornerShape(10.dp))
                         .background(palette.bar)
                 ) {
-                    Text(
-                        "Esquema · ${language.label}",
+                    Text(stringResource(R.string.text_editor_esquema, language.label),
                         color = palette.text, fontSize = 12.sp, fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(10.dp)
                     )
                     if (outline.isEmpty()) {
-                        Text("Sin elementos detectados", color = palette.gutterText, fontSize = 12.sp, modifier = Modifier.padding(10.dp))
+                        Text(stringResource(R.string.text_editor_sin_elementos_detectados), color = palette.gutterText, fontSize = 12.sp, modifier = Modifier.padding(10.dp))
                     }
                     LazyColumn {
                         items(outline) { o ->
@@ -591,12 +592,12 @@ private fun EditorBody(
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             val small = Modifier
-            Text("Ln ${caretLine + 1}, Col $caretCol", color = palette.gutterText, fontSize = 10.sp, modifier = small)
-            Text("$lineCount líneas", color = palette.gutterText, fontSize = 10.sp)
+            Text(stringResource(R.string.text_editor_ln_col, caretLine + 1, caretCol), color = palette.gutterText, fontSize = 10.sp, modifier = small)
+            Text(stringResource(R.string.text_editor_lineas, lineCount), color = palette.gutterText, fontSize = 10.sp)
             Text(if (usesCrlf) "CRLF" else "LF", color = palette.gutterText, fontSize = 10.sp)
-            Text("UTF-8", color = palette.gutterText, fontSize = 10.sp)
+            Text(stringResource(R.string.text_editor_utf_8), color = palette.gutterText, fontSize = 10.sp)
             if (value.text.length > SyntaxHighlighter.MAX_HIGHLIGHT_CHARS) {
-                Text("sin colores (archivo grande)", color = palette.gutterText, fontSize = 10.sp)
+                Text(stringResource(R.string.text_editor_sin_colores_archivo_grande), color = palette.gutterText, fontSize = 10.sp)
             }
             Spacer(Modifier.weight(1f))
             (status ?: readOnlyReason)?.let { Text(it, color = palette.tokens[TokenType.STRING]!!, fontSize = 10.sp) }
@@ -606,8 +607,8 @@ private fun EditorBody(
     if (confirmExit) {
         AlertDialog(
             onDismissRequest = { confirmExit = false },
-            title = { Text("Cambios sin guardar") },
-            text = { Text("¿Querés guardar los cambios en $fileName antes de salir?") },
+            title = { Text(stringResource(R.string.text_editor_cambios_sin_guardar)) },
+            text = { Text(stringResource(R.string.text_editor_queres_guardar_los_cambios_en, fileName)) },
             confirmButton = {
                 TextButton(onClick = {
                     confirmExit = false
@@ -615,12 +616,12 @@ private fun EditorBody(
                         val out = if (usesCrlf) value.text.replace("\n", "\r\n") else value.text
                         if (onSave(out)) onClose() else status = "No se pudo guardar"
                     }
-                }) { Text("Guardar") }
+                }) { Text(stringResource(R.string.explorer_guardar)) }
             },
             dismissButton = {
                 Row {
-                    TextButton(onClick = { confirmExit = false; onClose() }) { Text("Descartar") }
-                    TextButton(onClick = { confirmExit = false }) { Text("Cancelar") }
+                    TextButton(onClick = { confirmExit = false; onClose() }) { Text(stringResource(R.string.text_editor_descartar)) }
+                    TextButton(onClick = { confirmExit = false }) { Text(stringResource(R.string.explorer_cancelar)) }
                 }
             }
         )

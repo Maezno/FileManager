@@ -1,5 +1,7 @@
 package com.maez.qubitexplorer.ui.screens
 
+import com.maez.qubitexplorer.R
+import androidx.compose.ui.res.stringResource
 import com.maez.qubitexplorer.ui.components.rememberSelectionBarShift
 import com.maez.qubitexplorer.ui.components.shiftedItem
 import com.maez.qubitexplorer.ui.components.KeepListStillWhileShown
@@ -285,7 +287,7 @@ fun SmartSearchScreen(viewModel: MainViewModel) {
                     IconBubble(icon = Icons.Default.Warning, tint = Danger, size = 32.dp)
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        text = "Confirmar eliminación",
+                        text = stringResource(R.string.explorer_confirmar_eliminacion),
                         color = TextPrimary,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
@@ -294,7 +296,7 @@ fun SmartSearchScreen(viewModel: MainViewModel) {
             },
             text = {
                 Text(
-                    text = "¿Deseas eliminar permanentemente '${item.item.name}'? Esta acción liberará espacio pero no se puede deshacer.",
+                    text = stringResource(R.string.smart_search_deseas_eliminar_permanentemente_esta_accion, item.item.name),
                     color = TextMuted,
                     fontSize = 13.sp,
                     lineHeight = 16.sp
@@ -308,12 +310,12 @@ fun SmartSearchScreen(viewModel: MainViewModel) {
                         if (target != null) viewModel.deleteItem(target.item)
                     }
                 ) {
-                    Text("Eliminar", color = Danger, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.explorer_eliminar), color = Danger, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { itemToDeleteConfirm = null }) {
-                    Text("Cancelar", color = TextMuted)
+                    Text(stringResource(R.string.explorer_cancelar), color = TextMuted)
                 }
             }
         )
@@ -328,7 +330,7 @@ fun SmartSearchScreen(viewModel: MainViewModel) {
                     IconBubble(icon = Icons.Default.Warning, tint = Danger, size = 32.dp)
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        text = "Confirmar eliminación de duplicados",
+                        text = stringResource(R.string.smart_search_confirmar_eliminacion_de_duplicados),
                         color = TextPrimary,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
@@ -337,7 +339,7 @@ fun SmartSearchScreen(viewModel: MainViewModel) {
             },
             text = {
                 Text(
-                    text = "¿Deseas eliminar permanentemente los ${selectedDuplicatePaths.size} archivos duplicados seleccionados? Esta acción liberará almacenamiento en tu dispositivo y no se puede deshacer.",
+                    text = stringResource(R.string.smart_search_deseas_eliminar_permanentemente_los_archivos, selectedDuplicatePaths.size),
                     color = TextMuted,
                     fontSize = 13.sp,
                     lineHeight = 16.sp
@@ -350,12 +352,12 @@ fun SmartSearchScreen(viewModel: MainViewModel) {
                         viewModel.deleteSelectedDuplicates()
                     }
                 ) {
-                    Text("Eliminar", color = Danger, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.explorer_eliminar), color = Danger, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showConfirmDeleteDuplicates = false }) {
-                    Text("Cancelar", color = TextMuted)
+                    Text(stringResource(R.string.explorer_cancelar), color = TextMuted)
                 }
             }
         )
@@ -372,7 +374,7 @@ fun SmartSearchScreen(viewModel: MainViewModel) {
                     IconBubble(icon = Icons.Default.Warning, tint = Danger, size = 32.dp)
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        text = "Confirmar eliminación",
+                        text = stringResource(R.string.explorer_confirmar_eliminacion),
                         color = TextPrimary,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
@@ -381,7 +383,7 @@ fun SmartSearchScreen(viewModel: MainViewModel) {
             },
             text = {
                 Text(
-                    text = "¿Deseas eliminar permanentemente los ${selectedSearchPaths.size} archivos seleccionados? Se liberarán ${formatBytes(totalBytesToFree)} en tu dispositivo y esta acción no se puede deshacer.",
+                    text = stringResource(R.string.smart_search_deseas_eliminar_permanentemente_los_archivos_2, selectedSearchPaths.size, formatBytes(totalBytesToFree)),
                     color = TextMuted,
                     fontSize = 13.sp,
                     lineHeight = 16.sp
@@ -394,12 +396,12 @@ fun SmartSearchScreen(viewModel: MainViewModel) {
                         viewModel.deleteSelectedSearchResults()
                     }
                 ) {
-                    Text("Eliminar", color = Danger, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.explorer_eliminar), color = Danger, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showConfirmDeleteSelectedSearch = false }) {
-                    Text("Cancelar", color = TextMuted)
+                    Text(stringResource(R.string.explorer_cancelar), color = TextMuted)
                 }
             }
         )
@@ -464,6 +466,7 @@ fun SmartSearchScreenContent(
     onShareDuplicate: (DuplicateFileEntry) -> Unit = {},
     onDeleteDuplicate: (DuplicateFileEntry) -> Unit = {}
 ) {
+    val stringsContext = LocalContext.current
     var folderPickerState by remember { mutableStateOf<FolderPickerState?>(null) }
     var searchExpanded by remember { mutableStateOf(false) }
     var filtersExpanded by remember { mutableStateOf(false) }
@@ -567,7 +570,7 @@ fun SmartSearchScreenContent(
                             GlassSearchField(
                                 value = searchWord,
                                 onValueChange = onSetSearchWord,
-                                placeholder = "Filtrar por nombre, carpeta o cámara...",
+                                placeholder = stringResource(R.string.smart_search_filtrar_por_nombre_carpeta_o),
                                 height = 48.dp,
                                 focusRequester = focusRequester,
                                 onClose = { searchExpanded = false },
@@ -588,7 +591,7 @@ fun SmartSearchScreenContent(
                                 onRequestPicker = { item, isFolderB ->
                                     val conn = savedConnections.find { it.id == item.connectionId }
                                     folderPickerState = FolderPickerState(
-                                        title = "Seleccionar Carpeta A en ${item.name}",
+                                        title = stringsContext.getString(R.string.smart_search_seleccionar_carpeta_a_en, item.name),
                                         initialPath = item.path.ifBlank { "/" },
                                         protocol = item.protocol,
                                         connection = conn,
@@ -600,7 +603,7 @@ fun SmartSearchScreenContent(
                                 icon = Icons.Default.Search,
                                 onClick = { searchExpanded = true },
                                 tint = Aqua,
-                                contentDescription = "Buscar"
+                                contentDescription = stringResource(R.string.explorer_buscar)
                             )
                         }
 
@@ -609,7 +612,7 @@ fun SmartSearchScreenContent(
                                 icon = Icons.Default.Tune,
                                 onClick = { filtersExpanded = !filtersExpanded },
                                 tint = if (activeFilterCount > 0 || filtersExpanded) Aqua else TextMuted,
-                                contentDescription = "Filtros y orden"
+                                contentDescription = stringResource(R.string.smart_search_filtros_y_orden)
                             )
                             if (activeFilterCount > 0) {
                                 Box(
@@ -649,7 +652,7 @@ fun SmartSearchScreenContent(
                                 modifier = Modifier.padding(12.dp),
                                 verticalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
-                                FilterChipRow(label = "Tipo") {
+                                FilterChipRow(label = stringResource(R.string.smart_search_tipo)) {
                                     listOf(
                                         FileCategory.ALL,
                                         FileCategory.IMAGE,
@@ -667,7 +670,7 @@ fun SmartSearchScreenContent(
                                     }
                                 }
 
-                                FilterChipRow(label = "Orientación") {
+                                FilterChipRow(label = stringResource(R.string.smart_search_orientacion)) {
                                     listOf(
                                         MediaOrientation.ALL to "Todas",
                                         MediaOrientation.VERTICAL to "Vertical",
@@ -682,7 +685,7 @@ fun SmartSearchScreenContent(
                                     }
                                 }
 
-                                FilterChipRow(label = "Tamaño") {
+                                FilterChipRow(label = stringResource(R.string.smart_search_tamano)) {
                                     listOf(0f to "Cualquiera", 100f to "> 100 MB", 500f to "> 500 MB", 1000f to "> 1 GB")
                                         .forEach { (sizeMB, label) ->
                                             SelectChip(
@@ -697,7 +700,7 @@ fun SmartSearchScreenContent(
                                         }
                                 }
 
-                                FilterChipRow(label = "Ordenar (toca de nuevo para invertir)") {
+                                FilterChipRow(label = stringResource(R.string.smart_search_ordenar_toca_de_nuevo_para)) {
                                     listOf(
                                         SearchSortField.DATE,
                                         SearchSortField.SIZE,
@@ -719,7 +722,7 @@ fun SmartSearchScreenContent(
 
                                 if (activeFilterCount > 0) {
                                     SecondaryButton(
-                                        text = "Quitar filtros",
+                                        text = stringResource(R.string.smart_search_quitar_filtros),
                                         icon = Icons.Default.Close,
                                         onClick = {
                                             onSetSelectedCategory(FileCategory.ALL)
@@ -752,7 +755,7 @@ fun SmartSearchScreenContent(
                                 ) {
                                     Text(text = statusText, color = TextMuted, fontSize = 12.sp, modifier = Modifier.weight(1f))
                                     SecondaryButton(
-                                        text = "Detener",
+                                        text = stringResource(R.string.smart_search_detener),
                                         icon = Icons.Default.Stop,
                                         onClick = onCancelScan,
                                         tint = Danger
@@ -768,7 +771,7 @@ fun SmartSearchScreenContent(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             PrimaryGlassButton(
-                                text = "Escanear carpeta",
+                                text = stringResource(R.string.smart_search_escanear_carpeta),
                                 icon = Icons.AutoMirrored.Filled.ManageSearch,
                                 onClick = onStartScan,
                                 modifier = Modifier.weight(1f)
@@ -813,11 +816,11 @@ fun SmartSearchScreenContent(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = onClearSearchSelection, modifier = Modifier.size(36.dp)) {
-                    Icon(Icons.Default.Close, contentDescription = "Cancelar selección", tint = TextMuted, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Default.Close, contentDescription = stringResource(R.string.explorer_cancelar_seleccion), tint = TextMuted, modifier = Modifier.size(18.dp))
                 }
                 Spacer(Modifier.width(4.dp))
                 Column(Modifier.weight(1f)) {
-                    Text("${selectedSearchPaths.size} sel.", color = Violet, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.smart_search_sel, selectedSearchPaths.size), color = Violet, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                     Text(formatBytes(selectedBytes), color = WarningAmber, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                 }
                 IconButton(
@@ -827,10 +830,10 @@ fun SmartSearchScreenContent(
                     Icon(Icons.Default.SelectAll, contentDescription = if (allSelected) "Deseleccionar" else "Seleccionar todo", tint = Aqua, modifier = Modifier.size(20.dp))
                 }
                 IconButton(onClick = onShareSelectedSearch, modifier = Modifier.size(40.dp)) {
-                    Icon(Icons.Default.Share, contentDescription = "Compartir", tint = Violet, modifier = Modifier.size(20.dp))
+                    Icon(Icons.Default.Share, contentDescription = stringResource(R.string.explorer_compartir), tint = Violet, modifier = Modifier.size(20.dp))
                 }
                 IconButton(onClick = onRequestDeleteSelectedSearch, modifier = Modifier.size(40.dp)) {
-                    Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = Danger, modifier = Modifier.size(20.dp))
+                    Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.explorer_eliminar), tint = Danger, modifier = Modifier.size(20.dp))
                 }
             }
         }
@@ -893,7 +896,7 @@ fun SmartSearchScreenContent(
                                 onRequestPicker = { item, isFolderB ->
                                     val conn = savedConnections.find { it.id == item.connectionId }
                                     folderPickerState = FolderPickerState(
-                                        title = "Seleccionar Carpeta A en ${item.name}",
+                                        title = stringsContext.getString(R.string.smart_search_seleccionar_carpeta_a_en_2, item.name),
                                         initialPath = item.path.ifBlank { "/" },
                                         protocol = item.protocol,
                                         connection = conn,
@@ -942,7 +945,7 @@ fun SmartSearchScreenContent(
                                         verticalAlignment = Alignment.CenterVertically,
                                         modifier = Modifier.weight(1f)
                                     ) {
-                                        Text("B:", color = WarningAmber, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                        Text(stringResource(R.string.smart_search_b), color = WarningAmber, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                                         Spacer(Modifier.width(6.dp))
                                         Text(
                                             text = folderB?.name ?: "Elegir B",
@@ -962,7 +965,7 @@ fun SmartSearchScreenContent(
                                         onRequestPicker = { item, isFolderB ->
                                             val conn = savedConnections.find { it.id == item.connectionId }
                                             folderPickerState = FolderPickerState(
-                                                title = "Seleccionar Carpeta B en ${item.name}",
+                                                title = stringsContext.getString(R.string.smart_search_seleccionar_carpeta_b_en, item.name),
                                                 initialPath = item.path.ifBlank { "/" },
                                                 protocol = item.protocol,
                                                 connection = conn,
@@ -994,7 +997,7 @@ fun SmartSearchScreenContent(
                                 ) {
                                     Text(text = statusText, color = TextMuted, fontSize = 12.sp, modifier = Modifier.weight(1f))
                                     SecondaryButton(
-                                        text = "Detener",
+                                        text = stringResource(R.string.smart_search_detener),
                                         icon = Icons.Default.Stop,
                                         onClick = onCancelScan,
                                         tint = Danger
@@ -1005,7 +1008,7 @@ fun SmartSearchScreenContent(
                         }
                     } else {
                         PrimaryGlassButton(
-                            text = "Buscar archivos repetidos",
+                            text = stringResource(R.string.smart_search_buscar_archivos_repetidos),
                             icon = Icons.Default.FindReplace,
                             onClick = onStartScan,
                             modifier = Modifier.fillMaxWidth()
@@ -1032,13 +1035,13 @@ fun SmartSearchScreenContent(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        text = "$groupCount grupos de duplicados",
+                                        text = stringResource(R.string.smart_search_grupos_de_duplicados, groupCount),
                                         color = TextPrimary,
                                         fontSize = 14.sp,
                                         fontWeight = FontWeight.Bold
                                     )
                                     Text(
-                                        text = "${formatBytes(wastedBytes)} ocupados",
+                                        text = stringResource(R.string.smart_search_ocupados, formatBytes(wastedBytes)),
                                         color = WarningAmber,
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.Bold
@@ -1050,14 +1053,14 @@ fun SmartSearchScreenContent(
                                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
                                     SecondaryGlassButton(
-                                        text = "Marcar copias sobrantes",
+                                        text = stringResource(R.string.smart_search_marcar_copias_sobrantes),
                                         icon = Icons.Default.DoneAll,
                                         onClick = onSelectDuplicateCopiesOnly,
                                         modifier = Modifier.weight(1f),
                                         tint = Violet
                                     )
                                     PrimaryGlassButton(
-                                        text = "Eliminar (${selectedDuplicatePaths.size})",
+                                        text = stringResource(R.string.smart_search_eliminar, selectedDuplicatePaths.size),
                                         icon = Icons.Default.Delete,
                                         onClick = onRequestDeleteDuplicates,
                                         enabled = selectedDuplicatePaths.isNotEmpty()
@@ -1073,8 +1076,8 @@ fun SmartSearchScreenContent(
                     item {
                         EmptyState(
                             icon = Icons.Default.ContentCopy,
-                            title = "Sin duplicados analizados",
-                            message = "Selecciona una ubicación y pulsa 'Buscar archivos repetidos' para detectar copias exactas por contenido."
+                            title = stringResource(R.string.smart_search_sin_duplicados_analizados),
+                            message = stringResource(R.string.smart_search_selecciona_una_ubicacion_y_pulsa)
                         )
                     }
                 } else {
@@ -1156,7 +1159,7 @@ private fun StorageSelectorIconDropdown(
                     Icon(locationIcon, contentDescription = null, tint = Violet, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Buscar en", color = TextMuted, fontSize = 10.sp)
+                        Text(stringResource(R.string.smart_search_buscar_en), color = TextMuted, fontSize = 10.sp)
                         Text(
                             text = currentFolder.name,
                             color = TextPrimary,
@@ -1166,7 +1169,7 @@ private fun StorageSelectorIconDropdown(
                             overflow = TextOverflow.Ellipsis
                         )
                     }
-                    Icon(Icons.Default.KeyboardArrowDown, contentDescription = "Cambiar ubicación", tint = TextMuted, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Default.KeyboardArrowDown, contentDescription = stringResource(R.string.smart_search_cambiar_ubicacion), tint = TextMuted, modifier = Modifier.size(18.dp))
                 }
             }
         } else {
@@ -1174,7 +1177,7 @@ private fun StorageSelectorIconDropdown(
                 icon = locationIcon,
                 onClick = { expanded = true },
                 tint = Violet,
-                contentDescription = "Elegir ubicación"
+                contentDescription = stringResource(R.string.smart_search_elegir_ubicacion)
             )
         }
 
@@ -1186,7 +1189,7 @@ private fun StorageSelectorIconDropdown(
             border = BorderStroke(1.dp, GlassBorder)
         ) {
             DropdownMenuItem(
-                text = { Text("Almacenamiento interno", color = TextPrimary, fontSize = 13.sp) },
+                text = { Text(stringResource(R.string.smart_search_almacenamiento_interno), color = TextPrimary, fontSize = 13.sp) },
                 leadingIcon = { Icon(Icons.Default.PhoneAndroid, contentDescription = null, tint = Aqua) },
                 onClick = {
                     expanded = false
@@ -1209,7 +1212,7 @@ private fun StorageSelectorIconDropdown(
                 protocol = StorageProtocol.LOCAL
             )
             DropdownMenuItem(
-                text = { Text("Carpeta Descargas", color = TextPrimary, fontSize = 13.sp) },
+                text = { Text(stringResource(R.string.smart_search_carpeta_descargas), color = TextPrimary, fontSize = 13.sp) },
                 leadingIcon = { Icon(Icons.Default.Download, contentDescription = null, tint = Violet) },
                 onClick = {
                     expanded = false
@@ -1225,7 +1228,7 @@ private fun StorageSelectorIconDropdown(
                 protocol = StorageProtocol.LOCAL
             )
             DropdownMenuItem(
-                text = { Text("Carpeta Cámara (DCIM)", color = TextPrimary, fontSize = 13.sp) },
+                text = { Text(stringResource(R.string.smart_search_carpeta_camara_dcim), color = TextPrimary, fontSize = 13.sp) },
                 leadingIcon = { Icon(Icons.Default.CameraAlt, contentDescription = null, tint = Aqua) },
                 onClick = {
                     expanded = false
@@ -1257,7 +1260,7 @@ private fun StorageSelectorIconDropdown(
 
             HorizontalDivider(color = GlassBorder)
             DropdownMenuItem(
-                text = { Text("Elegir subcarpeta específica...", color = Aqua, fontSize = 13.sp, fontWeight = FontWeight.Bold) },
+                text = { Text(stringResource(R.string.smart_search_elegir_subcarpeta_especifica), color = Aqua, fontSize = 13.sp, fontWeight = FontWeight.Bold) },
                 leadingIcon = { Icon(Icons.Default.FolderOpen, contentDescription = null, tint = Aqua) },
                 onClick = {
                     expanded = false
@@ -1366,7 +1369,7 @@ private fun MediaSearchResultCard(
                     IconButton(onClick = onToggleSelect, modifier = Modifier.size(28.dp)) {
                         Icon(
                             imageVector = if (isSelected) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
-                            contentDescription = "Seleccionar",
+                            contentDescription = stringResource(R.string.a11y_select),
                             tint = if (isSelected) Aqua else TextMuted,
                             modifier = Modifier.size(18.dp)
                         )
@@ -1421,9 +1424,9 @@ private fun MediaSearchResultCard(
                         Tag(text = entry.deviceModel, color = Violet)
                     }
                     if (entry.orientation == "Vertical") {
-                        Tag(text = "Vertical", color = Aqua)
+                        Tag(text = stringResource(R.string.smart_search_vertical), color = Aqua)
                     } else if (entry.orientation == "Horizontal") {
-                        Tag(text = "Horizontal", color = Violet)
+                        Tag(text = stringResource(R.string.smart_search_horizontal), color = Violet)
                     }
                     if (entry.resolution.isNotBlank()) {
                         Tag(text = entry.resolution, color = TextMuted)
@@ -1446,13 +1449,13 @@ private fun MediaSearchResultCard(
                     AnimatedVisibility(visible = !isSelectionMode, enter = Motion.softInlineEnter, exit = Motion.softInlineExit) {
                         Row {
                             IconButton(onClick = onShare, modifier = Modifier.size(28.dp)) {
-                                Icon(Icons.Default.Share, contentDescription = "Compartir", tint = Violet, modifier = Modifier.size(16.dp))
+                                Icon(Icons.Default.Share, contentDescription = stringResource(R.string.explorer_compartir), tint = Violet, modifier = Modifier.size(16.dp))
                             }
                             IconButton(onClick = onOpenFolder, modifier = Modifier.size(28.dp)) {
-                                Icon(Icons.Default.FolderOpen, contentDescription = "Ir a carpeta", tint = Aqua, modifier = Modifier.size(16.dp))
+                                Icon(Icons.Default.FolderOpen, contentDescription = stringResource(R.string.smart_search_ir_a_carpeta), tint = Aqua, modifier = Modifier.size(16.dp))
                             }
                             IconButton(onClick = onDelete, modifier = Modifier.size(28.dp)) {
-                                Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = Danger, modifier = Modifier.size(16.dp))
+                                Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.explorer_eliminar), tint = Danger, modifier = Modifier.size(16.dp))
                             }
                         }
                     }
@@ -1490,7 +1493,7 @@ private fun DuplicateFileCard(
             IconButton(onClick = onToggleSelect, modifier = Modifier.size(28.dp)) {
                 Icon(
                     imageVector = if (isSelected) Icons.Default.CheckCircle else Icons.Default.Check,
-                    contentDescription = "Marcar duplicado",
+                    contentDescription = stringResource(R.string.smart_search_marcar_duplicado),
                     tint = if (isSelected) Aqua else TextMuted,
                     modifier = Modifier.size(18.dp)
                 )
@@ -1533,11 +1536,11 @@ private fun DuplicateFileCard(
 
             Row {
                 IconButton(onClick = onShare, modifier = Modifier.size(28.dp)) {
-                    Icon(Icons.Default.Share, contentDescription = "Compartir", tint = Violet, modifier = Modifier.size(16.dp))
+                    Icon(Icons.Default.Share, contentDescription = stringResource(R.string.explorer_compartir), tint = Violet, modifier = Modifier.size(16.dp))
                 }
                 if (!entry.isPrimary) {
                     IconButton(onClick = onDelete, modifier = Modifier.size(28.dp)) {
-                        Icon(Icons.Default.Delete, contentDescription = "Eliminar duplicado", tint = Danger, modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.smart_search_eliminar_duplicado), tint = Danger, modifier = Modifier.size(16.dp))
                     }
                 }
             }
@@ -1609,7 +1612,7 @@ private fun FolderPickerDialog(
                         ) {
                             Icon(Icons.Default.ArrowUpward, contentDescription = null, tint = Violet, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.width(8.dp))
-                            Text(".. (Subir carpeta)", color = Violet, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            Text(stringResource(R.string.smart_search_subir_carpeta), color = Violet, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -1621,7 +1624,7 @@ private fun FolderPickerDialog(
                 } else if (errorMsg != null) {
                     Text(text = errorMsg!!, color = Danger, fontSize = 12.sp)
                 } else if (folderItems.isEmpty()) {
-                    Text("No hay subcarpetas en este nivel", color = TextMuted, fontSize = 12.sp, modifier = Modifier.padding(12.dp))
+                    Text(stringResource(R.string.smart_search_no_hay_subcarpetas_en_este), color = TextMuted, fontSize = 12.sp, modifier = Modifier.padding(12.dp))
                 } else {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
@@ -1663,12 +1666,12 @@ private fun FolderPickerDialog(
                     onFolderSelected(selectedItem)
                 }
             ) {
-                Text("Usar esta carpeta")
+                Text(stringResource(R.string.smart_search_usar_esta_carpeta))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancelar", color = TextMuted)
+                Text(stringResource(R.string.explorer_cancelar), color = TextMuted)
             }
         }
     )

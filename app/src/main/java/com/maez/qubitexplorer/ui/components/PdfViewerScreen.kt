@@ -1,5 +1,7 @@
 package com.maez.qubitexplorer.ui.components
 
+import com.maez.qubitexplorer.R
+import androidx.compose.ui.res.stringResource
 import android.graphics.Bitmap
 import android.graphics.pdf.PdfRenderer
 import android.os.ParcelFileDescriptor
@@ -169,7 +171,7 @@ fun PdfViewerScreen(
                 IconButton(onClick = onClose) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Cerrar", tint = Color.White) }
                 Column(Modifier.weight(1f)) {
                     Text(fileName, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    doc?.let { Text("Página $currentPage de ${it.pageCount}", color = Color(0xFFB0B4C0), fontSize = 11.sp) }
+                    doc?.let { Text(stringResource(R.string.pdf_viewer_pagina_de, currentPage, it.pageCount), color = Color(0xFFB0B4C0), fontSize = 11.sp) }
                 }
                 IconButton(onClick = { textMode = !textMode }) {
                     Icon(
@@ -192,7 +194,7 @@ fun PdfViewerScreen(
                 when {
                     error != null -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(error!!, color = Color.White, modifier = Modifier.padding(24.dp))
-                        TextButton(onClick = onOpenExternal) { Text("Abrir con otra app") }
+                        TextButton(onClick = onOpenExternal) { Text(stringResource(R.string.office_viewer_abrir_con_otra_app)) }
                     }
                     isLoading || d == null -> CircularProgressIndicator(color = Color.White)
                     textMode -> PdfTextView(d)
@@ -263,7 +265,7 @@ private fun PdfPage(doc: PdfDocumentHolder, index: Int, widthPx: Int) {
         contentAlignment = Alignment.Center
     ) {
         bitmap?.let {
-            Image(it, contentDescription = "Página ${index + 1}", contentScale = ContentScale.FillWidth, modifier = Modifier.fillMaxSize())
+            Image(it, contentDescription = stringResource(R.string.pdf_viewer_pagina, index + 1), contentScale = ContentScale.FillWidth, modifier = Modifier.fillMaxSize())
         } ?: CircularProgressIndicator(color = Color(0xFF9AA0AE))
     }
 }
@@ -273,8 +275,7 @@ private fun PdfPage(doc: PdfDocumentHolder, index: Int, widthPx: Int) {
 @Composable
 private fun PdfTextView(doc: PdfDocumentHolder) {
     if (!pdfTextSupported()) {
-        Text(
-            "Seleccionar texto de un PDF requiere Android 15 o una actualización del sistema reciente.",
+        Text(stringResource(R.string.pdf_viewer_seleccionar_texto_de_un_pdf),
             color = Color.White, modifier = Modifier.padding(24.dp)
         )
         return
@@ -291,10 +292,10 @@ private fun PdfTextView(doc: PdfDocumentHolder) {
                         .background(Color.White)
                         .padding(16.dp)
                 ) {
-                    Text("Página ${index + 1}", color = Color(0xFF8A8FA3), fontSize = 11.sp)
+                    Text(stringResource(R.string.pdf_viewer_pagina_2, index + 1), color = Color(0xFF8A8FA3), fontSize = 11.sp)
                     when {
                         text == null -> CircularProgressIndicator(Modifier.padding(8.dp), color = Color(0xFF9AA0AE))
-                        text!!.isBlank() -> Text("(Sin texto: la página puede ser una imagen escaneada)", color = Color(0xFF8A8FA3), fontSize = 13.sp)
+                        text!!.isBlank() -> Text(stringResource(R.string.pdf_viewer_sin_texto_la_pagina_puede), color = Color(0xFF8A8FA3), fontSize = 13.sp)
                         else -> Text(text!!, color = Color(0xFF1F2330), fontSize = 14.sp, lineHeight = 20.sp)
                     }
                 }

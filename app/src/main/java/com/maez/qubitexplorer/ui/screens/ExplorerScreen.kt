@@ -370,7 +370,7 @@ private fun ExplorerSearchTools(
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         SelectChip(
-            text = "Subcarpetas",
+            text = stringResource(R.string.explorer_subcarpetas),
             icon = Icons.Default.Folder,
             selected = filters.includeSubfolders,
             onClick = { onFiltersChange(filters.copy(includeSubfolders = !filters.includeSubfolders)) },
@@ -429,7 +429,7 @@ private fun ExplorerSearchTools(
                     DropdownMenuItem(
                         text = {
                             val arrow = if (sortField == field) (if (sortAsc) " ↑" else " ↓") else ""
-                            Text("Ordenar por ${field.label}$arrow", color = TextPrimary, fontSize = 13.sp)
+                            Text(stringResource(R.string.explorer_ordenar_por, field.label, arrow), color = TextPrimary, fontSize = 13.sp)
                         },
                         onClick = {
                             onSetSorting(field, if (sortField == field) !sortAsc else field.defaultAscending)
@@ -565,7 +565,7 @@ fun ExplorerScreenContent(
             // Pestaña de resultados: se queda hasta que haya otra búsqueda o se cierre
             AnimatedVisibility(visible = searchTab != null, enter = Motion.inlineEnter, exit = Motion.inlineExit) {
                 SelectChip(
-                    text = "Resultados: ${searchTab?.label.orEmpty()}",
+                    text = stringResource(R.string.explorer_resultados, searchTab?.label.orEmpty()),
                     icon = Icons.Default.Search,
                     selected = isShowingResults,
                     onClick = onOpenSearchTab,
@@ -660,7 +660,7 @@ fun ExplorerScreenContent(
                 ) {
                     Icon(
                         imageVector = Icons.Default.ArrowUpward,
-                        contentDescription = "Subir nivel",
+                        contentDescription = stringResource(R.string.explorer_subir_nivel),
                         tint = Violet,
                         modifier = Modifier.size(18.dp)
                     )
@@ -708,8 +708,8 @@ fun ExplorerScreenContent(
                     }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
-                    GlassIconButton(icon = Icons.Default.Storage, onClick = onSetFolderA, tint = WarningAmber, contentDescription = "Archivos pesados de esta carpeta")
-                    GlassIconButton(icon = Icons.AutoMirrored.Filled.CompareArrows, onClick = onSetFolderB, tint = Aqua, contentDescription = "Comparar Dups (B)")
+                    GlassIconButton(icon = Icons.Default.Storage, onClick = onSetFolderA, tint = WarningAmber, contentDescription = stringResource(R.string.explorer_archivos_pesados_de_esta_carpeta))
+                    GlassIconButton(icon = Icons.AutoMirrored.Filled.CompareArrows, onClick = onSetFolderB, tint = Aqua, contentDescription = stringResource(R.string.explorer_comparar_dups_b))
                 }
             }
         }
@@ -789,13 +789,13 @@ fun ExplorerScreenContent(
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                         SecondaryButton(
-                            text = "Pegar aquí",
+                            text = stringResource(R.string.explorer_pegar_aqui),
                             icon = Icons.Default.ContentPaste,
                             onClick = onPasteClipboard,
                             tint = Aqua
                         )
                         IconButton(onClick = onClearClipboard, modifier = Modifier.size(32.dp)) {
-                            Icon(Icons.Default.Close, contentDescription = "Cancelar", tint = Danger, modifier = Modifier.size(18.dp))
+                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.explorer_cancelar), tint = Danger, modifier = Modifier.size(18.dp))
                         }
                     }
                 }
@@ -835,7 +835,7 @@ fun ExplorerScreenContent(
                             GlassSearchField(
                                 value = quickFilter,
                                 onValueChange = onSetQuickFilter,
-                                placeholder = "Buscar aquí y en subcarpetas...",
+                                placeholder = stringResource(R.string.explorer_buscar_aqui_y_en_subcarpetas),
                                 height = 48.dp,
                                 focusRequester = searchFocusRequester,
                                 onClose = { collapseSearch() },
@@ -850,7 +850,7 @@ fun ExplorerScreenContent(
                                 icon = Icons.Default.Search,
                                 onClick = onOpenSearch,
                                 tint = Aqua,
-                                contentDescription = "Buscar"
+                                contentDescription = stringResource(R.string.explorer_buscar)
                             )
                         }
                     }
@@ -866,7 +866,7 @@ fun ExplorerScreenContent(
                         icon = Icons.Default.Tune,
                         onClick = { collapseSearch() },
                         tint = Violet,
-                        contentDescription = "Mostrar herramientas",
+                        contentDescription = stringResource(R.string.explorer_mostrar_herramientas),
                         modifier = Modifier.padding(start = 8.dp)
                     )
                 }
@@ -886,7 +886,7 @@ fun ExplorerScreenContent(
                                 icon = Icons.AutoMirrored.Filled.Sort,
                                 onClick = { showSortMenu = true },
                                 tint = Violet,
-                                contentDescription = "Ordenar"
+                                contentDescription = stringResource(R.string.explorer_ordenar)
                             )
                             GlassDropdownMenu(
                                 expanded = showSortMenu,
@@ -896,7 +896,7 @@ fun ExplorerScreenContent(
                                     DropdownMenuItem(
                                         text = {
                                             val arrow = if (sortField == field) (if (sortAsc) " ↑" else " ↓") else ""
-                                            Text("Ordenar por ${field.label}$arrow", color = TextPrimary, fontSize = 13.sp)
+                                            Text(stringResource(R.string.explorer_ordenar_por_2, field.label, arrow), color = TextPrimary, fontSize = 13.sp)
                                         },
                                         onClick = {
                                             val nextAsc = if (sortField == field) !sortAsc else field.defaultAscending
@@ -912,21 +912,21 @@ fun ExplorerScreenContent(
                             icon = Icons.Default.Refresh,
                             onClick = onRefreshDirectory,
                             tint = TextMuted,
-                            contentDescription = "Actualizar"
+                            contentDescription = stringResource(R.string.explorer_actualizar)
                         )
 
                         GlassIconButton(
                             icon = Icons.Default.CreateNewFolder,
                             onClick = { showNewFolderDialog = true },
                             tint = Aqua,
-                            contentDescription = "Nueva carpeta"
+                            contentDescription = stringResource(R.string.explorer_nueva_carpeta)
                         )
 
                         GlassIconButton(
                             icon = if (isGrid) Icons.AutoMirrored.Filled.ViewList else Icons.Default.GridView,
                             onClick = onToggleGridView,
                             tint = Violet,
-                            contentDescription = "Cambiar vista"
+                            contentDescription = stringResource(R.string.explorer_cambiar_vista)
                         )
                     }
                 }
@@ -953,11 +953,11 @@ fun ExplorerScreenContent(
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                             IconButton(onClick = onClearSelection, modifier = Modifier.size(32.dp)) {
-                                Icon(Icons.Default.Close, contentDescription = "Cancelar selección", tint = TextMuted, modifier = Modifier.size(18.dp))
+                                Icon(Icons.Default.Close, contentDescription = stringResource(R.string.explorer_cancelar_seleccion), tint = TextMuted, modifier = Modifier.size(18.dp))
                             }
                             Spacer(Modifier.width(4.dp))
                             Text(
-                                text = "${selectedPaths.size} sel.",
+                                text = stringResource(R.string.explorer_sel, selectedPaths.size),
                                 color = Violet,
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold
@@ -974,16 +974,16 @@ fun ExplorerScreenContent(
                                 },
                                 modifier = Modifier.size(32.dp)
                             ) {
-                                Icon(Icons.Default.SelectAll, contentDescription = "Seleccionar todo", tint = TextPrimary, modifier = Modifier.size(18.dp))
+                                Icon(Icons.Default.SelectAll, contentDescription = stringResource(R.string.explorer_seleccionar_todo), tint = TextPrimary, modifier = Modifier.size(18.dp))
                             }
                             IconButton(onClick = onCopySelected, modifier = Modifier.size(32.dp)) {
-                                Icon(Icons.Default.ContentCopy, contentDescription = "Copiar", tint = Violet, modifier = Modifier.size(18.dp))
+                                Icon(Icons.Default.ContentCopy, contentDescription = stringResource(R.string.explorer_copiar), tint = Violet, modifier = Modifier.size(18.dp))
                             }
                             IconButton(onClick = onCutSelected, modifier = Modifier.size(32.dp)) {
-                                Icon(Icons.Default.ContentCut, contentDescription = "Mover", tint = Aqua, modifier = Modifier.size(18.dp))
+                                Icon(Icons.Default.ContentCut, contentDescription = stringResource(R.string.explorer_mover), tint = Aqua, modifier = Modifier.size(18.dp))
                             }
                             IconButton(onClick = onShareSelected, modifier = Modifier.size(32.dp)) {
-                                Icon(Icons.Default.Share, contentDescription = "Compartir", tint = Violet, modifier = Modifier.size(18.dp))
+                                Icon(Icons.Default.Share, contentDescription = stringResource(R.string.explorer_compartir), tint = Violet, modifier = Modifier.size(18.dp))
                             }
                             IconButton(
                                 onClick = {
@@ -995,7 +995,7 @@ fun ExplorerScreenContent(
                                 },
                                 modifier = Modifier.size(32.dp)
                             ) {
-                                Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = Danger, modifier = Modifier.size(18.dp))
+                                Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.explorer_eliminar), tint = Danger, modifier = Modifier.size(18.dp))
                             }
                         }
                     }
@@ -1047,14 +1047,14 @@ fun ExplorerScreenContent(
             ) {
                 EmptyState(
                     icon = Icons.Default.Folder,
-                    title = "No se pudo acceder a la carpeta",
+                    title = stringResource(R.string.explorer_no_se_pudo_acceder_a),
                     message = errorText,
                     tint = Danger
                 )
                 if (currentProtocol != StorageProtocol.LOCAL && (errorText.contains("autenticaci", ignoreCase = true) || errorText.contains("acceso", ignoreCase = true) || errorText.contains("inválid", ignoreCase = true))) {
                     Spacer(Modifier.height(12.dp))
                     PrimaryButton(
-                        text = "Ingresar usuario y contraseña",
+                        text = stringResource(R.string.explorer_ingresar_usuario_y_contrasena),
                         icon = Icons.Default.Key,
                         onClick = { showCredentialsDialog = true }
                     )
@@ -1219,12 +1219,12 @@ fun ExplorerScreenContent(
     if (showNewFolderDialog) {
         GlassAlertDialog(
             onDismissRequest = { showNewFolderDialog = false },
-            title = { Text("Crear nueva carpeta", color = TextPrimary) },
+            title = { Text(stringResource(R.string.explorer_crear_nueva_carpeta), color = TextPrimary) },
             text = {
                 OutlinedTextField(
                     value = newFolderName,
                     onValueChange = { newFolderName = it },
-                    label = { Text("Nombre de carpeta") },
+                    label = { Text(stringResource(R.string.explorer_nombre_de_carpeta)) },
                     singleLine = true,
                     colors = appTextFieldColors()
                 )
@@ -1239,12 +1239,12 @@ fun ExplorerScreenContent(
                         }
                     }
                 ) {
-                    Text("Crear")
+                    Text(stringResource(R.string.explorer_crear))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showNewFolderDialog = false }) {
-                    Text("Cancelar", color = TextMuted)
+                    Text(stringResource(R.string.explorer_cancelar), color = TextMuted)
                 }
             }
         )
@@ -1254,12 +1254,12 @@ fun ExplorerScreenContent(
     renameTarget?.let { item ->
         GlassAlertDialog(
             onDismissRequest = { renameTarget = null },
-            title = { Text("Renombrar elemento", color = TextPrimary) },
+            title = { Text(stringResource(R.string.explorer_renombrar_elemento), color = TextPrimary) },
             text = {
                 OutlinedTextField(
                     value = renameText,
                     onValueChange = { renameText = it },
-                    label = { Text("Nuevo nombre") },
+                    label = { Text(stringResource(R.string.explorer_nuevo_nombre)) },
                     singleLine = true,
                     colors = appTextFieldColors()
                 )
@@ -1273,12 +1273,12 @@ fun ExplorerScreenContent(
                         }
                     }
                 ) {
-                    Text("Guardar")
+                    Text(stringResource(R.string.explorer_guardar))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { renameTarget = null }) {
-                    Text("Cancelar", color = TextMuted)
+                    Text(stringResource(R.string.explorer_cancelar), color = TextMuted)
                 }
             }
         )
@@ -1303,12 +1303,11 @@ fun ExplorerScreenContent(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     IconBubble(icon = Icons.Default.Delete, tint = Danger, size = 32.dp)
                     Spacer(Modifier.width(8.dp))
-                    Text("Confirmar eliminación", color = TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.explorer_confirmar_eliminacion), color = TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                 }
             },
             text = {
-                Text(
-                    "¿Estás seguro de que deseas eliminar '${item.name}'? Esta acción es permanente y no se podrá deshacer.",
+                Text(stringResource(R.string.explorer_estas_seguro_de_que_deseas, item.name),
                     color = TextMuted,
                     fontSize = 13.sp,
                     lineHeight = 16.sp
@@ -1319,12 +1318,12 @@ fun ExplorerScreenContent(
                     itemToDeleteConfirm = null
                     onDeleteItem(item)
                 }) {
-                    Text("Eliminar", color = Danger, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.explorer_eliminar), color = Danger, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { itemToDeleteConfirm = null }) {
-                    Text("Cancelar", color = TextMuted)
+                    Text(stringResource(R.string.explorer_cancelar), color = TextMuted)
                 }
             }
         )
@@ -1338,12 +1337,11 @@ fun ExplorerScreenContent(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     IconBubble(icon = Icons.Default.Delete, tint = Danger, size = 32.dp)
                     Spacer(Modifier.width(8.dp))
-                    Text("Eliminar elementos seleccionados", color = TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.explorer_eliminar_elementos_seleccionados), color = TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                 }
             },
             text = {
-                Text(
-                    "¿Estás seguro de que deseas eliminar los ${selectedPaths.size} elementos seleccionados? Esta acción es permanente y no se podrá deshacer.",
+                Text(stringResource(R.string.explorer_estas_seguro_de_que_deseas_2, selectedPaths.size),
                     color = TextMuted,
                     fontSize = 13.sp,
                     lineHeight = 16.sp
@@ -1354,12 +1352,12 @@ fun ExplorerScreenContent(
                     showDeleteSelectedConfirm = false
                     onDeleteSelected()
                 }) {
-                    Text("Eliminar ${selectedPaths.size} elementos", color = Danger, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.explorer_eliminar_elementos, selectedPaths.size), color = Danger, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteSelectedConfirm = false }) {
-                    Text("Cancelar", color = TextMuted)
+                    Text(stringResource(R.string.explorer_cancelar), color = TextMuted)
                 }
             }
         )
@@ -1373,11 +1371,11 @@ fun ExplorerScreenContent(
 
         GlassAlertDialog(
             onDismissRequest = { showCredentialsDialog = false },
-            title = { Text("Credenciales de acceso a red", color = TextPrimary, fontWeight = FontWeight.Bold) },
+            title = { Text(stringResource(R.string.explorer_credenciales_de_acceso_a_red), color = TextPrimary, fontWeight = FontWeight.Bold) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(
-                        text = "La conexión a '${activeConnection?.name ?: currentPath}' requiere autenticación.",
+                        text = stringResource(R.string.explorer_la_conexion_a_requiere_autenticacion, activeConnection?.name ?: currentPath),
                         color = TextMuted,
                         fontSize = 12.sp
                     )
@@ -1391,14 +1389,14 @@ fun ExplorerScreenContent(
                         OutlinedTextField(
                             value = userVal,
                             onValueChange = { userVal = it },
-                            label = { Text("Usuario") },
+                            label = { Text(stringResource(R.string.explorer_usuario)) },
                             singleLine = true,
                             colors = appTextFieldColors()
                         )
                         OutlinedTextField(
                             value = passVal,
                             onValueChange = { passVal = it },
-                            label = { Text("Contraseña") },
+                            label = { Text(stringResource(R.string.explorer_contrasena)) },
                             singleLine = true,
                             visualTransformation = PasswordVisualTransformation(),
                             colors = appTextFieldColors()
@@ -1415,12 +1413,12 @@ fun ExplorerScreenContent(
                         showCredentialsDialog = false
                     }
                 ) {
-                    Text("Reintentar acceso")
+                    Text(stringResource(R.string.explorer_reintentar_acceso))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showCredentialsDialog = false }) {
-                    Text("Cancelar", color = TextMuted)
+                    Text(stringResource(R.string.explorer_cancelar), color = TextMuted)
                 }
             }
         )
@@ -1440,13 +1438,13 @@ fun ExplorerScreenContent(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     IconBubble(icon = Icons.Default.Info, tint = WarningAmber, size = 32.dp)
                     Spacer(Modifier.width(8.dp))
-                    Text("Conflicto de archivo", color = TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.explorer_conflicto_de_archivo), color = TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                 }
             },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        text = "El archivo '${conflict.fileName}' ya existe en la ubicación de destino. ¿Cómo deseas proceder?",
+                        text = stringResource(R.string.explorer_el_archivo_ya_existe_en, conflict.fileName),
                         color = TextSecondary,
                         fontSize = 13.sp
                     )
@@ -1463,7 +1461,7 @@ fun ExplorerScreenContent(
                         )
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            text = "Aplicar a todos los conflictos",
+                            text = stringResource(R.string.explorer_aplicar_a_todos_los_conflictos),
                             color = TextPrimary,
                             fontSize = 12.sp
                         )
@@ -1473,16 +1471,16 @@ fun ExplorerScreenContent(
             confirmButton = {
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     TextButton(onClick = { conflict.onResolve(ConflictResolution.KEEP_BOTH, applyToAll) }) {
-                        Text("Mantener ambos", color = Aqua, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.explorer_mantener_ambos), color = Aqua, fontWeight = FontWeight.Bold)
                     }
                     TextButton(onClick = { conflict.onResolve(ConflictResolution.OVERWRITE, applyToAll) }) {
-                        Text("Reemplazar", color = Danger, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.explorer_reemplazar), color = Danger, fontWeight = FontWeight.Bold)
                     }
                 }
             },
             dismissButton = {
                 TextButton(onClick = { conflict.onResolve(ConflictResolution.SKIP, applyToAll) }) {
-                    Text("Omitir", color = TextMuted)
+                    Text(stringResource(R.string.explorer_omitir), color = TextMuted)
                 }
             }
         )
@@ -1499,17 +1497,17 @@ fun ExplorerScreenContent(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Transferencias", color = TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.explorer_transferencias), color = TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                     if (allJobs.any { it.status == TransferStatus.COMPLETED || it.status == TransferStatus.ERROR || it.status == TransferStatus.CANCELLED }) {
                         TextButton(onClick = { TransferManager.clearFinished() }) {
-                            Text("Limpiar", color = Violet, fontSize = 12.sp)
+                            Text(stringResource(R.string.explorer_limpiar), color = Violet, fontSize = 12.sp)
                         }
                     }
                 }
             },
             text = {
                 if (allJobs.isEmpty()) {
-                    Text("No hay transferencias activas ni recientes.", color = TextMuted, fontSize = 13.sp)
+                    Text(stringResource(R.string.explorer_no_hay_transferencias_activas_ni), color = TextMuted, fontSize = 13.sp)
                 } else {
                     LazyColumn(
                         modifier = Modifier
@@ -1546,7 +1544,7 @@ fun ExplorerScreenContent(
                                                 onClick = { TransferManager.cancel(job.id) },
                                                 modifier = Modifier.size(24.dp)
                                             ) {
-                                                Icon(Icons.Default.Close, contentDescription = "Cancelar", tint = Danger, modifier = Modifier.size(16.dp))
+                                                Icon(Icons.Default.Close, contentDescription = stringResource(R.string.explorer_cancelar), tint = Danger, modifier = Modifier.size(16.dp))
                                             }
                                         } else {
                                             Text(
@@ -1590,7 +1588,7 @@ fun ExplorerScreenContent(
             },
             confirmButton = {
                 TextButton(onClick = { showTransfersSheet = false }) {
-                    Text("Cerrar", color = Aqua)
+                    Text(stringResource(R.string.close), color = Aqua)
                 }
             },
             dismissButton = null
@@ -1685,7 +1683,7 @@ private fun ExplorerListRow(
 
             Box {
                 IconButton(onClick = { menuExpanded = true }, modifier = Modifier.size(26.dp)) {
-                    Icon(Icons.Default.MoreVert, contentDescription = "Menú", tint = TextMuted, modifier = Modifier.size(15.dp))
+                    Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.explorer_menu), tint = TextMuted, modifier = Modifier.size(15.dp))
                 }
                 ItemContextMenu(
                     item = item,
@@ -1814,7 +1812,7 @@ private fun ExplorerGridCard(
             ) {
                 Icon(
                     imageVector = if (isSelected) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
-                    contentDescription = "Seleccionar",
+                    contentDescription = stringResource(R.string.a11y_select),
                     tint = if (isSelected) Violet else Color.White,
                     modifier = Modifier
                         .padding(3.dp)
@@ -1832,7 +1830,7 @@ private fun ExplorerGridCard(
                         .clickable { menuExpanded = true },
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Default.MoreVert, contentDescription = "Opciones", tint = Color.White, modifier = Modifier.size(13.dp))
+                    Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.explorer_opciones), tint = Color.White, modifier = Modifier.size(13.dp))
                 }
                 ItemContextMenu(
                     item = item,
@@ -1877,62 +1875,62 @@ private fun ItemContextMenu(
         onDismissRequest = onDismiss
     ) {
         DropdownMenuItem(
-            text = { Text("Seleccionar", color = TextPrimary) },
+            text = { Text(stringResource(R.string.a11y_select), color = TextPrimary) },
             leadingIcon = { Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Violet) },
             onClick = { onDismiss(); onToggleSelect() }
         )
         DropdownMenuItem(
-            text = { Text("Detalles / Propiedades", color = TextPrimary) },
+            text = { Text(stringResource(R.string.explorer_detalles_propiedades), color = TextPrimary) },
             leadingIcon = { Icon(Icons.Default.Info, contentDescription = null, tint = Aqua) },
             onClick = { onDismiss(); onShowProperties() }
         )
         if (item.isDirectory) {
             DropdownMenuItem(
-                text = { Text("Ver archivos pesados aquí", color = TextPrimary) },
+                text = { Text(stringResource(R.string.explorer_ver_archivos_pesados_aqui), color = TextPrimary) },
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Violet) },
                 onClick = { onDismiss(); onSetFolderA() }
             )
             DropdownMenuItem(
-                text = { Text("Comparar Duplicados (Carpeta B)", color = TextPrimary) },
+                text = { Text(stringResource(R.string.explorer_comparar_duplicados_carpeta_b), color = TextPrimary) },
                 leadingIcon = { Icon(Icons.AutoMirrored.Filled.CompareArrows, contentDescription = null, tint = Aqua) },
                 onClick = { onDismiss(); onSetFolderB() }
             )
         } else {
             DropdownMenuItem(
-                text = { Text("Abrir con app externa", color = TextPrimary) },
+                text = { Text(stringResource(R.string.explorer_abrir_con_app_externa), color = TextPrimary) },
                 leadingIcon = { Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, tint = Aqua) },
                 onClick = { onDismiss(); onOpenExternal() }
             )
             DropdownMenuItem(
-                text = { Text("Compartir", color = TextPrimary) },
+                text = { Text(stringResource(R.string.explorer_compartir), color = TextPrimary) },
                 leadingIcon = { Icon(Icons.Default.Share, contentDescription = null, tint = Violet) },
                 onClick = { onDismiss(); onShare() }
             )
             if (item.category == FileCategory.VIDEO) {
                 DropdownMenuItem(
-                    text = { Text("Convertir en VidForge", color = TextPrimary) },
+                    text = { Text(stringResource(R.string.explorer_convertir_en_vidforge), color = TextPrimary) },
                     leadingIcon = { Icon(Icons.Default.Movie, contentDescription = null, tint = Aqua) },
                     onClick = { onDismiss(); onSendToVidForge() }
                 )
             }
             DropdownMenuItem(
-                text = { Text("Copiar", color = TextPrimary) },
+                text = { Text(stringResource(R.string.explorer_copiar), color = TextPrimary) },
                 leadingIcon = { Icon(Icons.Default.ContentCopy, contentDescription = null, tint = Violet) },
                 onClick = { onDismiss(); onCopy() }
             )
             DropdownMenuItem(
-                text = { Text("Cortar / Mover", color = TextPrimary) },
+                text = { Text(stringResource(R.string.explorer_cortar_mover), color = TextPrimary) },
                 leadingIcon = { Icon(Icons.Default.ContentCut, contentDescription = null, tint = Aqua) },
                 onClick = { onDismiss(); onMove() }
             )
         }
         DropdownMenuItem(
-            text = { Text("Renombrar", color = TextPrimary) },
+            text = { Text(stringResource(R.string.explorer_renombrar), color = TextPrimary) },
             leadingIcon = { Icon(Icons.Default.DriveFileRenameOutline, contentDescription = null, tint = TextMuted) },
             onClick = { onDismiss(); onRename() }
         )
         DropdownMenuItem(
-            text = { Text("Eliminar", color = Danger) },
+            text = { Text(stringResource(R.string.explorer_eliminar), color = Danger) },
             leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = Danger) },
             onClick = { onDismiss(); onDelete() }
         )

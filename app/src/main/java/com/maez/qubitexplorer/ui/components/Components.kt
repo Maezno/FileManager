@@ -1,5 +1,7 @@
 package com.maez.qubitexplorer.ui.components
 
+import com.maez.qubitexplorer.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.runtime.withFrameNanos
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.coroutineScope
@@ -451,9 +453,9 @@ fun SegmentedTabs(
         ) {
             options.forEachIndexed { index, (label, icon) ->
                 val selected = index == selectedIndex
-                val bg by animateColorAsState(if (selected) NavSelectedPill else Color.Transparent, animationSpec = Motion.fade(), label = "segBg")
-                val border by animateColorAsState(if (selected) SelectedVioletBorder else Color.Transparent, animationSpec = Motion.fade(), label = "segBorder")
-                val fg by animateColorAsState(if (selected) TextPrimary else TextMuted, animationSpec = Motion.fade(), label = "segFg")
+                val bg by animateColorAsState(if (selected) NavSelectedPill else Color.Transparent, animationSpec = Motion.fade(), label = stringResource(R.string.components_segbg))
+                val border by animateColorAsState(if (selected) SelectedVioletBorder else Color.Transparent, animationSpec = Motion.fade(), label = stringResource(R.string.components_segborder))
+                val fg by animateColorAsState(if (selected) TextPrimary else TextMuted, animationSpec = Motion.fade(), label = stringResource(R.string.components_segfg))
 
                 Box(
                     modifier = Modifier
@@ -501,8 +503,8 @@ fun SelectChip(
     accent: Color = Violet,
     onClear: (() -> Unit)? = null
 ) {
-    val bg by animateColorAsState(if (selected) SelectedViolet else GlassTint, animationSpec = Motion.fade(), label = "chipBg")
-    val border by animateColorAsState(if (selected) SelectedVioletBorder else GlassBorder, animationSpec = Motion.fade(), label = "chipBorder")
+    val bg by animateColorAsState(if (selected) SelectedViolet else GlassTint, animationSpec = Motion.fade(), label = stringResource(R.string.components_chipbg))
+    val border by animateColorAsState(if (selected) SelectedVioletBorder else GlassBorder, animationSpec = Motion.fade(), label = stringResource(R.string.components_chipborder))
 
     GlassSurface(
         shape = GlassChipShape,
@@ -539,7 +541,7 @@ fun SelectChip(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Close,
-                            contentDescription = "Limpiar",
+                            contentDescription = stringResource(R.string.explorer_limpiar),
                             tint = if (selected) accent else TextMuted,
                             modifier = Modifier.size(12.dp)
                         )
@@ -628,7 +630,7 @@ fun GlassSearchField(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Close,
-                        contentDescription = "Limpiar",
+                        contentDescription = stringResource(R.string.explorer_limpiar),
                         tint = TextMuted,
                         modifier = Modifier.size(14.dp)
                     )
@@ -738,7 +740,7 @@ fun <T> DropdownField(
     icon: ImageVector? = null
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val borderColor by animateColorAsState(if (expanded) Aqua else GlassBorder, animationSpec = Motion.fade(), label = "ddBorder")
+    val borderColor by animateColorAsState(if (expanded) Aqua else GlassBorder, animationSpec = Motion.fade(), label = stringResource(R.string.components_ddborder))
 
     Column(modifier = modifier) {
         GlassSurface(
@@ -920,7 +922,7 @@ fun GlassDropdownMenu(
 
 @Composable
 fun AppProgressBar(progress: Float, modifier: Modifier = Modifier, color: Color = Aqua) {
-    val animated by animateFloatAsState((progress / 100f).coerceIn(0f, 1f), label = "progress")
+    val animated by animateFloatAsState((progress / 100f).coerceIn(0f, 1f), label = stringResource(R.string.components_progress))
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -1045,7 +1047,7 @@ fun GlassBottomBar(
                 val indicatorOffset by animateDpAsState(
                     targetValue = getTabOffset(selectedTab),
                     animationSpec = Motion.indicator(),
-                    label = "indicatorOffset"
+                    label = stringResource(R.string.components_indicatoroffset)
                 )
 
                 Box(
@@ -1066,8 +1068,8 @@ fun GlassBottomBar(
                     items.forEach { item ->
                         val selected = item.index == selectedTab
                         val tabItemWidth = if (selected) activeWidth else baseInactiveWidth
-                        val iconColor by animateColorAsState(if (selected) Aqua else TextMuted, animationSpec = Motion.fade(), label = "iconColor")
-                        val textColor by animateColorAsState(if (selected) TextPrimary else TextMuted, animationSpec = Motion.fade(), label = "textColor")
+                        val iconColor by animateColorAsState(if (selected) Aqua else TextMuted, animationSpec = Motion.fade(), label = stringResource(R.string.components_iconcolor))
+                        val textColor by animateColorAsState(if (selected) TextPrimary else TextMuted, animationSpec = Motion.fade(), label = stringResource(R.string.components_textcolor))
 
                         Box(
                             modifier = Modifier
@@ -1143,13 +1145,13 @@ fun AppBottomNavigationBarPreview() {
 fun SectionCardPreview() {
     QubitExplorerTheme {
         SectionCard(
-            title = "Almacenamiento Local",
+            title = stringResource(R.string.components_almacenamiento_local),
             icon = Icons.Default.Folder,
-            subtitle = "Muestra carpetas y archivos en la memoria interna.",
+            subtitle = stringResource(R.string.components_muestra_carpetas_y_archivos_en),
             iconTint = Violet
         ) {
             PrimaryButton(
-                text = "Explorar Archivos",
+                text = stringResource(R.string.components_explorar_archivos),
                 icon = Icons.Default.Folder,
                 onClick = {}
             )
@@ -1163,8 +1165,8 @@ fun EmptyStatePreview() {
     QubitExplorerTheme {
         EmptyState(
             icon = Icons.Default.Folder,
-            title = "Carpeta vacía",
-            message = "No hay archivos en esta ubicación."
+            title = stringResource(R.string.components_carpeta_vacia),
+            message = stringResource(R.string.components_no_hay_archivos_en_esta)
         )
     }
 }

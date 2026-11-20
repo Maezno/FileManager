@@ -1,5 +1,7 @@
 package com.maez.qubitexplorer.ui.components
 
+import com.maez.qubitexplorer.R
+import androidx.compose.ui.res.stringResource
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -53,7 +55,7 @@ import java.util.Locale
 private fun copyText(context: Context, label: String, text: String) {
     val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
     cm.setPrimaryClip(ClipData.newPlainText(label, text))
-    Toast.makeText(context, "$label copiado", Toast.LENGTH_SHORT).show()
+    Toast.makeText(context, context.getString(R.string.properties_copiado, label), Toast.LENGTH_SHORT).show()
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -83,7 +85,7 @@ fun PropertiesDialog(
                 )
                 Spacer(Modifier.width(10.dp))
                 Column(Modifier.weight(1f)) {
-                    Text("Propiedades", color = TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.properties_propiedades), color = TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                     Text(item.name, color = TextMuted, fontSize = 12.sp, maxLines = 1)
                 }
             }
@@ -100,7 +102,7 @@ fun PropertiesDialog(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp, color = Violet)
                         Spacer(Modifier.width(10.dp))
-                        Text("Leyendo metadatos…", color = TextMuted, fontSize = 13.sp)
+                        Text(stringResource(R.string.properties_leyendo_metadatos), color = TextMuted, fontSize = 13.sp)
                     }
                     return@Column
                 }
@@ -111,7 +113,7 @@ fun PropertiesDialog(
                         TextButton(onClick = { copyText(context, "Coordenadas", coords) }) {
                             Icon(Icons.Default.ContentCopy, null, tint = Aqua, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.width(6.dp))
-                            Text("Copiar coordenadas", color = Aqua, fontSize = 12.sp)
+                            Text(stringResource(R.string.properties_copiar_coordenadas), color = Aqua, fontSize = 12.sp)
                         }
                         TextButton(onClick = {
                             val uri = Uri.parse("geo:${g.latitude},${g.longitude}?q=${g.latitude},${g.longitude}")
@@ -123,7 +125,7 @@ fun PropertiesDialog(
                         }) {
                             Icon(Icons.Default.Map, null, tint = Aqua, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.width(6.dp))
-                            Text("Ver en mapa", color = Aqua, fontSize = 12.sp)
+                            Text(stringResource(R.string.properties_ver_en_mapa), color = Aqua, fontSize = 12.sp)
                         }
                     }
                 }
@@ -142,7 +144,7 @@ fun PropertiesDialog(
                         )
                         Icon(
                             Icons.Default.ContentCopy,
-                            contentDescription = "Copiar sección ${section.title}",
+                            contentDescription = stringResource(R.string.properties_copiar_seccion, section.title),
                             tint = TextMuted,
                             modifier = Modifier
                                 .size(16.dp)
@@ -174,8 +176,7 @@ fun PropertiesDialog(
                         }
                     }
                 }
-                Text(
-                    "Mantené presionado un valor para copiarlo.",
+                Text(stringResource(R.string.properties_mantene_presionado_un_valor_para),
                     color = TextMuted,
                     fontSize = 11.sp,
                     modifier = Modifier.padding(top = 8.dp)
@@ -187,12 +188,12 @@ fun PropertiesDialog(
                 enabled = result != null,
                 onClick = { result?.let { copyText(context, "Metadatos", it.asPlainText()) } }
             ) {
-                Text("Copiar todo", color = Aqua, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.properties_copiar_todo), color = Aqua, fontWeight = FontWeight.Bold)
             }
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cerrar", color = Violet, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.close), color = Violet, fontWeight = FontWeight.Bold)
             }
         }
     )

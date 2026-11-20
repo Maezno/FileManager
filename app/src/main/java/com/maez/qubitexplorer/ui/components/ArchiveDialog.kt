@@ -1,5 +1,7 @@
 package com.maez.qubitexplorer.ui.components
 
+import com.maez.qubitexplorer.R
+import androidx.compose.ui.res.stringResource
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -165,8 +167,7 @@ fun ArchiveBrowserScreen(
                 Column(Modifier.weight(1f)) {
                     Text(state.fileName, color = TextPrimary, fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     state.listing?.let {
-                        Text(
-                            "${it.format} · ${it.fileCount} archivos" + (if (it.totalSize > 0) " · ${formatBytes(it.totalSize)}" else ""),
+                        Text(stringResource(R.string.archive_archivos, it.format, it.fileCount) + (if (it.totalSize > 0) " · ${formatBytes(it.totalSize)}" else ""),
                             color = Aqua, fontSize = 12.sp
                         )
                     }
@@ -200,7 +201,7 @@ fun ArchiveBrowserScreen(
                     tree == null -> Row(Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
                         CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = Violet)
                         Spacer(Modifier.width(10.dp))
-                        Text("Leyendo contenido…", color = TextMuted, fontSize = 13.sp)
+                        Text(stringResource(R.string.archive_leyendo_contenido), color = TextMuted, fontSize = 13.sp)
                     }
                     else -> LazyColumn(Modifier.fillMaxSize()) {
                         state.listing?.note?.let { note -> item { Text(note, color = Danger, fontSize = 12.sp, modifier = Modifier.padding(12.dp)) } }
@@ -233,7 +234,7 @@ fun ArchiveBrowserScreen(
                                 ) {
                                     Icon(
                                         when { checked -> Icons.Default.CheckBox; partial -> Icons.Default.IndeterminateCheckBox; else -> Icons.Default.CheckBoxOutlineBlank },
-                                        contentDescription = "Seleccionar",
+                                        contentDescription = stringResource(R.string.a11y_select),
                                         tint = if (checked || partial) Violet else TextMuted
                                     )
                                 }
@@ -260,16 +261,16 @@ fun ArchiveBrowserScreen(
 
             // Barra inferior: progreso / acciones
             Column(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)).padding(horizontal = 14.dp, vertical = 8.dp)) {
-                if (state.destinationLabel.isNotEmpty()) Text("Destino: ${state.destinationLabel}", color = TextMuted, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                if (state.destinationLabel.isNotEmpty()) Text(stringResource(R.string.archive_destino, state.destinationLabel), color = TextMuted, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 if (state.extracting) {
                     if (state.bytesTotal > 0) LinearProgressIndicator(progress = { (state.bytesWritten.toFloat() / state.bytesTotal).coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp), color = Violet)
                     else LinearProgressIndicator(Modifier.fillMaxWidth().padding(vertical = 6.dp), color = Violet)
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Extrayendo… ${formatBytes(state.bytesWritten)}", color = TextMuted, fontSize = 12.sp, modifier = Modifier.weight(1f))
-                        TextButton(onClick = onCancel) { Text("Cancelar", color = Danger) }
+                        Text(stringResource(R.string.archive_extrayendo, formatBytes(state.bytesWritten)), color = TextMuted, fontSize = 12.sp, modifier = Modifier.weight(1f))
+                        TextButton(onClick = onCancel) { Text(stringResource(R.string.explorer_cancelar), color = Danger) }
                     }
                 } else {
-                    if (state.done) Text("Listo: ${state.extractedCount} archivos extraídos.", color = Aqua, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                    if (state.done) Text(stringResource(R.string.archive_listo_archivos_extraidos, state.extractedCount), color = Aqua, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                     if (state.error != null && tree != null) Text(state.error, color = Danger, fontSize = 12.sp)
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(
@@ -277,15 +278,15 @@ fun ArchiveBrowserScreen(
                             else "${selectedFiles.size} seleccionados · ${formatBytes(selectedBytes)}",
                             color = TextMuted, fontSize = 12.sp, modifier = Modifier.weight(1f)
                         )
-                        if (state.done) TextButton(onClick = onOpenDestination) { Text("Abrir carpeta", color = Aqua, fontWeight = FontWeight.Bold) }
+                        if (state.done) TextButton(onClick = onOpenDestination) { Text(stringResource(R.string.archive_abrir_carpeta), color = Aqua, fontWeight = FontWeight.Bold) }
                         if (tree != null) {
                             if (selectedFiles.isNotEmpty()) {
                                 val chosen = selection
                                 TextButton(onClick = { onExtract { name -> isCoveredBySelection(name, chosen) } }) {
-                                    Text("Extraer selección", color = Violet, fontWeight = FontWeight.Bold)
+                                    Text(stringResource(R.string.archive_extraer_seleccion), color = Violet, fontWeight = FontWeight.Bold)
                                 }
                             } else {
-                                TextButton(onClick = { onExtract(null) }) { Text("Extraer todo", color = Violet, fontWeight = FontWeight.Bold) }
+                                TextButton(onClick = { onExtract(null) }) { Text(stringResource(R.string.archive_extraer_todo), color = Violet, fontWeight = FontWeight.Bold) }
                             }
                         }
                     }

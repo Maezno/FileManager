@@ -1,5 +1,7 @@
 package com.maez.qubitexplorer.ui.components
 
+import com.maez.qubitexplorer.R
+import androidx.compose.ui.res.stringResource
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -160,7 +162,7 @@ fun OfficeViewerScreen(
                     OfficeLoad.Loading -> CircularProgressIndicator(color = Color.White)
                     is OfficeLoad.Error -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(s.msg, color = Color.White, modifier = Modifier.padding(24.dp), textAlign = TextAlign.Center)
-                        TextButton(onClick = onOpenExternal) { Text("Abrir con otra app") }
+                        TextButton(onClick = onOpenExternal) { Text(stringResource(R.string.office_viewer_abrir_con_otra_app)) }
                     }
                     is OfficeLoad.Docx -> androidx.compose.foundation.text.selection.SelectionContainer { DocxView(s.doc) }
                     is OfficeLoad.Pptx -> androidx.compose.foundation.text.selection.SelectionContainer { PptxView(s.doc) }
@@ -306,8 +308,7 @@ private fun PptxView(doc: PptxDocument) {
                         }
                     }
                 }
-                Text(
-                    "Diapositiva ${index + 1}" + (slide.notes?.let { " · Notas: $it" } ?: ""),
+                Text(stringResource(R.string.office_viewer_diapositiva, index + 1) + (slide.notes?.let { " · Notas: $it" } ?: ""),
                     color = Color(0xFFB0B4C0), fontSize = 11.sp, maxLines = 3, overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.padding(top = 4.dp, start = 2.dp)
                 )
@@ -341,7 +342,7 @@ private fun XlsxView(doc: XlsxDocument) {
             }
         }
         if (sheet == null || sheet.maxRow == 0) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("Hoja vacía", color = Color.White) }
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text(stringResource(R.string.office_viewer_hoja_vacia), color = Color.White) }
         } else {
             SheetGrid(sheet)
         }
@@ -378,8 +379,8 @@ private fun SheetGrid(sheet: SheetData) {
         val rg = range ?: return
         val tsv = rg.first.joinToString("\n") { r -> rg.second.joinToString("\t") { c -> sheet.cells[r]?.get(c) ?: "" } }
         val cm = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-        cm.setPrimaryClip(android.content.ClipData.newPlainText("Celdas", tsv))
-        android.widget.Toast.makeText(context, "Celdas copiadas", android.widget.Toast.LENGTH_SHORT).show()
+        cm.setPrimaryClip(android.content.ClipData.newPlainText(context.getString(R.string.office_viewer_celdas), tsv))
+        android.widget.Toast.makeText(context, context.getString(R.string.office_viewer_celdas_copiadas), android.widget.Toast.LENGTH_SHORT).show()
     }
 
     Column(Modifier.fillMaxSize().background(Color.White)) {
@@ -402,8 +403,7 @@ private fun SheetGrid(sheet: SheetData) {
                     maxLines = 2, overflow = TextOverflow.Ellipsis
                 )
             } }
-            Text(
-                "Rango",
+            Text(stringResource(R.string.office_viewer_rango),
                 fontSize = 11.sp,
                 color = if (extendMode) Color.White else selBorder,
                 modifier = Modifier
@@ -472,7 +472,7 @@ private fun SheetGrid(sheet: SheetData) {
                 }
             }
             if (sheet.truncated) {
-                item { Text("Se muestran hasta 5000 filas y 200 columnas.", fontSize = 11.sp, color = Color(0xFF8A8FA3), modifier = Modifier.padding(8.dp)) }
+                item { Text(stringResource(R.string.office_viewer_se_muestran_hasta_5000_filas), fontSize = 11.sp, color = Color(0xFF8A8FA3), modifier = Modifier.padding(8.dp)) }
             }
         }
     }
