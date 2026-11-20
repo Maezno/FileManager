@@ -78,5 +78,7 @@ dependencies {
     implementation(libs.xz)
     implementation(libs.junrar)
 
+    testImplementation(libs.junit)
+
     debugImplementation(libs.androidx.ui.tooling)
 }
