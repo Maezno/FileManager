@@ -104,6 +104,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.res.stringResource
+import com.maez.qubitexplorer.R
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -1640,7 +1642,7 @@ private fun ExplorerListRow(
                     IconButton(onClick = onToggleSelect, modifier = Modifier.size(28.dp)) {
                         Icon(
                             imageVector = if (isSelected) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
-                            contentDescription = null,
+                            contentDescription = stringResource(if (isSelected) R.string.a11y_deselect else R.string.a11y_select),
                             tint = if (isSelected) Violet else TextMuted,
                             modifier = Modifier.size(18.dp)
                         )

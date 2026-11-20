@@ -1,4 +1,74 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Qubit Explorer</string>
+    <string name="app_version">Qubit Explorer v%1$s</string>
+
+    <!-- Comunes -->
+    <string name="got_it">Entendido</string>
+    <string name="close">Cerrar</string>
+    <string name="minutes_short">%1$d min</string>
+
+    <!-- Accesibilidad -->
+    <string name="a11y_select">Seleccionar</string>
+    <string name="a11y_deselect">Quitar selección</string>
+
+    <!-- Ajustes -->
+    <string name="settings_title">Ajustes y Configuración</string>
+    <string name="settings_subtitle">Opciones de almacenamiento, explorador y políticas de privacidad</string>
+    <string name="settings_appearance">Apariencia</string>
+    <string name="settings_appearance_sub">Elegí el tema de la app o usá el del teléfono</string>
+    <string name="theme_system">Sistema</string>
+    <string name="theme_light">Claro</string>
+    <string name="theme_dark">Oscuro</string>
+    <string name="settings_storage">Almacenamiento y Caché</string>
+    <string name="settings_storage_sub">Espacio del dispositivo y caché de archivos de red</string>
+    <string name="storage_internal">Almacenamiento Interno</string>
+    <string name="storage_used_of">%1$s de %2$s</string>
+    <string name="storage_free">%1$s libres disponibles</string>
+    <string name="remote_cache_title">Caché de vistas previas remotas</string>
+    <string name="cache_used">Espacio ocupado: %1$s</string>
+    <string name="clean_now">Limpiar ahora</string>
+    <string name="clear_cache_on_exit">Limpiar caché remota al salir</string>
+    <string name="clear_cache_on_exit_sub">Borra automáticamente las vistas previas descargadas de SMB/FTP al cerrar la app</string>
+    <string name="settings_metadata">Metadatos al copiar</string>
+    <string name="settings_metadata_sub">Qué conservar al copiar o mover fotos y archivos</string>
+    <string name="keep_mtime">Conservar fecha de modificación</string>
+    <string name="keep_mtime_sub">La copia mantiene la fecha original (local y FTP)</string>
+    <string name="exif_title">Datos EXIF de las fotos</string>
+    <string name="exif_all">Todo</string>
+    <string name="exif_no_gps">Sin GPS</string>
+    <string name="exif_none">Ninguno</string>
+    <string name="exif_all_desc">Las copias conservan cámara, fecha y ubicación.</string>
+    <string name="exif_no_gps_desc">Las copias pierden la ubicación GPS. El original no se modifica.</string>
+    <string name="exif_none_desc">Las copias pierden cámara, fechas y GPS (JPG, PNG, WebP). El original no se modifica.</string>
+    <string name="settings_explorer">Explorador y Visualización</string>
+    <string name="settings_explorer_sub">Comportamiento por defecto al explorar carpetas y archivos</string>
+    <string name="show_hidden">Mostrar archivos ocultos</string>
+    <string name="show_hidden_sub">Archivos que empiezan con \'.\' y recursos administrados \'$\'</string>
+    <string name="grid_default">Usar vista en cuadrícula (Grid) por defecto</string>
+    <string name="grid_default_sub">Muestra tarjetas con vista previa en lugar de la lista compacta</string>
+    <string name="confirm_delete">Confirmar antes de eliminar archivos</string>
+    <string name="confirm_delete_sub">Muestra un diálogo de advertencia previo a la eliminación (Recomendado)</string>
+    <string name="last_folder_title">Memoria de última carpeta</string>
+    <string name="last_folder_never">Nunca (0 min)</string>
+    <string name="last_folder_5">5 minutos</string>
+    <string name="last_folder_20">20 minutos (Default)</string>
+    <string name="last_folder_always">Siempre</string>
+    <string name="settings_permissions">Permisos del Sistema</string>
+    <string name="settings_permissions_sub">Acceso requerido para la lectura y gestión de archivos</string>
+    <string name="all_files_access">Acceso a todos los archivos (MANAGE_EXTERNAL_STORAGE)</string>
+    <string name="permission_granted">Estado: Concedido correctamente</string>
+    <string name="permission_pending">Estado: Pendiente de conceder en ajustes del sistema</string>
+    <string name="manage_permission">Gestionar Permiso de Almacenamiento</string>
+    <string name="settings_about">Acerca de y Privacidad</string>
+    <string name="about_desc">Gestor de archivos local y de red (SMB/FTP) diseñado para Android. Funciona 100% de manera local y en red privada.</string>
+    <string name="privacy_policy">Política de Privacidad</string>
+    <string name="oss_licenses">Licencias Open Source</string>
+    <string name="oss_intro">Qubit Explorer utiliza las siguientes bibliotecas de código abierto:</string>
+    <string name="privacy_local_title">• Uso Local y Red Privada:</string>
+    <string name="privacy_local_body">Qubit Explorer opera de manera 100% local y en tu Red de Área Local (LAN). Ninguno de tus archivos, nombres, rutas ni credenciales de red (SMB/FTP) es enviado a servidores externos ni rastreadores.</string>
+    <string name="privacy_storage_title">• Permiso de Almacenamiento Completo:</string>
+    <string name="privacy_storage_body">El permiso MANAGE_EXTERNAL_STORAGE se solicita con el único propósito de permitirte explorar, mover, transferir, buscar y organizar archivos en la memoria interna y tarjetas SD.</string>
+    <string name="privacy_creds_title">• Cifrado de Credenciales:</string>
+    <string name="privacy_creds_body">Las contraseñas de tus servidores SMB y FTP se guardan cifradas con el Android Keystore, en el almacenamiento privado de la aplicación.</string>
 </resources>

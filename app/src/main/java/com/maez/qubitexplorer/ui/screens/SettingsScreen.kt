@@ -52,6 +52,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalContext
+import com.maez.qubitexplorer.R
 import androidx.compose.ui.unit.sp
 import com.maez.qubitexplorer.model.formatBytes
 import com.maez.qubitexplorer.ui.components.AppProgressBar
@@ -80,6 +83,10 @@ fun SettingsScreen(
     hasAllFilesAccess: Boolean,
     onRequestStoragePermissions: () -> Unit
 ) {
+    val context = LocalContext.current
+    val appVersion = remember(context) {
+        runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull() ?: "?"
+    }
     val localTotalBytes by viewModel.localTotalBytes.collectAsState()
     val localFreeBytes by viewModel.localFreeBytes.collectAsState()
     val remoteCacheSize by viewModel.remoteCacheSizeBytes.collectAsState()
@@ -112,13 +119,13 @@ fun SettingsScreen(
                     Spacer(Modifier.width(12.dp))
                     Column {
                         Text(
-                            text = "Ajustes y Configuración",
+                            text = stringResource(R.string.settings_title),
                             color = TextPrimary,
                             fontSize = 19.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "Opciones de almacenamiento, explorador y políticas de privacidad",
+                            text = stringResource(R.string.settings_subtitle),
                             color = TextMuted,
                             fontSize = 13.sp,
                             lineHeight = 16.sp
@@ -130,16 +137,16 @@ fun SettingsScreen(
             // 1. SECCIÓN: Apariencia
             item {
                 SectionCard(
-                    title = "Apariencia",
+                    title = stringResource(R.string.settings_appearance),
                     icon = Icons.Default.Palette,
                     iconTint = Violet,
-                    subtitle = "Elegí el tema de la app o usá el del teléfono"
+                    subtitle = stringResource(R.string.settings_appearance_sub)
                 ) {
                     SegmentedTabs(
                         options = listOf(
-                            "Sistema" to Icons.Default.BrightnessAuto,
-                            "Claro" to Icons.Default.LightMode,
-                            "Oscuro" to Icons.Default.DarkMode
+                            stringResource(R.string.theme_system) to Icons.Default.BrightnessAuto,
+                            stringResource(R.string.theme_light) to Icons.Default.LightMode,
+                            stringResource(R.string.theme_dark) to Icons.Default.DarkMode
                         ),
                         selectedIndex = themeMode.ordinal,
                         onSelect = { viewModel.setThemeMode(ThemeMode.entries[it]) }
@@ -150,10 +157,10 @@ fun SettingsScreen(
             // 2. SECCIÓN: Almacenamiento y Caché
             item {
                 SectionCard(
-                    title = "Almacenamiento y Caché",
+                    title = stringResource(R.string.settings_storage),
                     icon = Icons.Default.Storage,
                     iconTint = Violet,
-                    subtitle = "Espacio del dispositivo y caché de archivos de red"
+                    subtitle = stringResource(R.string.settings_storage_sub)
                 ) {
                     val localUsedBytes = (localTotalBytes - localFreeBytes).coerceAtLeast(0L)
                     val storageProgress = if (localTotalBytes > 0) {
@@ -167,13 +174,13 @@ fun SettingsScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "Almacenamiento Interno",
+                                text = stringResource(R.string.storage_internal),
                                 color = TextPrimary,
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.SemiBold
                             )
                             Text(
-                                text = "${formatBytes(localUsedBytes)} de ${formatBytes(localTotalBytes)}",
+                                text = stringResource(R.string.storage_used_of, formatBytes(localUsedBytes), formatBytes(localTotalBytes)),
                                 color = Aqua,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold
@@ -183,7 +190,7 @@ fun SettingsScreen(
                         AppProgressBar(progress = storageProgress, color = Aqua)
 
                         Text(
-                            text = "${formatBytes(localFreeBytes)} libres disponibles",
+                            text = stringResource(R.string.storage_free, formatBytes(localFreeBytes)),
                             color = TextMuted,
                             fontSize = 12.sp
                         )
@@ -198,13 +205,13 @@ fun SettingsScreen(
                     ) {
                         Column(Modifier.weight(1f)) {
                             Text(
-                                text = "Caché de vistas previas remotas",
+                                text = stringResource(R.string.remote_cache_title),
                                 color = TextPrimary,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.SemiBold
                             )
                             Text(
-                                text = "Espacio ocupado: ${formatBytes(remoteCacheSize)}",
+                                text = stringResource(R.string.cache_used, formatBytes(remoteCacheSize)),
                                 color = TextMuted,
                                 fontSize = 12.sp,
                                 lineHeight = 16.sp
@@ -212,7 +219,7 @@ fun SettingsScreen(
                         }
                         Spacer(Modifier.width(12.dp))
                         SecondaryButton(
-                            text = "Limpiar ahora",
+                            text = stringResource(R.string.clean_now),
                             icon = Icons.Default.CleaningServices,
                             onClick = { viewModel.clearRemotePreviewCache() },
                             tint = Danger
@@ -220,8 +227,8 @@ fun SettingsScreen(
                     }
 
                     SettingSwitchRow(
-                        title = "Limpiar caché remota al salir",
-                        subtitle = "Borra automáticamente las vistas previas descargadas de SMB/FTP al cerrar la app",
+                        title = stringResource(R.string.clear_cache_on_exit),
+                        subtitle = stringResource(R.string.clear_cache_on_exit_sub),
                         checked = autoClearRemoteCache,
                         onCheckedChange = { viewModel.setAutoClearRemoteCache(it) },
                         icon = Icons.Default.CleaningServices
@@ -232,29 +239,29 @@ fun SettingsScreen(
             // SECCIÓN: Metadatos al copiar
             item {
                 SectionCard(
-                    title = "Metadatos al copiar",
+                    title = stringResource(R.string.settings_metadata),
                     icon = Icons.Default.LocationOn,
                     iconTint = Aqua,
-                    subtitle = "Qué conservar al copiar o mover fotos y archivos"
+                    subtitle = stringResource(R.string.settings_metadata_sub)
                 ) {
                     SettingSwitchRow(
-                        title = "Conservar fecha de modificación",
-                        subtitle = "La copia mantiene la fecha original (local y FTP)",
+                        title = stringResource(R.string.keep_mtime),
+                        subtitle = stringResource(R.string.keep_mtime_sub),
                         checked = metadataCopyOptions.preserveDates,
                         onCheckedChange = { viewModel.setMetadataCopyOptions(metadataCopyOptions.copy(preserveDates = it)) },
                         icon = Icons.Default.Schedule
                     )
                     Text(
-                        text = "Datos EXIF de las fotos",
+                        text = stringResource(R.string.exif_title),
                         color = TextPrimary,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold
                     )
                     SegmentedTabs(
                         options = listOf(
-                            "Todo" to Icons.Default.PhotoCamera,
-                            "Sin GPS" to Icons.Default.LocationOff,
-                            "Ninguno" to Icons.Default.HideImage
+                            stringResource(R.string.exif_all) to Icons.Default.PhotoCamera,
+                            stringResource(R.string.exif_no_gps) to Icons.Default.LocationOff,
+                            stringResource(R.string.exif_none) to Icons.Default.HideImage
                         ),
                         selectedIndex = metadataCopyOptions.exifMode.ordinal,
                         onSelect = {
@@ -265,9 +272,9 @@ fun SettingsScreen(
                     )
                     Text(
                         text = when (metadataCopyOptions.exifMode) {
-                            com.maez.qubitexplorer.services.ExifCopyMode.KEEP_ALL -> "Las copias conservan cámara, fecha y ubicación."
-                            com.maez.qubitexplorer.services.ExifCopyMode.STRIP_GPS -> "Las copias pierden la ubicación GPS. El original no se modifica."
-                            com.maez.qubitexplorer.services.ExifCopyMode.STRIP_ALL -> "Las copias pierden cámara, fechas y GPS (JPG, PNG, WebP). El original no se modifica."
+                            com.maez.qubitexplorer.services.ExifCopyMode.KEEP_ALL -> stringResource(R.string.exif_all_desc)
+                            com.maez.qubitexplorer.services.ExifCopyMode.STRIP_GPS -> stringResource(R.string.exif_no_gps_desc)
+                            com.maez.qubitexplorer.services.ExifCopyMode.STRIP_ALL -> stringResource(R.string.exif_none_desc)
                         },
                         color = TextMuted,
                         fontSize = 12.sp,
@@ -279,30 +286,30 @@ fun SettingsScreen(
             // 3. SECCIÓN: Explorador y Visualización
             item {
                 SectionCard(
-                    title = "Explorador y Visualización",
+                    title = stringResource(R.string.settings_explorer),
                     icon = Icons.Default.FolderSpecial,
                     iconTint = Aqua,
-                    subtitle = "Comportamiento por defecto al explorar carpetas y archivos"
+                    subtitle = stringResource(R.string.settings_explorer_sub)
                 ) {
                     SettingSwitchRow(
-                        title = "Mostrar archivos ocultos",
-                        subtitle = "Archivos que empiezan con '.' y recursos administrados '$'",
+                        title = stringResource(R.string.show_hidden),
+                        subtitle = stringResource(R.string.show_hidden_sub),
                         checked = showHiddenFiles,
                         onCheckedChange = { viewModel.toggleHiddenFiles() },
                         icon = Icons.Default.Visibility
                     )
 
                     SettingSwitchRow(
-                        title = "Usar vista en cuadrícula (Grid) por defecto",
-                        subtitle = "Muestra tarjetas con vista previa en lugar de la lista compacta",
+                        title = stringResource(R.string.grid_default),
+                        subtitle = stringResource(R.string.grid_default_sub),
                         checked = isGridView,
                         onCheckedChange = { viewModel.toggleGridView() },
                         icon = Icons.Default.GridOn
                     )
 
                     SettingSwitchRow(
-                        title = "Confirmar antes de eliminar archivos",
-                        subtitle = "Muestra un diálogo de advertencia previo a la eliminación (Recomendado)",
+                        title = stringResource(R.string.confirm_delete),
+                        subtitle = stringResource(R.string.confirm_delete_sub),
                         checked = confirmBeforeDelete,
                         onCheckedChange = { viewModel.setConfirmBeforeDelete(it) },
                         icon = Icons.Default.Delete
@@ -312,17 +319,17 @@ fun SettingsScreen(
 
                     val timeoutOptions = listOf(0, 5, 20, -1)
                     val optionLabels = mapOf(
-                        0 to "Nunca (0 min)",
-                        5 to "5 minutos",
-                        20 to "20 minutos (Default)",
-                        -1 to "Siempre"
+                        0 to stringResource(R.string.last_folder_never),
+                        5 to stringResource(R.string.last_folder_5),
+                        20 to stringResource(R.string.last_folder_20),
+                        -1 to stringResource(R.string.last_folder_always)
                     )
 
                     DropdownField(
-                        label = "Memoria de última carpeta",
+                        label = stringResource(R.string.last_folder_title),
                         value = tabMemoryTimeoutMinutes,
                         options = timeoutOptions,
-                        optionLabel = { optionLabels[it] ?: "$it min" },
+                        optionLabel = { optionLabels[it] ?: context.getString(R.string.minutes_short, it) },
                         onSelect = { viewModel.setTabMemoryTimeoutMinutes(it) },
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -332,10 +339,10 @@ fun SettingsScreen(
             // 4. SECCIÓN: Permisos del Sistema
             item {
                 SectionCard(
-                    title = "Permisos del Sistema",
+                    title = stringResource(R.string.settings_permissions),
                     icon = Icons.Default.Security,
                     iconTint = if (hasAllFilesAccess) Aqua else WarningAmber,
-                    subtitle = "Acceso requerido para la lectura y gestión de archivos"
+                    subtitle = stringResource(R.string.settings_permissions_sub)
                 ) {
                     GlassPanel(padding = 14.dp) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -348,13 +355,13 @@ fun SettingsScreen(
                             Spacer(Modifier.width(10.dp))
                             Column(Modifier.weight(1f)) {
                                 Text(
-                                    text = "Acceso a todos los archivos (MANAGE_EXTERNAL_STORAGE)",
+                                    text = stringResource(R.string.all_files_access),
                                     color = TextPrimary,
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.SemiBold
                                 )
                                 Text(
-                                    text = if (hasAllFilesAccess) "Estado: Concedido correctamente" else "Estado: Pendiente de conceder en ajustes del sistema",
+                                    text = if (hasAllFilesAccess) stringResource(R.string.permission_granted) else stringResource(R.string.permission_pending),
                                     color = if (hasAllFilesAccess) Aqua else WarningAmber,
                                     fontSize = 12.sp,
                                     lineHeight = 16.sp
@@ -365,7 +372,7 @@ fun SettingsScreen(
 
                     if (!hasAllFilesAccess) {
                         PrimaryButton(
-                            text = "Gestionar Permiso de Almacenamiento",
+                            text = stringResource(R.string.manage_permission),
                             icon = Icons.Default.Security,
                             onClick = onRequestStoragePermissions,
                             modifier = Modifier.fillMaxWidth(),
@@ -378,20 +385,20 @@ fun SettingsScreen(
             // 5. SECCIÓN: Acerca de y Privacidad
             item {
                 SectionCard(
-                    title = "Acerca de y Privacidad",
+                    title = stringResource(R.string.settings_about),
                     icon = Icons.Default.Info,
                     iconTint = Violet,
-                    subtitle = "Qubit Explorer v1.0.0"
+                    subtitle = stringResource(R.string.app_version, appVersion)
                 ) {
                     GlassPanel(padding = 14.dp) {
                         Text(
-                            text = "Qubit Explorer v1.0.0",
+                            text = stringResource(R.string.app_version, appVersion),
                             color = TextPrimary,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "Gestor de archivos local y de red (SMB/FTP) diseñado para Android. Funciona 100% de manera local y en red privada.",
+                            text = stringResource(R.string.about_desc),
                             color = TextMuted,
                             fontSize = 12.sp,
                             lineHeight = 16.sp
@@ -403,14 +410,14 @@ fun SettingsScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         SecondaryButton(
-                            text = "Política de Privacidad",
+                            text = stringResource(R.string.privacy_policy),
                             icon = Icons.Default.PrivacyTip,
                             onClick = { showPrivacyDialog = true },
                             modifier = Modifier.fillMaxWidth(),
                             tint = Violet
                         )
                         SecondaryButton(
-                            text = "Licencias Open Source",
+                            text = stringResource(R.string.oss_licenses),
                             icon = Icons.Default.Code,
                             onClick = { showLicensesDialog = true },
                             modifier = Modifier.fillMaxWidth(),
@@ -435,7 +442,7 @@ fun SettingsScreen(
                     IconBadge(icon = Icons.Default.Lock, tint = Violet, size = 32)
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        text = "Política de Privacidad",
+                        text = stringResource(R.string.privacy_policy),
                         color = TextPrimary,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
@@ -445,37 +452,37 @@ fun SettingsScreen(
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(
-                        text = "• Uso Local y Red Privada:",
+                        text = stringResource(R.string.privacy_local_title),
                         color = Violet,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "Qubit Explorer opera de manera 100% local y en tu Red de Área Local (LAN). Ninguno de tus archivos, nombres, rutas ni credenciales de red (SMB/FTP) es enviado a servidores externos ni rastreadores.",
+                        text = stringResource(R.string.privacy_local_body),
                         color = TextMuted,
                         fontSize = 12.sp,
                         lineHeight = 16.sp
                     )
                     Text(
-                        text = "• Permiso de Almacenamiento Completo:",
+                        text = stringResource(R.string.privacy_storage_title),
                         color = Aqua,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "El permiso MANAGE_EXTERNAL_STORAGE se solicita con el único propósito de permitirte explorar, mover, transferir, buscar y organizar archivos en la memoria interna y tarjetas SD.",
+                        text = stringResource(R.string.privacy_storage_body),
                         color = TextMuted,
                         fontSize = 12.sp,
                         lineHeight = 16.sp
                     )
                     Text(
-                        text = "• Cifrado de Credenciales:",
+                        text = stringResource(R.string.privacy_creds_title),
                         color = Violet,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "Las contraseñas de tus servidores locales SMB y FTP son almacenadas de forma ofuscada en el almacenamiento privado de la aplicación.",
+                        text = stringResource(R.string.privacy_creds_body),
                         color = TextMuted,
                         fontSize = 12.sp,
                         lineHeight = 16.sp
@@ -484,7 +491,7 @@ fun SettingsScreen(
             },
             confirmButton = {
                 TextButton(onClick = { showPrivacyDialog = false }) {
-                    Text("Entendido", color = Aqua, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.got_it), color = Aqua, fontWeight = FontWeight.Bold)
                 }
             }
         )
@@ -499,7 +506,7 @@ fun SettingsScreen(
                     IconBadge(icon = Icons.Default.Code, tint = Aqua, size = 32)
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        text = "Licencias Open Source",
+                        text = stringResource(R.string.oss_licenses),
                         color = TextPrimary,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
@@ -509,7 +516,7 @@ fun SettingsScreen(
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        text = "Qubit Explorer utiliza las siguientes bibliotecas de código abierto:",
+                        text = stringResource(R.string.oss_intro),
                         color = TextMuted,
                         fontSize = 12.sp
                     )
@@ -518,7 +525,10 @@ fun SettingsScreen(
                         "AndroidX & Jetpack Compose" to "Apache License 2.0 (Google LLC)",
                         "SMBJ (com.hierynomus.smbj)" to "Apache License 2.0 (Jeroen van Erp)",
                         "JCIFS-NG (eu.agno3.jcifs)" to "LGPL v2.1+ (Agno3 & JCIFS Project)",
-                        "Apache Commons Net" to "Apache License 2.0 (Apache Software Foundation)"
+                        "Apache Commons Net" to "Apache License 2.0 (Apache Software Foundation)",
+                        "Apache Commons Compress" to "Apache License 2.0 (Apache Software Foundation)",
+                        "XZ for Java (org.tukaani)" to "0BSD (Lasse Collin)",
+                        "junrar" to "UnRAR License (Alexander Roshal / junrar)"
                     )
 
                     libraries.forEach { (name, license) ->
@@ -531,7 +541,7 @@ fun SettingsScreen(
             },
             confirmButton = {
                 TextButton(onClick = { showLicensesDialog = false }) {
-                    Text("Cerrar", color = Violet, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.close), color = Violet, fontWeight = FontWeight.Bold)
                 }
             }
         )
@@ -544,7 +554,7 @@ fun SettingsScreenPreview() {
     QubitExplorerTheme {
         Box(modifier = Modifier.padding(16.dp)) {
             GlassPanel {
-                Text("Ajustes y Configuración", color = TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.settings_title), color = TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                 Text("Demostración de panel de cristal para ajustes.", color = TextMuted, fontSize = 12.sp)
             }
         }
