@@ -68,6 +68,7 @@ import com.maez.qubitexplorer.model.NetworkConnection
 import com.maez.qubitexplorer.model.StorageProtocol
 import com.maez.qubitexplorer.model.VfsItem
 import com.maez.qubitexplorer.services.VfsManager
+import com.maez.qubitexplorer.services.readBytesLimited
 import com.maez.qubitexplorer.ui.theme.AccentBlueLight
 import com.maez.qubitexplorer.ui.theme.AccentGreenLight
 import com.maez.qubitexplorer.ui.theme.QubitExplorerTheme
@@ -250,7 +251,7 @@ object ThumbnailCache {
                         n == "docprops/thumbnail.png" || n == "thumbnails/thumbnail.png"
                 } ?: return null
                 if (entry.size > 4 * 1024 * 1024) return null
-                decodeSampledBytes(zip.getInputStream(entry).use { it.readBytes() }, targetPx)
+                decodeSampledBytes(zip.getInputStream(entry).use { it.readBytesLimited(4L * 1024 * 1024) }, targetPx)
             }
         } catch (_: Exception) {
             null

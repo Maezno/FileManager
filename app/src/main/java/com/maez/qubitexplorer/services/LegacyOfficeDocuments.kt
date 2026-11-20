@@ -108,7 +108,7 @@ class Ole2File(private val data: ByteArray) {
 
     companion object {
         fun open(file: File): Ole2File {
-            require(file.length() < 150L * 1024 * 1024) { "Archivo demasiado grande para la vista previa" }
+            require(file.length() < 64L * 1024 * 1024) { "Archivo demasiado grande para la vista previa" }
             return Ole2File(file.readBytes())
         }
     }

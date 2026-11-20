@@ -93,7 +93,7 @@ private fun Map<String, OdfTextStyle>.resolve(name: String?): OdfTextStyle {
 private fun ZipFile.odfBitmap(path: String?, maxPx: Int = 1400): Bitmap? {
     val e = path?.let { getEntry(it.removePrefix("./")) } ?: return null
     return try {
-        val bytes = getInputStream(e).use { it.readBytes() }
+        val bytes = getInputStream(e).use { it.readBytesLimited() }
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
         var sample = 1

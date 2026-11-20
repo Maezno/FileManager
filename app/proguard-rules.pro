@@ -15,3 +15,17 @@
 # smbj -> mbassador referencia javax.el (no existe en Android, no se usa)
 -dontwarn javax.el.**
 -dontwarn net.engio.mbassy.dispatch.el.**
+
+# Comprimidos: commons-compress, xz y junrar. Se cargan códecs por reflexión y
+# commons-compress referencia dependencias opcionales (zstd, brotli, asm, osgi) que no incluimos.
+-keep class org.apache.commons.compress.** { *; }
+-keep class org.tukaani.xz.** { *; }
+-keep class com.github.junrar.** { *; }
+-dontwarn org.apache.commons.compress.**
+-dontwarn org.tukaani.xz.**
+-dontwarn com.github.junrar.**
+-dontwarn com.github.luben.zstd.**
+-dontwarn org.brotli.dec.**
+-dontwarn org.objectweb.asm.**
+-dontwarn org.osgi.**
+-dontwarn org.slf4j.**

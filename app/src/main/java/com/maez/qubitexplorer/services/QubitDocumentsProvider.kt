@@ -93,30 +93,53 @@ class QubitDocumentsProvider : DocumentsProvider() {
 
     override fun renameDocument(documentId: String, displayName: String): String {
         val file = fileFor(documentId)
-        val target = File(file.parentFile, displayName)
+        val target = inRoot(File(file.parentFile, safeName(displayName)))
         if (!file.renameTo(target)) throw FileNotFoundException("No se pudo renombrar $documentId")
         return target.absolutePath
     }
 
-    override fun isChildDocument(parentDocumentId: String, documentId: String): Boolean =
-        documentId.startsWith(parentDocumentId.trimEnd('/') + "/")
+    override fun isChildDocument(parentDocumentId: String, documentId: String): Boolean {
+        val parent = runCatching { inRoot(File(parentDocumentId)) }.getOrNull() ?: return false
+        val child = runCatching { inRoot(File(documentId)) }.getOrNull() ?: return false
+        return child.path.startsWith(parent.path.trimEnd('/') + "/")
+    }
 
     override fun getDocumentType(documentId: String): String = mimeOf(fileFor(documentId))
 
     // ─────────────────────────────────────────────────────────────────────────
 
     private fun fileFor(documentId: String): File {
-        val file = File(documentId)
+        val file = inRoot(File(documentId))
         if (!file.exists()) throw FileNotFoundException("No existe: $documentId")
         return file
     }
 
+    /**
+     * Resuelve la ruta canónica y exige que quede dentro del almacenamiento expuesto.
+     * Evita que ids con "../" (o symlinks) lleguen a los datos privados de la app.
+     */
+    private fun inRoot(file: File): File {
+        val canonical = file.canonicalFile
+        val root = rootDir.canonicalFile
+        if (canonical != root && !canonical.path.startsWith(root.path.trimEnd('/') + "/")) {
+            throw FileNotFoundException("Fuera del almacenamiento permitido")
+        }
+        return canonical
+    }
+
+    /** Un nombre nunca puede contener separadores ni ser "." / "..". */
+    private fun safeName(displayName: String): String {
+        val n = displayName.filterNot { it == '\u0000' }.replace('/', '_').replace('\\', '_').trim()
+        if (n.isEmpty() || n == "." || n == "..") throw FileNotFoundException("Nombre no válido")
+        return n
+    }
+
     private fun uniqueFile(parent: File, displayName: String, mimeType: String): File {
-        var name = displayName
+        var name = safeName(displayName)
         if (mimeType != Document.MIME_TYPE_DIR && !name.contains('.')) {
             MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType)?.let { name = "$name.$it" }
         }
-        var candidate = File(parent, name)
+        var candidate = inRoot(File(parent, name))
         if (!candidate.exists()) return candidate
         val base = name.substringBeforeLast('.', name)
         val ext = name.substringAfterLast('.', "").let { if (it.isEmpty() || it == name) "" else ".$it" }

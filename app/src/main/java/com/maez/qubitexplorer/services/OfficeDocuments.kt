@@ -80,7 +80,7 @@ private fun newParser(input: InputStream): XmlPullParser =
     }
 
 private fun ZipFile.text(name: String): String? =
-    getEntry(name)?.let { e -> getInputStream(e).use { it.readBytes().toString(Charsets.UTF_8) } }
+    getEntry(name)?.let { e -> getInputStream(e).use { it.readBytesLimited().toString(Charsets.UTF_8) } }
 
 private fun ZipFile.parser(name: String): XmlPullParser? =
     getEntry(name)?.let { newParser(getInputStream(it)) }
@@ -114,7 +114,7 @@ private fun resolvePath(baseDir: String, target: String): String {
 
 private fun ZipFile.bitmap(path: String, maxPx: Int = 1400): Bitmap? = try {
     getEntry(path)?.let {
-        val bytes = getInputStream(it).use { s -> s.readBytes() }
+        val bytes = getInputStream(it).use { s -> s.readBytesLimited() }
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
         var sample = 1
