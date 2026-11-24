@@ -103,12 +103,12 @@ class SmartSearchEngine(
                 when (item.category) {
                     FileCategory.IMAGE -> analyzeImageItem(item, conn)
                     FileCategory.VIDEO -> analyzeVideoItem(item, conn)
-                    else -> MediaSearchItem(item = item, deviceModel = item.category.label, orientation = "N/A")
+                    else -> MediaSearchItem(item = item, deviceModel = context.getString(item.category.labelRes), orientation = "N/A")
                 }
             } else {
                 MediaSearchItem(
                     item = item,
-                    deviceModel = item.category.label,
+                    deviceModel = context.getString(item.category.labelRes),
                     orientation = "N/A"
                 )
             }
@@ -579,7 +579,7 @@ class SmartSearchEngine(
                     val dur = String.format(Locale.US, "%.1f", it.durationSeconds)
                     val dateStr = if (it.item.lastModified > 0L) sdf.format(Date(it.item.lastModified)) else ""
                     writer.appendLine(
-                        "${escapeCsv(it.item.name)};${escapeCsv(it.item.parentPath)};${it.item.protocol.name};${it.item.category.label};${escapeCsv(it.deviceModel)};${it.orientation};${it.resolution};$dur;$mb;$dateStr"
+                        "${escapeCsv(it.item.name)};${escapeCsv(it.item.parentPath)};${it.item.protocol.name};${context.getString(it.item.category.labelRes)};${escapeCsv(it.deviceModel)};${it.orientation};${it.resolution};$dur;$mb;$dateStr"
                     )
                 }
             } else {

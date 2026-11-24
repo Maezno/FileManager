@@ -163,7 +163,7 @@ fun ArchiveBrowserScreen(
             Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = {
                     if (currentDir.isNotEmpty()) currentDir = currentDir.substringBeforeLast('/', "") else if (!state.extracting) onClose()
-                }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver", tint = TextPrimary) }
+                }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.archive_volver), tint = TextPrimary) }
                 Column(Modifier.weight(1f)) {
                     Text(state.fileName, color = TextPrimary, fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     state.listing?.let {
@@ -178,7 +178,7 @@ fun ArchiveBrowserScreen(
                     TextButton(onClick = {
                         selection = if (allHere) selection - visible.map { it.path }.toSet()
                         else selection + visible.map { it.path }
-                    }) { Text(if (allHere) "Ninguno" else "Todos", color = Violet, fontSize = 13.sp) }
+                    }) { Text(if (allHere) stringResource(R.string.exif_none) else stringResource(R.string.text_editor_todos), color = Violet, fontSize = 13.sp) }
                 }
             }
 
@@ -246,8 +246,8 @@ fun ArchiveBrowserScreen(
                                 Column(Modifier.weight(1f)) {
                                     Text(node.name, color = TextPrimary, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                     Text(
-                                        if (node.isDir) "${node.fileCount} archivos" + (if (node.size > 0) " · ${formatBytes(node.size)}" else "")
-                                        else if (node.size >= 0) formatBytes(node.size) else "tamaño desconocido",
+                                        if (node.isDir) stringResource(R.string.archive_archivos_2, node.fileCount) + (if (node.size > 0) " · ${formatBytes(node.size)}" else "")
+                                        else if (node.size >= 0) formatBytes(node.size) else stringResource(R.string.archive_tamano_desconocido),
                                         color = TextMuted, fontSize = 11.sp
                                     )
                                 }
@@ -274,8 +274,8 @@ fun ArchiveBrowserScreen(
                     if (state.error != null && tree != null) Text(state.error, color = Danger, fontSize = 12.sp)
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(
-                            if (selectedFiles.isEmpty()) "Nada seleccionado"
-                            else "${selectedFiles.size} seleccionados · ${formatBytes(selectedBytes)}",
+                            if (selectedFiles.isEmpty()) stringResource(R.string.archive_nada_seleccionado)
+                            else stringResource(R.string.archive_seleccionados, selectedFiles.size, formatBytes(selectedBytes)),
                             color = TextMuted, fontSize = 12.sp, modifier = Modifier.weight(1f)
                         )
                         if (state.done) TextButton(onClick = onOpenDestination) { Text(stringResource(R.string.archive_abrir_carpeta), color = Aqua, fontWeight = FontWeight.Bold) }

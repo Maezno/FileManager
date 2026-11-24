@@ -110,7 +110,7 @@ fun PropertiesDialog(
                 r.gps?.let { g ->
                     val coords = "%.6f, %.6f".format(Locale.US, g.latitude, g.longitude)
                     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        TextButton(onClick = { copyText(context, "Coordenadas", coords) }) {
+                        TextButton(onClick = { copyText(context, context.getString(R.string.properties_coordenadas), coords) }) {
                             Icon(Icons.Default.ContentCopy, null, tint = Aqua, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.width(6.dp))
                             Text(stringResource(R.string.properties_copiar_coordenadas), color = Aqua, fontSize = 12.sp)
@@ -186,7 +186,7 @@ fun PropertiesDialog(
         dismissButton = {
             TextButton(
                 enabled = result != null,
-                onClick = { result?.let { copyText(context, "Metadatos", it.asPlainText()) } }
+                onClick = { result?.let { copyText(context, context.getString(R.string.properties_metadatos), it.asPlainText()) } }
             ) {
                 Text(stringResource(R.string.properties_copiar_todo), color = Aqua, fontWeight = FontWeight.Bold)
             }

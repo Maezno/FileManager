@@ -308,8 +308,9 @@ fun ExplorerScreen(
 private const val TRANSFER_DONE_HOLD_MS = 800L
 private val SEARCH_SIZE_OPTIONS_MB = listOf(0L, 10L, 100L, 500L, 1024L)
 
+@Composable
 private fun searchSizeLabel(mb: Long): String = when {
-    mb <= 0L -> "Cualquier tamaño"
+    mb <= 0L -> stringResource(R.string.explorer_cualquier_tamano)
     mb >= 1024L -> "≥ ${mb / 1024L} GB"
     else -> "≥ $mb MB"
 }
@@ -328,9 +329,9 @@ private fun TransferProgressSection(job: TransferJob, activeCount: Int, onClick:
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = when {
-                    !isActive -> job.status.label
-                    activeCount > 1 -> "$activeCount transferencias: ${job.currentFileName.ifBlank { "Procesando..." }}"
-                    else -> job.currentFileName.ifBlank { "Procesando..." }
+                    !isActive -> stringResource(job.status.labelRes)
+                    activeCount > 1 -> stringResource(R.string.explorer_transferencias_2, activeCount, job.currentFileName.ifBlank { stringResource(R.string.explorer_procesando) })
+                    else -> job.currentFileName.ifBlank { stringResource(R.string.explorer_procesando) }
                 },
                 color = TextPrimary,
                 fontSize = 12.sp,
@@ -378,7 +379,7 @@ private fun ExplorerSearchTools(
         )
         Box {
             SelectChip(
-                text = if (filters.category == FileCategory.ALL) "Tipo" else filters.category.label,
+                text = if (filters.category == FileCategory.ALL) stringResource(R.string.smart_search_tipo) else stringResource(filters.category.labelRes),
                 icon = Icons.Default.Tune,
                 selected = filters.category != FileCategory.ALL,
                 onClick = { showCategoryMenu = true },
@@ -387,7 +388,7 @@ private fun ExplorerSearchTools(
             GlassDropdownMenu(expanded = showCategoryMenu, onDismissRequest = { showCategoryMenu = false }) {
                 FileCategory.entries.forEach { category ->
                     DropdownMenuItem(
-                        text = { Text(category.label, color = TextPrimary, fontSize = 13.sp) },
+                        text = { Text(stringResource(category.labelRes), color = TextPrimary, fontSize = 13.sp) },
                         onClick = {
                             onFiltersChange(filters.copy(category = category))
                             showCategoryMenu = false
@@ -398,7 +399,7 @@ private fun ExplorerSearchTools(
         }
         Box {
             SelectChip(
-                text = if (filters.minSizeMB > 0L) searchSizeLabel(filters.minSizeMB) else "Tamaño",
+                text = if (filters.minSizeMB > 0L) searchSizeLabel(filters.minSizeMB) else stringResource(R.string.smart_search_tamano),
                 icon = Icons.Default.Storage,
                 selected = filters.minSizeMB > 0L,
                 onClick = { showSizeMenu = true },
@@ -418,7 +419,7 @@ private fun ExplorerSearchTools(
         }
         Box {
             SelectChip(
-                text = "${sortField.label} ${if (sortAsc) "↑" else "↓"}",
+                text = "${stringResource(sortField.labelRes)} ${if (sortAsc) "↑" else "↓"}",
                 icon = Icons.AutoMirrored.Filled.Sort,
                 selected = false,
                 onClick = { showSortMenu = true },
@@ -429,7 +430,7 @@ private fun ExplorerSearchTools(
                     DropdownMenuItem(
                         text = {
                             val arrow = if (sortField == field) (if (sortAsc) " ↑" else " ↓") else ""
-                            Text(stringResource(R.string.explorer_ordenar_por, field.label, arrow), color = TextPrimary, fontSize = 13.sp)
+                            Text(stringResource(R.string.explorer_ordenar_por, stringResource(field.labelRes), arrow), color = TextPrimary, fontSize = 13.sp)
                         },
                         onClick = {
                             onSetSorting(field, if (sortField == field) !sortAsc else field.defaultAscending)
@@ -565,7 +566,7 @@ fun ExplorerScreenContent(
             // Pestaña de resultados: se queda hasta que haya otra búsqueda o se cierre
             AnimatedVisibility(visible = searchTab != null, enter = Motion.inlineEnter, exit = Motion.inlineExit) {
                 SelectChip(
-                    text = stringResource(R.string.explorer_resultados, searchTab?.label.orEmpty()),
+                    text = stringResource(R.string.explorer_resultados, searchTab?.let { tab -> tab.query.ifEmpty { stringResource(if (tab.filters.category != FileCategory.ALL) tab.filters.category.labelRes else R.string.search_tab_filters) } }.orEmpty()),
                     icon = Icons.Default.Search,
                     selected = isShowingResults,
                     onClick = onOpenSearchTab,
@@ -602,11 +603,11 @@ fun ExplorerScreenContent(
             }
 
             val localShortcuts = listOf(
-                Triple("LOCAL_ROOT", "Interno", null as String?) to (Icons.Default.PhoneAndroid to Aqua),
-                Triple("LOCAL_Download", "Descargas", "Download") to (Icons.Default.Download to Violet),
-                Triple("LOCAL_DCIM", "Cámara", "DCIM/Camera") to (Icons.Default.CameraAlt to Aqua),
-                Triple("LOCAL_Movies", "Videos", "Movies") to (Icons.Default.Movie to Violet),
-                Triple("LOCAL_Pictures", "Imágenes", "Pictures") to (Icons.Default.Image to Aqua)
+                Triple("LOCAL_ROOT", stringResource(R.string.explorer_interno), null as String?) to (Icons.Default.PhoneAndroid to Aqua),
+                Triple("LOCAL_Download", stringResource(R.string.explorer_descargas), "Download") to (Icons.Default.Download to Violet),
+                Triple("LOCAL_DCIM", stringResource(R.string.explorer_camara), "DCIM/Camera") to (Icons.Default.CameraAlt to Aqua),
+                Triple("LOCAL_Movies", stringResource(R.string.explorer_videos), "Movies") to (Icons.Default.Movie to Violet),
+                Triple("LOCAL_Pictures", stringResource(R.string.explorer_imagenes), "Pictures") to (Icons.Default.Image to Aqua)
             )
 
             for ((info, style) in localShortcuts) {
@@ -668,9 +669,9 @@ fun ExplorerScreenContent(
                 Spacer(Modifier.width(10.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     val badge = when (currentProtocol) {
-                        StorageProtocol.LOCAL -> "almacenamiento local"
-                        StorageProtocol.SMB -> "red smb • ${activeConnection?.name ?: activeConnection?.host}"
-                        StorageProtocol.FTP -> "red ftp • ${activeConnection?.name ?: activeConnection?.host}"
+                        StorageProtocol.LOCAL -> stringResource(R.string.explorer_almacenamiento_local)
+                        StorageProtocol.SMB -> stringResource(R.string.explorer_red_smb, activeConnection?.name ?: activeConnection?.host.orEmpty())
+                        StorageProtocol.FTP -> stringResource(R.string.explorer_red_ftp, activeConnection?.name ?: activeConnection?.host.orEmpty())
                     }
                     Text(
                         text = badge,
@@ -764,11 +765,11 @@ fun ExplorerScreenContent(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     val shownClipboard = if (clipboard.items.isNotEmpty()) clipboard else lastClipboard
-                    val actionLabel = if (shownClipboard.isMove) "Mover" else "Copiar"
+                    val actionLabel = if (shownClipboard.isMove) stringResource(R.string.explorer_mover) else stringResource(R.string.explorer_copiar)
                     val summaryLabel = if (shownClipboard.items.size == 1) {
                         shownClipboard.items.first().name
                     } else {
-                        "${shownClipboard.items.size} elementos"
+                        stringResource(R.string.explorer_elementos, shownClipboard.items.size)
                     }
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                         Icon(
@@ -896,7 +897,7 @@ fun ExplorerScreenContent(
                                     DropdownMenuItem(
                                         text = {
                                             val arrow = if (sortField == field) (if (sortAsc) " ↑" else " ↓") else ""
-                                            Text(stringResource(R.string.explorer_ordenar_por_2, field.label, arrow), color = TextPrimary, fontSize = 13.sp)
+                                            Text(stringResource(R.string.explorer_ordenar_por_2, stringResource(field.labelRes), arrow), color = TextPrimary, fontSize = 13.sp)
                                         },
                                         onClick = {
                                             val nextAsc = if (sortField == field) !sortAsc else field.defaultAscending
@@ -1016,11 +1017,11 @@ fun ExplorerScreenContent(
 
         Text(
             text = when {
-                isDeepSearching -> "${filteredItems.size} resultados · buscando..."
-                deepResults != null && searchFilters.includeSubfolders -> "${filteredItems.size} resultados (incluye subcarpetas)"
-                deepResults != null -> "${filteredItems.size} resultados en esta carpeta"
-                quickFilter.isBlank() -> "${filteredItems.size} elementos"
-                else -> "${filteredItems.size} resultados en esta carpeta"
+                isDeepSearching -> stringResource(R.string.explorer_resultados_buscando, filteredItems.size)
+                deepResults != null && searchFilters.includeSubfolders -> stringResource(R.string.explorer_resultados_incluye_subcarpetas, filteredItems.size)
+                deepResults != null -> stringResource(R.string.explorer_resultados_en_esta_carpeta, filteredItems.size)
+                quickFilter.isBlank() -> stringResource(R.string.explorer_elementos, filteredItems.size)
+                else -> stringResource(R.string.explorer_resultados_en_esta_carpeta, filteredItems.size)
             },
             color = TextMuted,
             fontSize = 12.sp,
@@ -1069,8 +1070,8 @@ fun ExplorerScreenContent(
             ) {
                 EmptyState(
                     icon = Icons.Default.Folder,
-                    title = if (quickFilter.isBlank() && !isShowingResults) "Carpeta vacía" else "Sin coincidencias",
-                    message = if (isDeepSearching) "Buscando..." else if (quickFilter.isBlank() && !isShowingResults) "No hay elementos en esta ubicación." else "No hay archivos ni carpetas que coincidan con la búsqueda."
+                    title = if (quickFilter.isBlank() && !isShowingResults) stringResource(R.string.components_carpeta_vacia) else stringResource(R.string.explorer_sin_coincidencias),
+                    message = if (isDeepSearching) stringResource(R.string.explorer_buscando) else if (quickFilter.isBlank() && !isShowingResults) stringResource(R.string.explorer_no_hay_elementos_en_esta) else stringResource(R.string.explorer_no_hay_archivos_ni_carpetas)
                 )
             }
         } else {
@@ -1531,7 +1532,7 @@ fun ExplorerScreenContent(
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Text(
-                                            text = "${job.type.label}: ${job.currentFileName.ifBlank { "${job.totalFiles} elementos" }}",
+                                            text = "${stringResource(job.type.labelRes)}: ${job.currentFileName.ifBlank { stringResource(R.string.explorer_elementos, job.totalFiles) }}",
                                             color = TextPrimary,
                                             fontSize = 13.sp,
                                             fontWeight = FontWeight.SemiBold,
@@ -1548,7 +1549,7 @@ fun ExplorerScreenContent(
                                             }
                                         } else {
                                             Text(
-                                                text = job.status.label,
+                                                text = stringResource(job.status.labelRes),
                                                 color = when (job.status) {
                                                     TransferStatus.COMPLETED -> Aqua
                                                     TransferStatus.ERROR -> Danger
@@ -1673,7 +1674,7 @@ private fun ExplorerListRow(
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = listOfNotNull(if (item.isDirectory) "Carpeta" else item.sizeFormatted, location).joinToString(" · "),
+                    text = listOfNotNull(if (item.isDirectory) stringResource(R.string.media_preview_carpeta) else item.sizeFormatted, location).joinToString(" · "),
                     color = TextMuted,
                     fontSize = 13.sp,
                     maxLines = 1,
@@ -1768,7 +1769,7 @@ private fun ExplorerGridCard(
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = if (item.isDirectory) "Carpeta"
+                    text = if (item.isDirectory) stringResource(R.string.media_preview_carpeta)
                     else listOf(
                         Regex("""(?i)\.(tar\.\w+)$""").find(item.name)?.groupValues?.get(1)?.uppercase()
                             ?: item.extension.uppercase().take(5),
@@ -1793,7 +1794,7 @@ private fun ExplorerGridCard(
                         .background(style.color),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(style.icon, contentDescription = style.label, tint = Color.White, modifier = Modifier.size(13.dp))
+                    Icon(style.icon, contentDescription = stringResource(style.labelRes), tint = Color.White, modifier = Modifier.size(13.dp))
                 }
             }
             if (isSelected) {

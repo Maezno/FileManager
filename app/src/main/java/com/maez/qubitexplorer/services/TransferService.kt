@@ -120,15 +120,15 @@ class TransferService : Service() {
 
     private fun buildNotification(job: TransferJob?): Notification {
         val title = if (job != null) {
-            "${job.type.label}: ${job.currentFileName.ifBlank { "Preparando..." }}"
+            "${getString(job.type.labelRes)}: ${job.currentFileName.ifBlank { getString(R.string.transfer_service_preparando) }}"
         } else {
-            "Transferencias en segundo plano"
+            getString(R.string.transfer_service_transferencias_en_segundo_plano)
         }
 
         val text = if (job != null) {
-            "${job.currentIndex}/${job.totalFiles} archivos • ${job.speedFormatted}"
+            getString(R.string.transfer_service_archivos, job.currentIndex, job.totalFiles, job.speedFormatted)
         } else {
-            "Completado"
+            getString(R.string.transfer_service_completado)
         }
 
         val contentIntent = Intent(this, MainActivity::class.java)
@@ -163,7 +163,7 @@ class TransferService : Service() {
                 cancelIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
-            builder.addAction(android.R.drawable.ic_menu_close_clear_cancel, "Cancelar", cancelPending)
+            builder.addAction(android.R.drawable.ic_menu_close_clear_cancel, getString(R.string.transfer_cancel), cancelPending)
         }
 
         return builder.build()
@@ -173,10 +173,10 @@ class TransferService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "Transferencias de archivos",
+                getString(R.string.transfer_service_transferencias_de_archivos),
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "Progreso de copia, movimiento y transferencias en red"
+                description = getString(R.string.transfer_service_progreso_de_copia_movimiento_y)
                 setShowBadge(false)
             }
             val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager

@@ -1,19 +1,21 @@
 package com.maez.qubitexplorer.model
 
-enum class TransferType(val label: String) {
-    COPY("Copiar"),
-    MOVE("Mover"),
-    COMPRESS("Comprimir"),
-    EXTRACT("Extraer")
+import com.maez.qubitexplorer.R
+
+enum class TransferType(@androidx.annotation.StringRes val labelRes: Int) {
+    COPY(R.string.transfer_type_copy),
+    MOVE(R.string.transfer_type_move),
+    COMPRESS(R.string.transfer_type_compress),
+    EXTRACT(R.string.transfer_type_extract)
 }
 
-enum class TransferStatus(val label: String) {
-    QUEUED("En cola"),
-    RUNNING("Transfiriendo"),
-    PAUSED("Pausado"),
-    COMPLETED("Completado"),
-    ERROR("Error"),
-    CANCELLED("Cancelado")
+enum class TransferStatus(@androidx.annotation.StringRes val labelRes: Int) {
+    QUEUED(R.string.transfer_status_queued),
+    RUNNING(R.string.transfer_status_running),
+    PAUSED(R.string.transfer_status_paused),
+    COMPLETED(R.string.transfer_status_completed),
+    ERROR(R.string.transfer_status_error),
+    CANCELLED(R.string.transfer_status_cancelled)
 }
 
 enum class ConflictResolution {

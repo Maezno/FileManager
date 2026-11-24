@@ -103,6 +103,7 @@ fun MediaPreviewDialog(
     onOpenFolder: () -> Unit,
     onDismiss: () -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     var errorMsg by remember(localPreviewPath) { mutableStateOf<String?>(null) }
     var imageBitmap by remember(localPreviewPath) { mutableStateOf<ImageBitmap?>(null) }
     var videoRatio by remember(localPreviewPath) { mutableStateOf<Float?>(null) }
@@ -125,7 +126,7 @@ fun MediaPreviewDialog(
                 }
             }
             if (imageBitmap == null) {
-                errorMsg = "No se pudo decodificar la imagen."
+                errorMsg = context.getString(R.string.media_preview_no_se_pudo_decodificar_la)
             }
         }
     }
@@ -213,7 +214,7 @@ fun MediaPreviewDialog(
                                     fontSize = 13.sp
                                 )
                                 Text(
-                                    text = errorMsg ?: "Puedes abrir el archivo con un reproductor externo.",
+                                    text = errorMsg ?: stringResource(R.string.media_preview_puedes_abrir_el_archivo_con),
                                     color = MediaTextMuted,
                                     fontSize = 12.sp
                                 )
@@ -243,7 +244,7 @@ fun MediaPreviewDialog(
                                             start()
                                         }
                                         setOnErrorListener { _, what, extra ->
-                                            errorMsg = "El contenedor requiere un reproductor externo (código $what/$extra)."
+                                            errorMsg = context.getString(R.string.media_preview_el_contenedor_requiere_un_reproductor, what, extra)
                                             true
                                         }
                                         setVideoPath(localPreviewPath)

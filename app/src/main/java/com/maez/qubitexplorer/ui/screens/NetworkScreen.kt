@@ -212,7 +212,7 @@ fun NetworkScreenContent(
                     )
 
                     SecondaryButton(
-                        text = if (isDiscovering) "Escaneando..." else "Escanear Wi-Fi",
+                        text = if (isDiscovering) stringResource(R.string.network_escaneando) else stringResource(R.string.network_escanear_wi_fi),
                         icon = Icons.Default.Radar,
                         onClick = onScanLan,
                         enabled = !isDiscovering,
@@ -311,7 +311,7 @@ fun NetworkScreenContent(
             onDismissRequest = { showDialog = false },
             title = {
                 Text(
-                    text = if (editingId == null) "Configurar Servidor de Red" else "Editar Servidor",
+                    text = if (editingId == null) stringResource(R.string.network_configurar_servidor_de_red) else stringResource(R.string.network_editar_servidor),
                     color = TextPrimary,
                     fontWeight = FontWeight.Bold
                 )
@@ -387,7 +387,7 @@ fun NetworkScreenContent(
                     if (formProtocol == StorageProtocol.FTP) {
                         SettingSwitchRow(
                             title = stringResource(R.string.network_cifrado_tls_ftps),
-                            subtitle = if (formTls) "Conexión y datos cifrados (AUTH TLS)" else "Sin cifrar: usuario y contraseña viajan en texto plano",
+                            subtitle = if (formTls) stringResource(R.string.network_conexion_y_datos_cifrados_auth) else stringResource(R.string.network_sin_cifrar_usuario_y_contrasena),
                             checked = formTls,
                             onCheckedChange = { formTls = it }
                         )
@@ -395,7 +395,7 @@ fun NetworkScreenContent(
 
                     SettingSwitchRow(
                         title = stringResource(R.string.network_acceso_invitado_sin_contrasena),
-                        subtitle = if (formAnon) "Conecta sin usuario" else "Ingresar usuario y contraseña de Windows/FTP",
+                        subtitle = if (formAnon) stringResource(R.string.network_conecta_sin_usuario) else stringResource(R.string.network_ingresar_usuario_y_contrasena_de),
                         checked = formAnon,
                         onCheckedChange = { formAnon = it }
                     )
@@ -490,9 +490,9 @@ private fun SavedConnectionCard(
                             overflow = TextOverflow.Ellipsis
                         )
                         val userText = if (conn.anonymous || conn.username.isBlank()) {
-                            "Acceso: Invitado / Anónimo"
+                            stringResource(R.string.network_acceso_invitado_anonimo)
                         } else {
-                            "Usuario: ${conn.username}"
+                            stringResource(R.string.network_usuario, conn.username)
                         }
                         Text(text = userText, color = TextMuted, fontSize = 12.sp)
                     }

@@ -1,5 +1,6 @@
 package com.maez.qubitexplorer.ui.components
 
+import com.maez.qubitexplorer.R
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -411,38 +412,38 @@ fun FileThumbnailBoxPreview() {
 data class FileTypeStyle(
     val icon: androidx.compose.ui.graphics.vector.ImageVector,
     val color: Color,
-    val label: String
+    @androidx.annotation.StringRes val labelRes: Int
 )
 
 fun fileTypeStyle(item: VfsItem): FileTypeStyle {
     val i = Icons.Default
-    if (item.isDirectory) return FileTypeStyle(i.Folder, Color(0xFF5B5BD6), "Carpeta")
+    if (item.isDirectory) return FileTypeStyle(i.Folder, Color(0xFF5B5BD6), R.string.media_preview_carpeta)
     if (item.sizeBytes == 0L && (item.category == FileCategory.VIDEO || item.category == FileCategory.IMAGE)) {
-        return FileTypeStyle(i.BrokenImage, DangerRedLight, "Vacío")
+        return FileTypeStyle(i.BrokenImage, DangerRedLight, R.string.file_type_vacio)
     }
     return when (item.extension) {
-        "pdf" -> FileTypeStyle(i.PictureAsPdf, Color(0xFFE5392F), "PDF")
-        "doc", "docx", "odt", "rtf" -> FileTypeStyle(i.Description, Color(0xFF2B6CD9), "Texto")
-        "xls", "xlsx", "ods", "csv", "tsv" -> FileTypeStyle(i.TableChart, Color(0xFF1E9E5A), "Planilla")
-        "ppt", "pptx", "odp", "key" -> FileTypeStyle(i.Slideshow, Color(0xFFE8711C), "Presentación")
-        "txt", "md", "log", "ini", "cfg", "conf" -> FileTypeStyle(i.Article, Color(0xFF6B7A90), "Texto plano")
+        "pdf" -> FileTypeStyle(i.PictureAsPdf, Color(0xFFE5392F), R.string.file_type_pdf)
+        "doc", "docx", "odt", "rtf" -> FileTypeStyle(i.Description, Color(0xFF2B6CD9), R.string.file_type_texto)
+        "xls", "xlsx", "ods", "csv", "tsv" -> FileTypeStyle(i.TableChart, Color(0xFF1E9E5A), R.string.file_type_planilla)
+        "ppt", "pptx", "odp", "key" -> FileTypeStyle(i.Slideshow, Color(0xFFE8711C), R.string.file_type_presentacion)
+        "txt", "md", "log", "ini", "cfg", "conf" -> FileTypeStyle(i.Article, Color(0xFF6B7A90), R.string.file_type_texto_plano)
         "html", "htm", "xml", "json", "yaml", "yml", "js", "ts", "kt", "java", "py", "c", "cpp", "h",
         "cs", "go", "rs", "sh", "bat", "ps1", "css", "sql", "php", "rb", "swift" ->
-            FileTypeStyle(i.Code, Color(0xFF0F9DA8), "Código")
-        "zip", "rar", "7z", "tar", "gz", "bz2", "xz", "zst" -> FileTypeStyle(i.Archive, Color(0xFFC99212), "Comprimido")
-        "epub", "mobi", "azw3", "fb2" -> FileTypeStyle(i.MenuBook, Color(0xFF8E5CD6), "Libro")
-        "ttf", "otf", "woff", "woff2" -> FileTypeStyle(i.FontDownload, Color(0xFF7A6F5A), "Fuente")
-        "iso", "img", "dmg" -> FileTypeStyle(i.Album, Color(0xFF5A6B7A), "Imagen de disco")
-        "exe", "msi" -> FileTypeStyle(i.Terminal, Color(0xFF52606D), "Ejecutable")
-        "db", "sqlite", "sqlite3" -> FileTypeStyle(i.Storage, Color(0xFF3C7DA8), "Base de datos")
+            FileTypeStyle(i.Code, Color(0xFF0F9DA8), R.string.file_type_codigo)
+        "zip", "rar", "7z", "tar", "gz", "bz2", "xz", "zst" -> FileTypeStyle(i.Archive, Color(0xFFC99212), R.string.file_type_comprimido)
+        "epub", "mobi", "azw3", "fb2" -> FileTypeStyle(i.MenuBook, Color(0xFF8E5CD6), R.string.file_type_libro)
+        "ttf", "otf", "woff", "woff2" -> FileTypeStyle(i.FontDownload, Color(0xFF7A6F5A), R.string.file_type_fuente)
+        "iso", "img", "dmg" -> FileTypeStyle(i.Album, Color(0xFF5A6B7A), R.string.file_type_imagen_de_disco)
+        "exe", "msi" -> FileTypeStyle(i.Terminal, Color(0xFF52606D), R.string.file_type_ejecutable)
+        "db", "sqlite", "sqlite3" -> FileTypeStyle(i.Storage, Color(0xFF3C7DA8), R.string.file_type_base_de_datos)
         else -> when (item.category) {
-            FileCategory.IMAGE -> FileTypeStyle(i.Image, Color(0xFF2FA866), "Imagen")
-            FileCategory.VIDEO -> FileTypeStyle(i.VideoFile, Color(0xFF9B4DE0), "Video")
-            FileCategory.AUDIO -> FileTypeStyle(i.AudioFile, Color(0xFFE0457B), "Audio")
-            FileCategory.APK -> FileTypeStyle(i.Android, Color(0xFF3DAA4F), "APK")
-            FileCategory.ARCHIVE -> FileTypeStyle(i.Archive, Color(0xFFC99212), "Comprimido")
-            FileCategory.DOCUMENT -> FileTypeStyle(i.Description, Color(0xFF2B6CD9), "Documento")
-            else -> FileTypeStyle(Icons.AutoMirrored.Filled.InsertDriveFile, TextSecondary, "Archivo")
+            FileCategory.IMAGE -> FileTypeStyle(i.Image, Color(0xFF2FA866), R.string.file_type_imagen)
+            FileCategory.VIDEO -> FileTypeStyle(i.VideoFile, Color(0xFF9B4DE0), R.string.file_type_video)
+            FileCategory.AUDIO -> FileTypeStyle(i.AudioFile, Color(0xFFE0457B), R.string.file_type_audio)
+            FileCategory.APK -> FileTypeStyle(i.Android, Color(0xFF3DAA4F), R.string.file_type_apk)
+            FileCategory.ARCHIVE -> FileTypeStyle(i.Archive, Color(0xFFC99212), R.string.file_type_comprimido)
+            FileCategory.DOCUMENT -> FileTypeStyle(i.Description, Color(0xFF2B6CD9), R.string.file_type_documento)
+            else -> FileTypeStyle(Icons.AutoMirrored.Filled.InsertDriveFile, TextSecondary, R.string.file_type_archivo)
         }
     }
 }

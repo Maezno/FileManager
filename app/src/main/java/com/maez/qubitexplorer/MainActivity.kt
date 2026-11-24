@@ -1,5 +1,6 @@
 package com.maez.qubitexplorer
 
+import androidx.compose.ui.res.stringResource
 import com.maez.qubitexplorer.ui.theme.Motion
 import android.Manifest
 import android.content.Intent
@@ -276,7 +277,7 @@ class MainActivity : ComponentActivity() {
                                     IconBadge(icon = Icons.Default.Security, tint = Aqua, size = 32)
                                     Spacer(Modifier.width(8.dp))
                                     Text(
-                                        text = "Acceso a Todos los Archivos",
+                                        text = stringResource(R.string.main_activity_acceso_a_todos_los_archivos),
                                         color = TextPrimary,
                                         fontSize = 16.sp,
                                         fontWeight = FontWeight.Bold
@@ -285,7 +286,7 @@ class MainActivity : ComponentActivity() {
                             },
                             text = {
                                 Text(
-                                    text = "Por qué Qubit Explorer necesita acceso a todos los archivos: Para explorar carpetas del dispositivo, detectar archivos duplicados y transferir documentos o multimedia entre tu memoria interna y tus servidores de red local (SMB/FTP).",
+                                    text = stringResource(R.string.main_activity_por_que_qubit_explorer_necesita),
                                     color = TextSecondary,
                                     fontSize = 12.sp,
                                     lineHeight = 16.sp
@@ -294,7 +295,7 @@ class MainActivity : ComponentActivity() {
                             confirmButton = {
                                 TextButton(onClick = { launchManageStorageIntent() }) {
                                     Text(
-                                        "Continuar a Ajustes",
+                                        stringResource(R.string.main_activity_continuar_a_ajustes),
                                         color = Aqua,
                                         fontWeight = FontWeight.Bold
                                     )
@@ -303,7 +304,7 @@ class MainActivity : ComponentActivity() {
                             dismissButton = {
                                 TextButton(onClick = { showProminentDisclosure = false }) {
                                     Text(
-                                        "Ahora no",
+                                        stringResource(R.string.main_activity_ahora_no),
                                         color = TextMuted
                                     )
                                 }
@@ -454,7 +455,7 @@ fun MainScreenContent(
                                     )
                                     Spacer(Modifier.width(6.dp))
                                     Text(
-                                        text = if (hasAllFilesAccess) "Acceso total" else "Dar permiso",
+                                        text = if (hasAllFilesAccess) stringResource(R.string.main_activity_acceso_total) else stringResource(R.string.main_activity_dar_permiso),
                                         color = statusColor,
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.SemiBold

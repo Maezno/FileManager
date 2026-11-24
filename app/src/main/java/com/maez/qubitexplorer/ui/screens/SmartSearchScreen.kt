@@ -545,8 +545,8 @@ fun SmartSearchScreenContent(
             shiftedItem(barShift) {
                 GlassSegmentedControl(
                     options = listOf(
-                        "Archivos pesados" to Icons.Default.Storage,
-                        "Duplicados" to Icons.Default.ContentCopy
+                        stringResource(R.string.smart_search_archivos_pesados) to Icons.Default.Storage,
+                        stringResource(R.string.smart_search_duplicados) to Icons.Default.ContentCopy
                     ),
                     selectedIndex = toolIndex,
                     onSelect = onSetToolIndex
@@ -662,7 +662,7 @@ fun SmartSearchScreenContent(
                                         FileCategory.APK
                                     ).forEach { cat ->
                                         SelectChip(
-                                            text = cat.label,
+                                            text = stringResource(cat.labelRes),
                                             selected = selectedCategory == cat,
                                             onClick = { onSetSelectedCategory(cat) },
                                             accent = Aqua
@@ -686,7 +686,7 @@ fun SmartSearchScreenContent(
                                 }
 
                                 FilterChipRow(label = stringResource(R.string.smart_search_tamano)) {
-                                    listOf(0f to "Cualquiera", 100f to "> 100 MB", 500f to "> 500 MB", 1000f to "> 1 GB")
+                                    listOf(0f to stringResource(R.string.smart_search_cualquiera), 100f to "> 100 MB", 500f to "> 500 MB", 1000f to "> 1 GB")
                                         .forEach { (sizeMB, label) ->
                                             SelectChip(
                                                 text = label,
@@ -709,7 +709,7 @@ fun SmartSearchScreenContent(
                                     ).forEach { field ->
                                         val isCurrent = searchSortField == field
                                         SelectChip(
-                                            text = if (isCurrent) "${field.label} ${if (searchSortAscending) "↑" else "↓"}" else field.label,
+                                            text = if (isCurrent) "${stringResource(field.labelRes)} ${if (searchSortAscending) "↑" else "↓"}" else stringResource(field.labelRes),
                                             selected = isCurrent,
                                             onClick = {
                                                 if (isCurrent) onSetSearchSort(field, !searchSortAscending)
@@ -827,7 +827,7 @@ fun SmartSearchScreenContent(
                     onClick = { if (allSelected) onClearSearchSelection() else onSelectAllSearchResults() },
                     modifier = Modifier.size(40.dp)
                 ) {
-                    Icon(Icons.Default.SelectAll, contentDescription = if (allSelected) "Deseleccionar" else "Seleccionar todo", tint = Aqua, modifier = Modifier.size(20.dp))
+                    Icon(Icons.Default.SelectAll, contentDescription = if (allSelected) stringResource(R.string.smart_search_deseleccionar) else stringResource(R.string.explorer_seleccionar_todo), tint = Aqua, modifier = Modifier.size(20.dp))
                 }
                 IconButton(onClick = onShareSelectedSearch, modifier = Modifier.size(40.dp)) {
                     Icon(Icons.Default.Share, contentDescription = stringResource(R.string.explorer_compartir), tint = Violet, modifier = Modifier.size(20.dp))
@@ -845,8 +845,8 @@ fun SmartSearchScreenContent(
                     item {
                         EmptyState(
                             icon = Icons.Default.Search,
-                            title = if (searchResults.isEmpty()) "Aún no hay resultados de búsqueda" else "Sin coincidencias con los filtros",
-                            message = if (searchResults.isEmpty()) "Elige dónde buscar y pulsa 'Escanear carpeta'. Después usa la lupa y los filtros para encontrar lo que necesites." else "Prueba con otra palabra o quita filtros desde el botón de filtros."
+                            title = if (searchResults.isEmpty()) stringResource(R.string.smart_search_aun_no_hay_resultados_de) else stringResource(R.string.smart_search_sin_coincidencias_con_los_filtros),
+                            message = if (searchResults.isEmpty()) stringResource(R.string.smart_search_elige_donde_buscar_y_pulsa) else stringResource(R.string.smart_search_prueba_con_otra_palabra_o)
                         )
                     }
                 } else {
@@ -915,7 +915,7 @@ fun SmartSearchScreenContent(
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(
-                                        text = if (compareTwoFolders) "Modo: Carpeta A vs B" else "Modo: Solo Carpeta A",
+                                        text = if (compareTwoFolders) stringResource(R.string.smart_search_modo_carpeta_a_vs_b) else stringResource(R.string.smart_search_modo_solo_carpeta_a),
                                         color = TextPrimary,
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.SemiBold,
@@ -948,7 +948,7 @@ fun SmartSearchScreenContent(
                                         Text(stringResource(R.string.smart_search_b), color = WarningAmber, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                                         Spacer(Modifier.width(6.dp))
                                         Text(
-                                            text = folderB?.name ?: "Elegir B",
+                                            text = folderB?.name ?: stringResource(R.string.smart_search_elegir_b),
                                             color = if (folderB != null) TextPrimary else TextMuted,
                                             fontSize = 12.sp,
                                             maxLines = 1,
@@ -1131,6 +1131,7 @@ private fun StorageSelectorIconDropdown(
     showLabel: Boolean = false,
     modifier: Modifier = Modifier
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     var expanded by remember { mutableStateOf(false) }
     val locationIcon = when (currentFolder.protocol) {
         StorageProtocol.LOCAL -> Icons.Default.PhoneAndroid
@@ -1195,7 +1196,7 @@ private fun StorageSelectorIconDropdown(
                     expanded = false
                     val rootItem = VfsItem(
                         path = defaultLocalRoot,
-                        name = "Almacenamiento Interno",
+                        name = context.getString(R.string.storage_internal),
                         parentPath = "/",
                         isDirectory = true,
                         protocol = StorageProtocol.LOCAL
@@ -1206,7 +1207,7 @@ private fun StorageSelectorIconDropdown(
 
             val downloadsItem = VfsItem(
                 path = "$defaultLocalRoot/Download",
-                name = "Descargas",
+                name = context.getString(R.string.explorer_descargas),
                 parentPath = defaultLocalRoot,
                 isDirectory = true,
                 protocol = StorageProtocol.LOCAL
@@ -1222,7 +1223,7 @@ private fun StorageSelectorIconDropdown(
 
             val cameraItem = VfsItem(
                 path = "$defaultLocalRoot/DCIM/Camera",
-                name = "Cámara",
+                name = context.getString(R.string.explorer_camara),
                 parentPath = "$defaultLocalRoot/DCIM",
                 isDirectory = true,
                 protocol = StorageProtocol.LOCAL
@@ -1511,7 +1512,7 @@ private fun DuplicateFileCard(
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
-                        text = "[Grupo #${entry.groupId} • ${entry.sourceLabel}] ${if (entry.isPrimary) "Original" else "Copia Duplicada"}",
+                        text = stringResource(R.string.smart_search_grupo, entry.groupId, entry.sourceLabel, if (entry.isPrimary) stringResource(R.string.smart_search_original) else stringResource(R.string.smart_search_copia_duplicada)),
                         color = if (entry.isPrimary) Aqua else WarningAmber,
                         fontWeight = FontWeight.Bold,
                         fontSize = 11.sp
@@ -1558,6 +1559,7 @@ private fun FolderPickerDialog(
     onFolderSelected: (VfsItem) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     var currentPath by remember { mutableStateOf(initialPath.ifBlank { "/" }) }
     var folderItems by remember { mutableStateOf<List<VfsItem>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
@@ -1575,7 +1577,7 @@ private fun FolderPickerDialog(
             folderItems = list.filter { it.isDirectory }
             isLoading = false
         } catch (e: Exception) {
-            errorMsg = e.localizedMessage ?: "Error al listar directorios"
+            errorMsg = e.localizedMessage ?: context.getString(R.string.smart_search_error_al_listar_directorios)
             isLoading = false
         }
     }

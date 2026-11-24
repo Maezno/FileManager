@@ -1,5 +1,6 @@
 package com.maez.qubitexplorer.model
 
+import com.maez.qubitexplorer.R
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -10,16 +11,16 @@ enum class StorageProtocol(val label: String) {
     FTP("FTP / FTPS")
 }
 
-enum class FileCategory(val label: String) {
-    ALL("Todos"),
-    FOLDER("Carpetas"),
-    IMAGE("Fotos"),
-    VIDEO("Videos"),
-    AUDIO("Audio"),
-    DOCUMENT("Documentos"),
-    ARCHIVE("Comprimidos"),
-    APK("Apps APK"),
-    OTHER("Otros");
+enum class FileCategory(@androidx.annotation.StringRes val labelRes: Int) {
+    ALL(R.string.file_category_all),
+    FOLDER(R.string.file_category_folder),
+    IMAGE(R.string.file_category_image),
+    VIDEO(R.string.file_category_video),
+    AUDIO(R.string.file_category_audio),
+    DOCUMENT(R.string.file_category_document),
+    ARCHIVE(R.string.file_category_archive),
+    APK(R.string.file_category_apk),
+    OTHER(R.string.file_category_other);
 
     companion object {
         private val IMAGE_EXT = setOf("jpg", "jpeg", "png", "webp", "heic", "heif", "gif", "bmp", "raw", "dng")
@@ -49,22 +50,22 @@ enum class MediaOrientation(val label: String) {
     HORIZONTAL("Horizontal")
 }
 
-enum class SortField(val label: String) {
-    NAME("Nombre"),
-    DATE("Fecha"),
-    SIZE("Tamaño"),
-    TYPE("Tipo");
+enum class SortField(@androidx.annotation.StringRes val labelRes: Int) {
+    NAME(R.string.sort_field_name),
+    DATE(R.string.sort_field_date),
+    SIZE(R.string.sort_field_size),
+    TYPE(R.string.sort_field_type);
 
     // Fecha y tamaño arrancan por lo más nuevo y lo más pesado
     val defaultAscending: Boolean
         get() = this != DATE && this != SIZE
 }
 
-enum class SearchSortField(val label: String) {
-    DATE("Fecha"),
-    SIZE("Tamaño"),
-    NAME("Nombre"),
-    TYPE("Tipo")
+enum class SearchSortField(@androidx.annotation.StringRes val labelRes: Int) {
+    DATE(R.string.search_sort_field_date),
+    SIZE(R.string.search_sort_field_size),
+    NAME(R.string.search_sort_field_name),
+    TYPE(R.string.search_sort_field_type)
 }
 
 data class VfsItem(
@@ -175,10 +176,7 @@ data class ExplorerSearchTab(
     val shortcutKey: String,
     val results: List<VfsItem>? = null,
     val isSearching: Boolean = false
-) {
-    val label: String
-        get() = query.ifEmpty { if (filters.category != FileCategory.ALL) filters.category.label else "Filtros" }
-}
+)
 
 data class ClipboardState(
     val items: List<VfsItem> = emptyList(),

@@ -213,6 +213,7 @@ private fun EditorBody(
     onSave: suspend (String) -> Boolean,
     onClose: () -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
     val usesCrlf = remember(original) { original.contains("\r\n") }
     val normalized = remember(original) { original.replace("\r\n", "\n") }
@@ -320,7 +321,7 @@ private fun EditorBody(
     }
 
     fun toggleLineComment() {
-        val prefix = language.lineComment ?: run { status = "Este formato no tiene comentario de línea"; return }
+        val prefix = language.lineComment ?: run { status = context.getString(R.string.text_editor_este_formato_no_tiene_comentario); return }
         val t = value.text
         val start = t.lastIndexOf('\n', value.selection.min - 1) + 1
         val endIdx = t.indexOf('\n', value.selection.max).let { if (it < 0) t.length else it }
@@ -348,7 +349,7 @@ private fun EditorBody(
             val out = if (usesCrlf) value.text.replace("\n", "\r\n") else value.text
             val ok = onSave(out)
             if (ok) savedText = value.text
-            status = if (ok) "Guardado" else "No se pudo guardar"
+            status = if (ok) context.getString(R.string.text_editor_guardado) else context.getString(R.string.text_editor_no_se_pudo_guardar)
         }
     }
 
@@ -373,7 +374,7 @@ private fun EditorBody(
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = { if (modified) confirmExit = true else onClose() }) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, "Cerrar", tint = palette.text)
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.close), tint = palette.text)
             }
             Column(Modifier.weight(1f)) {
                 Text(
@@ -382,26 +383,26 @@ private fun EditorBody(
                     maxLines = 1, overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    language.label + (readOnlyReason?.let { " · solo lectura" } ?: ""),
+                    language.label + (readOnlyReason?.let { stringResource(R.string.text_editor_solo_lectura) } ?: ""),
                     color = palette.tokens[TokenType.FUNCTION]!!, fontSize = 11.sp
                 )
             }
             IconButton(onClick = { undo.removeLastOrNull()?.let { redo.add(value); value = it } }, enabled = undo.isNotEmpty()) {
-                Icon(Icons.AutoMirrored.Filled.Undo, "Deshacer", tint = palette.text.copy(alpha = if (undo.isNotEmpty()) 1f else 0.3f))
+                Icon(Icons.AutoMirrored.Filled.Undo, stringResource(R.string.text_editor_deshacer), tint = palette.text.copy(alpha = if (undo.isNotEmpty()) 1f else 0.3f))
             }
             IconButton(onClick = { redo.removeLastOrNull()?.let { undo.add(value); value = it } }, enabled = redo.isNotEmpty()) {
-                Icon(Icons.AutoMirrored.Filled.Redo, "Rehacer", tint = palette.text.copy(alpha = if (redo.isNotEmpty()) 1f else 0.3f))
+                Icon(Icons.AutoMirrored.Filled.Redo, stringResource(R.string.text_editor_rehacer), tint = palette.text.copy(alpha = if (redo.isNotEmpty()) 1f else 0.3f))
             }
-            IconButton(onClick = { showSearch = !showSearch }) { Icon(Icons.Default.Search, "Buscar", tint = palette.text) }
-            IconButton(onClick = { showOutline = !showOutline }) { Icon(Icons.Default.AccountTree, "Esquema", tint = palette.text) }
+            IconButton(onClick = { showSearch = !showSearch }) { Icon(Icons.Default.Search, stringResource(R.string.explorer_buscar), tint = palette.text) }
+            IconButton(onClick = { showOutline = !showOutline }) { Icon(Icons.Default.AccountTree, stringResource(R.string.text_editor_esquema_2), tint = palette.text) }
             IconButton(onClick = { save() }, enabled = modified && readOnlyReason == null) {
-                Icon(Icons.Default.Save, "Guardar", tint = if (modified) palette.tokens[TokenType.STRING]!! else palette.text.copy(alpha = 0.3f))
+                Icon(Icons.Default.Save, stringResource(R.string.explorer_guardar), tint = if (modified) palette.tokens[TokenType.STRING]!! else palette.text.copy(alpha = 0.3f))
             }
             Box {
-                IconButton(onClick = { showMenu = true }) { Icon(Icons.Default.MoreVert, "Más", tint = palette.text) }
+                IconButton(onClick = { showMenu = true }) { Icon(Icons.Default.MoreVert, stringResource(R.string.text_editor_mas), tint = palette.text) }
                 DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
                     DropdownMenuItem(
-                        text = { Text(if (wrap) "Desactivar ajuste de línea" else "Ajuste de línea") },
+                        text = { Text(if (wrap) stringResource(R.string.text_editor_desactivar_ajuste_de_linea) else stringResource(R.string.text_editor_ajuste_de_linea)) },
                         leadingIcon = { Icon(Icons.AutoMirrored.Filled.WrapText, null) },
                         onClick = { wrap = !wrap; showMenu = false }
                     )
@@ -440,7 +441,7 @@ private fun EditorBody(
         if (showSearch) {
             Column(Modifier.fillMaxWidth().background(palette.gutter).padding(horizontal = 8.dp, vertical = 6.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    MiniField(query, { query = it; matchIndex = 0 }, "Buscar", palette, Modifier.weight(1f))
+                    MiniField(query, { query = it; matchIndex = 0 }, stringResource(R.string.explorer_buscar), palette, Modifier.weight(1f))
                     Text(
                         if (matches.isEmpty()) "0/0" else "${matchIndex + 1}/${matches.size}",
                         color = palette.gutterText, fontSize = 11.sp, modifier = Modifier.padding(horizontal = 6.dp)
@@ -450,21 +451,21 @@ private fun EditorBody(
                             matchIndex = (matchIndex - 1 + matches.size) % matches.size
                             matches[matchIndex].let { goToOffset(it.first, it.last + 1) }
                         }
-                    }, modifier = Modifier.size(32.dp)) { Icon(Icons.Default.KeyboardArrowUp, "Anterior", tint = palette.text) }
+                    }, modifier = Modifier.size(32.dp)) { Icon(Icons.Default.KeyboardArrowUp, stringResource(R.string.text_editor_anterior), tint = palette.text) }
                     IconButton(onClick = {
                         if (matches.isNotEmpty()) {
                             matchIndex = (matchIndex + 1) % matches.size
                             matches[matchIndex].let { goToOffset(it.first, it.last + 1) }
                         }
-                    }, modifier = Modifier.size(32.dp)) { Icon(Icons.Default.KeyboardArrowDown, "Siguiente", tint = palette.text) }
+                    }, modifier = Modifier.size(32.dp)) { Icon(Icons.Default.KeyboardArrowDown, stringResource(R.string.text_editor_siguiente), tint = palette.text) }
                     IconButton(onClick = { showSearch = false; query = "" }, modifier = Modifier.size(32.dp)) {
-                        Icon(Icons.Default.Close, "Cerrar búsqueda", tint = palette.text)
+                        Icon(Icons.Default.Close, stringResource(R.string.text_editor_cerrar_busqueda), tint = palette.text)
                     }
                 }
                 if (readOnlyReason == null) {
                     Spacer(Modifier.size(4.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        MiniField(replacement, { replacement = it }, "Reemplazar por", palette, Modifier.weight(1f))
+                        MiniField(replacement, { replacement = it }, stringResource(R.string.text_editor_reemplazar_por), palette, Modifier.weight(1f))
                         TextButton(onClick = {
                             val m = matches.getOrNull(matchIndex) ?: return@TextButton
                             val t = value.text
@@ -477,7 +478,7 @@ private fun EditorBody(
                                 value.text.replace(Regex(Regex.escape(query), RegexOption.IGNORE_CASE), Regex.escapeReplacement(replacement)),
                                 TextRange(0)
                             ))
-                            status = "$n reemplazos"
+                            status = context.getString(R.string.text_editor_reemplazos, n)
                         }) { Text(stringResource(R.string.text_editor_todos), fontSize = 12.sp) }
                     }
                 }
@@ -571,7 +572,7 @@ private fun EditorBody(
                 Modifier.fillMaxWidth().background(palette.bar).horizontalScroll(rememberScrollState()).padding(vertical = 2.dp)
             ) {
                 IconButton(onClick = { insert("    ") }, modifier = Modifier.size(36.dp)) {
-                    Icon(Icons.AutoMirrored.Filled.FormatIndentIncrease, "Tabulación", tint = palette.text, modifier = Modifier.size(18.dp))
+                    Icon(Icons.AutoMirrored.Filled.FormatIndentIncrease, stringResource(R.string.text_editor_tabulacion), tint = palette.text, modifier = Modifier.size(18.dp))
                 }
                 SYMBOLS.split(' ').drop(1).forEach { sym ->
                     Box(
@@ -614,7 +615,7 @@ private fun EditorBody(
                     confirmExit = false
                     scope.launch {
                         val out = if (usesCrlf) value.text.replace("\n", "\r\n") else value.text
-                        if (onSave(out)) onClose() else status = "No se pudo guardar"
+                        if (onSave(out)) onClose() else status = context.getString(R.string.text_editor_no_se_pudo_guardar)
                     }
                 }) { Text(stringResource(R.string.explorer_guardar)) }
             },

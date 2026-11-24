@@ -1,5 +1,6 @@
 package com.maez.qubitexplorer.viewmodel
 
+import com.maez.qubitexplorer.R
 import android.app.Application
 import android.content.Intent
 import android.os.Environment
@@ -56,6 +57,9 @@ private const val DEEP_SEARCH_LIMIT = 500
 private const val VIDFORGE_PACKAGE = "com.maez.vidforge.app"
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
+
+    private fun str(@androidx.annotation.StringRes id: Int, vararg args: Any): String =
+        getApplication<Application>().getString(id, *args)
 
     val vfsManager = VfsManager()
     private val searchEngine = SmartSearchEngine(application.applicationContext, vfsManager)
@@ -222,7 +226,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _folderA = MutableStateFlow(
         VfsItem(
             path = defaultLocalRoot,
-            name = "Almacenamiento Interno",
+            name = str(R.string.storage_internal),
             parentPath = "",
             isDirectory = true,
             protocol = StorageProtocol.LOCAL
@@ -271,7 +275,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _scanProgress = MutableStateFlow(0f)
     val scanProgress: StateFlow<Float> = _scanProgress.asStateFlow()
 
-    private val _scanStatusText = MutableStateFlow("Listo para buscar en carpetas locales o de red SMB/FTP.")
+    private val _scanStatusText = MutableStateFlow(str(R.string.main_view_model_listo_para_buscar_en_carpetas))
     val scanStatusText: StateFlow<String> = _scanStatusText.asStateFlow()
 
     private val _scanMetricsText = MutableStateFlow("")
@@ -298,7 +302,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             SearchSortField.DATE -> compareBy<MediaSearchItem> { it.item.lastModified }
             SearchSortField.SIZE -> compareBy<MediaSearchItem> { it.item.sizeBytes }
             SearchSortField.NAME -> compareBy<MediaSearchItem> { it.item.name.lowercase(Locale.ROOT) }
-            SearchSortField.TYPE -> compareBy<MediaSearchItem> { it.item.category.label }
+            SearchSortField.TYPE -> compareBy<MediaSearchItem> { str(it.item.category.labelRes) }
                 .thenBy { it.item.name.lowercase(Locale.ROOT) }
         }
         val directed = if (ascending) comparator else comparator.reversed()
@@ -350,17 +354,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         TransferManager.onTransferFinished = { job, success ->
             viewModelScope.launch {
                 refreshCurrentDirectory()
-                val verb = if (job.type == TransferType.MOVE) "Movidos" else "Copiados"
+                val verb = if (job.type == TransferType.MOVE) str(R.string.main_view_model_movidos) else str(R.string.main_view_model_copiados)
                 if (success) {
                     Toast.makeText(
                         getApplication(),
-                        "$verb: ${job.totalFiles} archivos correctamente",
+                        str(R.string.main_view_model_archivos_correctamente, verb, job.totalFiles),
                         Toast.LENGTH_SHORT
                     ).show()
                 } else if (job.status == TransferStatus.ERROR) {
                     Toast.makeText(
                         getApplication(),
-                        "Transferencia completada con algunos errores",
+                        str(R.string.main_view_model_transferencia_completada_con_algunos_errores),
                         Toast.LENGTH_SHORT
                     ).show()
                 }
@@ -464,7 +468,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 if (generation == directoryLoadGeneration) _directoryItems.value = sortItems(rawItems)
             } catch (e: Exception) {
                 if (generation == directoryLoadGeneration) {
-                    _explorerError.value = e.localizedMessage ?: "No se pudo abrir la carpeta ($path)"
+                    _explorerError.value = e.localizedMessage ?: str(R.string.main_view_model_no_se_pudo_abrir_la, path)
                     _directoryItems.value = emptyList()
                 }
             } finally {
@@ -780,7 +784,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
             updateRemoteCacheSize()
             val freedText = formatBytes(freed)
-            Toast.makeText(getApplication(), "Caché de vistas previas limpiada ($freedText liberados)", Toast.LENGTH_SHORT).show()
+            Toast.makeText(getApplication(), str(R.string.main_view_model_cache_de_vistas_previas_limpiada, freedText), Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -891,7 +895,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             if (_pdfViewer.value?.item?.path != item.path) return@launch
             if (f == null) {
                 _pdfViewer.value = null
-                Toast.makeText(getApplication(), "No se pudo abrir el PDF.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(getApplication(), str(R.string.main_view_model_no_se_pudo_abrir_el), Toast.LENGTH_SHORT).show()
             } else {
                 _pdfViewer.value = PdfViewerState(item, f.absolutePath, loading = false)
             }
@@ -907,7 +911,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             if (_officeViewer.value?.item?.path != item.path) return@launch
             if (f == null) {
                 _officeViewer.value = null
-                Toast.makeText(getApplication(), "No se pudo abrir el documento.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(getApplication(), str(R.string.main_view_model_no_se_pudo_abrir_el_2), Toast.LENGTH_SHORT).show()
             } else {
                 _officeViewer.value = OfficeViewerState(item, f.absolutePath)
             }
@@ -919,25 +923,25 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun openTextEditor(item: VfsItem, forcedReadOnly: String? = null) {
         val maxBytes = 5L * 1024 * 1024
         if (item.sizeBytes > maxBytes) {
-            _textEditor.value = EditorState(item, error = "El archivo pesa ${formatBytes(item.sizeBytes)}. El editor abre archivos de hasta 5 MB.")
+            _textEditor.value = EditorState(item, error = str(R.string.main_view_model_el_archivo_pesa_el_editor, formatBytes(item.sizeBytes)))
             return
         }
         _textEditor.value = EditorState(item)
         viewModelScope.launch {
             val f = ensureLocalCopy(item)
             val state = if (f == null) {
-                EditorState(item, error = "No se pudo leer el archivo.")
+                EditorState(item, error = str(R.string.main_view_model_no_se_pudo_leer_el))
             } else {
                 val bytes = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { f.readBytes() }
                 // Archivos binarios: muchos bytes nulos → no se editan
                 val nulls = bytes.take(8192).count { it == 0.toByte() }
                 if (nulls > 8) {
-                    EditorState(item, error = "Parece un archivo binario; no se puede editar como texto.")
+                    EditorState(item, error = str(R.string.main_view_model_parece_un_archivo_binario_no))
                 } else {
                     val text = decodeText(bytes)
                     val ro = when {
                         forcedReadOnly != null -> forcedReadOnly
-                        item.protocol == StorageProtocol.LOCAL && !File(item.path).canWrite() -> "sin permiso de escritura"
+                        item.protocol == StorageProtocol.LOCAL && !File(item.path).canWrite() -> str(R.string.main_view_model_sin_permiso_de_escritura)
                         else -> null
                     }
                     EditorState(item, text = text, readOnlyReason = ro)
@@ -1005,7 +1009,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         archiveJob = viewModelScope.launch {
             val f = ensureLocalCopy(item)
             if (f == null) {
-                _archive.value = _archive.value?.copy(error = "No se pudo acceder al comprimido.")
+                _archive.value = _archive.value?.copy(error = str(R.string.main_view_model_no_se_pudo_acceder_al))
                 return@launch
             }
             archiveLocalFile = f
@@ -1031,10 +1035,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val msg = (e.message ?: "").lowercase(Locale.ROOT)
         return when {
             e is com.github.junrar.exception.UnsupportedRarV5Exception || msg.contains("rar5") ->
-                "Este RAR usa el formato RAR5, que todavía no se puede extraer aquí. Probá abrirlo con otra app."
+                str(R.string.main_view_model_este_rar_usa_el_formato)
             msg.contains("password") || msg.contains("contraseña") || msg.contains("encrypt") ->
-                "El comprimido está protegido con contraseña."
-            else -> "No se pudo leer el comprimido: ${e.message ?: e.javaClass.simpleName}"
+                str(R.string.main_view_model_el_comprimido_esta_protegido_con)
+            else -> str(R.string.main_view_model_no_se_pudo_leer_el_2, e.message ?: e.javaClass.simpleName)
         }
     }
 
@@ -1053,7 +1057,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 _archive.value = _archive.value?.copy(extracting = false, done = true, extractedCount = count)
                 refreshCurrentDirectory()
             } catch (e: CancellationException) {
-                _archive.value = _archive.value?.copy(extracting = false, error = "Extracción cancelada. Los archivos ya extraídos quedaron en el destino.")
+                _archive.value = _archive.value?.copy(extracting = false, error = str(R.string.main_view_model_extraccion_cancelada_los_archivos_ya))
             } catch (e: Exception) {
                 _archive.value = _archive.value?.copy(extracting = false, error = archiveErrorMessage(e))
             }
@@ -1073,22 +1077,22 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 val dir = File(app.cacheDir, "archive_preview/${f.absolutePath.hashCode().toUInt().toString(16)}")
                 com.maez.qubitexplorer.services.ArchiveExtractor.extract(f, dir, include = { it == entryPath })
                 val out = File(dir, entryPath)
-                if (!out.exists()) throw IllegalStateException("No se pudo extraer ${entryPath.substringAfterLast('/')}")
+                if (!out.exists()) throw IllegalStateException(str(R.string.main_view_model_no_se_pudo_extraer, entryPath.substringAfterLast('/')))
                 val item = VfsItem(
                     path = out.absolutePath, name = out.name, parentPath = out.parent ?: "",
                     isDirectory = false, sizeBytes = out.length(), lastModified = out.lastModified()
                 )
                 when {
                     item.extension in com.maez.qubitexplorer.services.CodeLanguage.EDITABLE_EXTENSIONS ->
-                        openTextEditor(item, forcedReadOnly = "vista desde comprimido")
+                        openTextEditor(item, forcedReadOnly = str(R.string.main_view_model_vista_desde_comprimido))
                     com.maez.qubitexplorer.services.ArchiveExtractor.isArchive(item.name) ->
-                        Toast.makeText(app, "Extraé este comprimido para abrirlo.", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(app, str(R.string.main_view_model_extrae_este_comprimido_para_abrirlo), Toast.LENGTH_SHORT).show()
                     !openWithBuiltInTool(item) -> openInExternalApp(item)
                 }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                Toast.makeText(getApplication(), e.message ?: "No se pudo abrir el archivo.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(getApplication(), e.message ?: str(R.string.main_view_model_no_se_pudo_abrir_el_3), Toast.LENGTH_SHORT).show()
             } finally {
                 _archive.value = _archive.value?.copy(openingEntry = null)
             }
@@ -1121,14 +1125,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             val localFile = if (item.protocol == StorageProtocol.LOCAL) {
                 File(item.path)
             } else {
-                Toast.makeText(app, "Abriendo ${item.name}...", Toast.LENGTH_SHORT).show()
+                Toast.makeText(app, str(R.string.main_view_model_abriendo, item.name), Toast.LENGTH_SHORT).show()
                 val cacheDir = File(app.cacheDir, "remote_preview").apply { mkdirs() }
                 val dest = File(cacheDir, item.name)
                 val conn = item.connectionId?.let { id -> _savedConnections.value.find { it.id == id } } ?: _activeConnection.value
                 if (!dest.exists() || dest.length() != item.sizeBytes) {
                     val ok = vfsManager.downloadToLocalFile(item, conn, dest)
                     if (!ok) {
-                        Toast.makeText(app, "No se pudo descargar el archivo remoto.", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(app, str(R.string.main_view_model_no_se_pudo_descargar_el), Toast.LENGTH_SHORT).show()
                         return@launch
                     }
                 }
@@ -1158,10 +1162,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 }
                 if (!opened) {
-                    Toast.makeText(app, "No hay aplicación instalada para abrir ${item.name}", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(app, str(R.string.main_view_model_no_hay_aplicacion_instalada_para, item.name), Toast.LENGTH_SHORT).show()
                 }
             } catch (_: Exception) {
-                Toast.makeText(app, "No se pudo abrir ${item.name}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(app, str(R.string.main_view_model_no_se_pudo_abrir, item.name), Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -1178,7 +1182,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             if (ok) {
                 refreshCurrentDirectory()
             } else {
-                Toast.makeText(getApplication(), "No se pudo crear la carpeta", Toast.LENGTH_SHORT).show()
+                Toast.makeText(getApplication(), str(R.string.main_view_model_no_se_pudo_crear_la), Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -1191,7 +1195,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             if (ok) {
                 refreshCurrentDirectory()
             } else {
-                Toast.makeText(getApplication(), "No se pudo renombrar", Toast.LENGTH_SHORT).show()
+                Toast.makeText(getApplication(), str(R.string.main_view_model_no_se_pudo_renombrar), Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -1206,7 +1210,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 _duplicateResults.value = _duplicateResults.value.filterNot { it.item.path == item.path }
                 onDeleted?.invoke()
             } else {
-                Toast.makeText(getApplication(), "No se pudo eliminar ${item.name}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(getApplication(), str(R.string.main_view_model_no_se_pudo_eliminar, item.name), Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -1246,7 +1250,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun copyToClipboard(item: VfsItem, isMove: Boolean) {
         _clipboard.value = ClipboardState(items = listOf(item), isMove = isMove)
-        val msg = if (isMove) "Cortado al portapapeles: ${item.name}" else "Copiado al portapapeles: ${item.name}"
+        val msg = if (isMove) str(R.string.main_view_model_cortado_al_portapapeles, item.name) else str(R.string.main_view_model_copiado_al_portapapeles, item.name)
         Toast.makeText(getApplication(), msg, Toast.LENGTH_SHORT).show()
     }
 
@@ -1256,9 +1260,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _clipboard.value = ClipboardState(items = selected, isMove = isMove)
         _selectedPaths.value = emptySet()
         val msg = if (isMove) {
-            "${selected.size} elemento(s) listos para mover"
+            str(R.string.main_view_model_elemento_s_listos_para_mover, selected.size)
         } else {
-            "${selected.size} elemento(s) copiados al portapapeles"
+            str(R.string.main_view_model_elemento_s_copiados_al_portapapeles, selected.size)
         }
         Toast.makeText(getApplication(), msg, Toast.LENGTH_SHORT).show()
     }
@@ -1277,13 +1281,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
             _selectedPaths.value = emptySet()
             refreshCurrentDirectory()
-            Toast.makeText(getApplication(), "Eliminados $deletedCount de ${selected.size} elementos", Toast.LENGTH_SHORT).show()
+            Toast.makeText(getApplication(), str(R.string.main_view_model_eliminados_de_elementos, deletedCount, selected.size), Toast.LENGTH_SHORT).show()
         }
     }
 
     fun shareItem(item: VfsItem) {
         if (item.isDirectory) {
-            Toast.makeText(getApplication(), "Selecciona archivos para compartir", Toast.LENGTH_SHORT).show()
+            Toast.makeText(getApplication(), str(R.string.main_view_model_selecciona_archivos_para_compartir), Toast.LENGTH_SHORT).show()
             return
         }
         shareItems(listOf(item))
@@ -1292,7 +1296,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun shareSelectedItems() {
         val selectedFiles = visibleItems().filter { it.path in _selectedPaths.value && !it.isDirectory }
         if (selectedFiles.isEmpty()) {
-            Toast.makeText(getApplication(), "Selecciona al menos un archivo para compartir", Toast.LENGTH_SHORT).show()
+            Toast.makeText(getApplication(), str(R.string.main_view_model_selecciona_al_menos_un_archivo), Toast.LENGTH_SHORT).show()
             return
         }
         shareItems(selectedFiles)
@@ -1319,7 +1323,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     val dest = File(cacheDir, item.name)
                     val conn = item.connectionId?.let { id -> _savedConnections.value.find { it.id == id } } ?: _activeConnection.value
                     if (!dest.exists() || dest.length() != item.sizeBytes) {
-                        Toast.makeText(app, "Preparando ${item.name} para compartir...", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(app, str(R.string.main_view_model_preparando_para_compartir, item.name), Toast.LENGTH_SHORT).show()
                         val ok = vfsManager.downloadToLocalFile(item, conn, dest)
                         if (!ok) continue
                     }
@@ -1338,7 +1342,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
 
             if (uris.isEmpty()) {
-                Toast.makeText(app, "No se pudo compartir el archivo.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(app, str(R.string.main_view_model_no_se_pudo_compartir_el), Toast.LENGTH_SHORT).show()
                 return@launch
             }
 
@@ -1360,14 +1364,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     shareIntent.setPackage(targetPackage).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     app.startActivity(shareIntent)
                 } else {
-                    val chooser = Intent.createChooser(shareIntent, "Compartir archivo").apply {
+                    val chooser = Intent.createChooser(shareIntent, str(R.string.main_view_model_compartir_archivo)).apply {
                         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     }
                     app.startActivity(chooser)
                 }
                 _selectedPaths.value = emptySet()
             } catch (_: Exception) {
-                val msg = if (targetPackage != null) "VidForge no está instalado o no admite este archivo." else "No se encontró aplicación para compartir."
+                val msg = if (targetPackage != null) str(R.string.main_view_model_vidforge_no_esta_instalado_o) else str(R.string.main_view_model_no_se_encontro_aplicacion_para)
                 Toast.makeText(app, msg, Toast.LENGTH_SHORT).show()
             }
         }
@@ -1403,7 +1407,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
         Toast.makeText(
             getApplication(),
-            "Encolada transferencia de ${clip.items.size} archivos",
+            str(R.string.main_view_model_encolada_transferencia_de_archivos, clip.items.size),
             Toast.LENGTH_SHORT
         ).show()
     }
@@ -1472,7 +1476,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 }
             }
             _selectedSearchPaths.value = emptySet()
-            Toast.makeText(getApplication(), "Se eliminaron $count archivos", Toast.LENGTH_SHORT).show()
+            Toast.makeText(getApplication(), str(R.string.main_view_model_se_eliminaron_archivos, count), Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -1481,7 +1485,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             .filter { it.item.path in _selectedSearchPaths.value }
             .map { it.item }
         if (selectedItems.isEmpty()) {
-            Toast.makeText(getApplication(), "Selecciona al menos un archivo para compartir", Toast.LENGTH_SHORT).show()
+            Toast.makeText(getApplication(), str(R.string.main_view_model_selecciona_al_menos_un_archivo), Toast.LENGTH_SHORT).show()
             return
         }
         shareItems(selectedItems)
@@ -1495,9 +1499,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setCurrentFolderAsSearchFolderA() {
         val currentName = if (_currentProtocol.value == StorageProtocol.LOCAL) {
-            File(_currentPath.value).name.ifBlank { "Raíz" }
+            File(_currentPath.value).name.ifBlank { str(R.string.main_view_model_raiz) }
         } else {
-            "${_activeConnection.value?.name ?: "Red"}:${_currentPath.value}"
+            "${_activeConnection.value?.name ?: str(R.string.main_view_model_red)}:${_currentPath.value}"
         }
         _folderA.value = VfsItem(
             path = _currentPath.value,
@@ -1508,14 +1512,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             connectionId = _activeConnection.value?.id
         )
         _selectedTab.value = 1
-        Toast.makeText(getApplication(), "Carpeta A fijada: ${_currentPath.value}", Toast.LENGTH_SHORT).show()
+        Toast.makeText(getApplication(), str(R.string.main_view_model_carpeta_a_fijada, _currentPath.value), Toast.LENGTH_SHORT).show()
     }
 
     fun setCurrentFolderAsSearchFolderB() {
         val currentName = if (_currentProtocol.value == StorageProtocol.LOCAL) {
-            File(_currentPath.value).name.ifBlank { "Raíz" }
+            File(_currentPath.value).name.ifBlank { str(R.string.main_view_model_raiz) }
         } else {
-            "${_activeConnection.value?.name ?: "Red"}:${_currentPath.value}"
+            "${_activeConnection.value?.name ?: str(R.string.main_view_model_red)}:${_currentPath.value}"
         }
         _folderB.value = VfsItem(
             path = _currentPath.value,
@@ -1528,7 +1532,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _compareTwoFolders.value = true
         _searchToolIndex.value = 1
         _selectedTab.value = 1
-        Toast.makeText(getApplication(), "Carpeta B fijada para comparar: ${_currentPath.value}", Toast.LENGTH_SHORT).show()
+        Toast.makeText(getApplication(), str(R.string.main_view_model_carpeta_b_fijada_para_comparar, _currentPath.value), Toast.LENGTH_SHORT).show()
     }
 
     fun setFolderAsSearchTarget(folder: VfsItem, asFolderB: Boolean) {
@@ -1545,13 +1549,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setDuplicateTargetShortcut(folderType: String) {
         val (targetDir, label) = when (folderType) {
-            "DOWNLOADS" -> File(defaultLocalRoot, "Download") to "Descargas"
+            "DOWNLOADS" -> File(defaultLocalRoot, "Download") to str(R.string.explorer_descargas)
             "CAMERA" -> {
                 val cam = File(defaultLocalRoot, "DCIM/Camera")
-                if (cam.exists()) cam to "Fotos y Cámara" else File(defaultLocalRoot, "DCIM") to "Fotos y Cámara"
+                if (cam.exists()) cam to str(R.string.main_view_model_fotos_y_camara) else File(defaultLocalRoot, "DCIM") to str(R.string.main_view_model_fotos_y_camara)
             }
-            "INTERNAL" -> File(defaultLocalRoot) to "Todo el Almacenamiento"
-            else -> File(defaultLocalRoot) to "Almacenamiento Interno"
+            "INTERNAL" -> File(defaultLocalRoot) to str(R.string.main_view_model_todo_el_almacenamiento)
+            else -> File(defaultLocalRoot) to str(R.string.storage_internal)
         }
         if (!targetDir.exists()) targetDir.mkdirs()
         _folderA.value = VfsItem(
@@ -1596,7 +1600,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 }
             }
             _selectedDuplicatePaths.value = emptySet()
-            Toast.makeText(getApplication(), "Se eliminaron $count archivos duplicados", Toast.LENGTH_SHORT).show()
+            Toast.makeText(getApplication(), str(R.string.main_view_model_se_eliminaron_archivos_duplicados, count), Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -1646,7 +1650,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
         _isScanning.value = true
         _scanProgress.value = 0f
-        _scanStatusText.value = "Recolectando archivos en ${targetA.path}..."
+        _scanStatusText.value = str(R.string.main_view_model_recolectando_archivos_en, targetA.path)
         _scanMetricsText.value = ""
 
         scanJob = viewModelScope.launch {
@@ -1658,11 +1662,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     recursive = _isRecursiveScan.value,
                     includeDirectories = false
                 ) { count, lastFile ->
-                    _scanStatusText.value = "Descubiertos $count archivos ($lastFile)..."
+                    _scanStatusText.value = str(R.string.main_view_model_descubiertos_archivos, count, lastFile)
                 }
 
                 if (filesA.isEmpty()) {
-                    _scanStatusText.value = "No se encontraron archivos en la carpeta indicada."
+                    _scanStatusText.value = str(R.string.main_view_model_no_se_encontraron_archivos_en)
                     _isScanning.value = false
                     return@launch
                 }
@@ -1683,7 +1687,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                             analyzeMediaHeaders = true
                         ) { current, total, name ->
                             _scanProgress.value = if (total > 0) (current * 100f) / total else 0f
-                            _scanStatusText.value = "Analizando [$current/$total] $name"
+                            _scanStatusText.value = str(R.string.main_view_model_analizando, current, total, name)
                         }
 
                         _searchResults.value = results
@@ -1694,8 +1698,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         val vCount = results.count { it.orientation == "Vertical" }
                         val hCount = results.count { it.orientation == "Horizontal" }
                         val totalSize = results.sumOf { it.item.sizeBytes }
-                        _scanStatusText.value = "Análisis completado."
-                        _scanMetricsText.value = "${results.size} archivos (${formatBytes(totalSize)}) • $vCount Vert. • $hCount Horiz. • ${summaries.size} cámaras"
+                        _scanStatusText.value = str(R.string.main_view_model_analisis_completado)
+                        _scanMetricsText.value = str(R.string.main_view_model_archivos_vert_horiz_camaras, results.size, formatBytes(totalSize), vCount, hCount, summaries.size)
                     }
 
                     1 -> {
@@ -1704,7 +1708,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         if (_compareTwoFolders.value && folderBSnapshot != null) {
                             val targetB = folderBSnapshot
                             val connB = targetB.connectionId?.let { connMap[it] }
-                            _scanStatusText.value = "Recolectando archivos en Carpeta B (${targetB.path})..."
+                            _scanStatusText.value = str(R.string.main_view_model_recolectando_archivos_en_carpeta_b, targetB.path)
                             filesB = vfsManager.collectFilesRecursive(
                                 rootPath = targetB.path,
                                 protocol = targetB.protocol,
@@ -1720,19 +1724,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                             connectionMap = connMap
                         ) { current, total, name ->
                             _scanProgress.value = if (total > 0) (current * 100f) / total else 0f
-                            _scanStatusText.value = "Verificando SHA-256 [$current/$total] $name"
+                            _scanStatusText.value = str(R.string.main_view_model_verificando_sha_256, current, total, name)
                         }
 
                         _duplicateResults.value = dups
                         _selectedDuplicatePaths.value = emptySet()
                         val groups = dups.map { it.groupId }.distinct().size
                         val wastedBytes = dups.filter { !it.isPrimary }.sumOf { it.item.sizeBytes }
-                        _scanStatusText.value = "Búsqueda de duplicados finalizada."
-                        _scanMetricsText.value = "$groups grupos detectados (${dups.size} archivos) • Espacio recuperable: ${formatBytes(wastedBytes)}"
+                        _scanStatusText.value = str(R.string.main_view_model_busqueda_de_duplicados_finalizada)
+                        _scanMetricsText.value = str(R.string.main_view_model_grupos_detectados_archivos_espacio_recuperable, groups, dups.size, formatBytes(wastedBytes))
                     }
                 }
             } catch (e: Exception) {
-                _scanStatusText.value = "Escaneo interrumpido: ${e.localizedMessage ?: ""}"
+                _scanStatusText.value = str(R.string.main_view_model_escaneo_interrumpido, e.localizedMessage ?: "")
             } finally {
                 _isScanning.value = false
                 _scanProgress.value = 100f
@@ -1743,14 +1747,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun cancelSmartScan() {
         scanJob?.cancel()
         _isScanning.value = false
-        _scanStatusText.value = "Escaneo cancelado por el usuario."
+        _scanStatusText.value = str(R.string.main_view_model_escaneo_cancelado_por_el_usuario)
     }
 
     fun exportCsvReport(exportDetails: Boolean) {
         val items = _searchResults.value
         val summaries = _deviceSummaries.value
         if (items.isEmpty()) {
-            Toast.makeText(getApplication(), "Primero realiza un análisis para exportar.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(getApplication(), str(R.string.main_view_model_primero_realiza_un_analisis_para), Toast.LENGTH_SHORT).show()
             return
         }
         viewModelScope.launch {
@@ -1762,13 +1766,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 searchEngine.exportResultsToCsv(file, items, summaries, exportDetails)
                 Toast.makeText(
                     getApplication(),
-                    "CSV guardado en Descargas: ${file.name}",
+                    str(R.string.main_view_model_csv_guardado_en_descargas, file.name),
                     Toast.LENGTH_LONG
                 ).show()
             } catch (e: Exception) {
                 Toast.makeText(
                     getApplication(),
-                    "Error al exportar CSV: ${e.localizedMessage}",
+                    str(R.string.main_view_model_error_al_exportar_csv, e.localizedMessage.orEmpty()),
                     Toast.LENGTH_SHORT
                 ).show()
             }

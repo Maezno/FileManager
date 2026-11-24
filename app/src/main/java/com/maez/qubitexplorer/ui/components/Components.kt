@@ -453,9 +453,9 @@ fun SegmentedTabs(
         ) {
             options.forEachIndexed { index, (label, icon) ->
                 val selected = index == selectedIndex
-                val bg by animateColorAsState(if (selected) NavSelectedPill else Color.Transparent, animationSpec = Motion.fade(), label = stringResource(R.string.components_segbg))
-                val border by animateColorAsState(if (selected) SelectedVioletBorder else Color.Transparent, animationSpec = Motion.fade(), label = stringResource(R.string.components_segborder))
-                val fg by animateColorAsState(if (selected) TextPrimary else TextMuted, animationSpec = Motion.fade(), label = stringResource(R.string.components_segfg))
+                val bg by animateColorAsState(if (selected) NavSelectedPill else Color.Transparent, animationSpec = Motion.fade(), label = "segBg")
+                val border by animateColorAsState(if (selected) SelectedVioletBorder else Color.Transparent, animationSpec = Motion.fade(), label = "segBorder")
+                val fg by animateColorAsState(if (selected) TextPrimary else TextMuted, animationSpec = Motion.fade(), label = "segFg")
 
                 Box(
                     modifier = Modifier
@@ -503,8 +503,8 @@ fun SelectChip(
     accent: Color = Violet,
     onClear: (() -> Unit)? = null
 ) {
-    val bg by animateColorAsState(if (selected) SelectedViolet else GlassTint, animationSpec = Motion.fade(), label = stringResource(R.string.components_chipbg))
-    val border by animateColorAsState(if (selected) SelectedVioletBorder else GlassBorder, animationSpec = Motion.fade(), label = stringResource(R.string.components_chipborder))
+    val bg by animateColorAsState(if (selected) SelectedViolet else GlassTint, animationSpec = Motion.fade(), label = "chipBg")
+    val border by animateColorAsState(if (selected) SelectedVioletBorder else GlassBorder, animationSpec = Motion.fade(), label = "chipBorder")
 
     GlassSurface(
         shape = GlassChipShape,
@@ -740,7 +740,7 @@ fun <T> DropdownField(
     icon: ImageVector? = null
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val borderColor by animateColorAsState(if (expanded) Aqua else GlassBorder, animationSpec = Motion.fade(), label = stringResource(R.string.components_ddborder))
+    val borderColor by animateColorAsState(if (expanded) Aqua else GlassBorder, animationSpec = Motion.fade(), label = "ddBorder")
 
     Column(modifier = modifier) {
         GlassSurface(
@@ -922,7 +922,7 @@ fun GlassDropdownMenu(
 
 @Composable
 fun AppProgressBar(progress: Float, modifier: Modifier = Modifier, color: Color = Aqua) {
-    val animated by animateFloatAsState((progress / 100f).coerceIn(0f, 1f), label = stringResource(R.string.components_progress))
+    val animated by animateFloatAsState((progress / 100f).coerceIn(0f, 1f), label = "progress")
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -991,7 +991,7 @@ fun Tag(text: String, color: Color) {
 
 private data class BottomTabItem(
     val index: Int,
-    val label: String,
+    @androidx.annotation.StringRes val labelRes: Int,
     val icon: ImageVector
 )
 
@@ -1004,10 +1004,10 @@ fun GlassBottomBar(
 ) {
     val items = remember {
         listOf(
-            BottomTabItem(0, "Explorador", Icons.Default.Folder),
-            BottomTabItem(1, "Pesados", Icons.Default.Storage),
-            BottomTabItem(2, "Red LAN", Icons.Default.Lan),
-            BottomTabItem(3, "Ajustes", Icons.Default.Settings)
+            BottomTabItem(0, R.string.components_explorador, Icons.Default.Folder),
+            BottomTabItem(1, R.string.components_pesados, Icons.Default.Storage),
+            BottomTabItem(2, R.string.components_red_lan, Icons.Default.Lan),
+            BottomTabItem(3, R.string.components_ajustes, Icons.Default.Settings)
         )
     }
 
@@ -1047,7 +1047,7 @@ fun GlassBottomBar(
                 val indicatorOffset by animateDpAsState(
                     targetValue = getTabOffset(selectedTab),
                     animationSpec = Motion.indicator(),
-                    label = stringResource(R.string.components_indicatoroffset)
+                    label = "indicatorOffset"
                 )
 
                 Box(
@@ -1068,8 +1068,8 @@ fun GlassBottomBar(
                     items.forEach { item ->
                         val selected = item.index == selectedTab
                         val tabItemWidth = if (selected) activeWidth else baseInactiveWidth
-                        val iconColor by animateColorAsState(if (selected) Aqua else TextMuted, animationSpec = Motion.fade(), label = stringResource(R.string.components_iconcolor))
-                        val textColor by animateColorAsState(if (selected) TextPrimary else TextMuted, animationSpec = Motion.fade(), label = stringResource(R.string.components_textcolor))
+                        val iconColor by animateColorAsState(if (selected) Aqua else TextMuted, animationSpec = Motion.fade(), label = "iconColor")
+                        val textColor by animateColorAsState(if (selected) TextPrimary else TextMuted, animationSpec = Motion.fade(), label = "textColor")
 
                         Box(
                             modifier = Modifier
@@ -1086,7 +1086,7 @@ fun GlassBottomBar(
                             ) {
                                 Icon(
                                     imageVector = item.icon,
-                                    contentDescription = item.label,
+                                    contentDescription = stringResource(item.labelRes),
                                     tint = iconColor,
                                     modifier = Modifier.size(19.dp)
                                 )
@@ -1098,7 +1098,7 @@ fun GlassBottomBar(
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Spacer(Modifier.width(4.dp))
                                         Text(
-                                            text = item.label,
+                                            text = stringResource(item.labelRes),
                                             color = textColor,
                                             fontSize = 11.5.sp,
                                             fontWeight = FontWeight.Bold,

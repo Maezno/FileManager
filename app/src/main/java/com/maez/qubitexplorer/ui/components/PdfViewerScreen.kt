@@ -127,6 +127,7 @@ fun PdfViewerScreen(
     onShare: () -> Unit,
     onClose: () -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     Dialog(
         onDismissRequest = onClose,
         properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)
@@ -140,9 +141,9 @@ fun PdfViewerScreen(
             try {
                 doc = withContext(Dispatchers.IO) { PdfDocumentHolder(File(localPath)) }
             } catch (e: SecurityException) {
-                error = "El PDF está protegido con contraseña y no se puede abrir aquí."
+                error = context.getString(R.string.pdf_viewer_el_pdf_esta_protegido_con)
             } catch (e: Exception) {
-                error = "No se pudo abrir el PDF (${e.javaClass.simpleName})."
+                error = context.getString(R.string.pdf_viewer_no_se_pudo_abrir_el, e.javaClass.simpleName)
             }
         }
         DisposableEffect(doc) {
@@ -168,25 +169,25 @@ fun PdfViewerScreen(
                 Modifier.fillMaxWidth().background(Color(0xFF1C1D22)).padding(horizontal = 4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = onClose) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Cerrar", tint = Color.White) }
+                IconButton(onClick = onClose) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.close), tint = Color.White) }
                 Column(Modifier.weight(1f)) {
                     Text(fileName, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     doc?.let { Text(stringResource(R.string.pdf_viewer_pagina_de, currentPage, it.pageCount), color = Color(0xFFB0B4C0), fontSize = 11.sp) }
                 }
                 IconButton(onClick = { textMode = !textMode }) {
                     Icon(
-                        Icons.Default.TextFields, "Seleccionar texto",
+                        Icons.Default.TextFields, stringResource(R.string.pdf_viewer_seleccionar_texto),
                         tint = if (textMode) Color(0xFF82AAFF) else Color.White
                     )
                 }
                 if (!textMode) IconButton(onClick = { scale = (scale / 1.25f).coerceAtLeast(1f); if (scale == 1f) offset = Offset.Zero }) {
-                    Icon(Icons.Default.ZoomOut, "Alejar", tint = Color.White)
+                    Icon(Icons.Default.ZoomOut, stringResource(R.string.pdf_viewer_alejar), tint = Color.White)
                 }
                 if (!textMode) IconButton(onClick = { scale = (scale * 1.25f).coerceAtMost(5f) }) {
-                    Icon(Icons.Default.ZoomIn, "Acercar", tint = Color.White)
+                    Icon(Icons.Default.ZoomIn, stringResource(R.string.pdf_viewer_acercar), tint = Color.White)
                 }
-                IconButton(onClick = onShare) { Icon(Icons.Default.Share, "Compartir", tint = Color.White) }
-                IconButton(onClick = onOpenExternal) { Icon(Icons.AutoMirrored.Filled.OpenInNew, "Abrir con otra app", tint = Color.White) }
+                IconButton(onClick = onShare) { Icon(Icons.Default.Share, stringResource(R.string.explorer_compartir), tint = Color.White) }
+                IconButton(onClick = onOpenExternal) { Icon(Icons.AutoMirrored.Filled.OpenInNew, stringResource(R.string.office_viewer_abrir_con_otra_app), tint = Color.White) }
             }
 
             Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {

@@ -102,6 +102,7 @@ fun OfficeViewerScreen(
     onShare: () -> Unit,
     onClose: () -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     Dialog(
         onDismissRequest = onClose,
         properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)
@@ -124,17 +125,17 @@ fun OfficeViewerScreen(
                     in OfficeFormats.XLSX -> OfficeLoad.Xlsx(XlsxReader.read(f))
                     in OfficeFormats.XLS -> OfficeLoad.Xlsx(com.maez.qubitexplorer.services.XlsReader.read(f))
                     in OfficeFormats.ODS -> OfficeLoad.Xlsx(com.maez.qubitexplorer.services.OdsReader.read(f))
-                    else -> OfficeLoad.Error("Formato no soportado.")
+                    else -> OfficeLoad.Error(context.getString(R.string.office_viewer_formato_no_soportado))
                 }
             } catch (e: Throwable) {
-                OfficeLoad.Error("No se pudo leer el documento (${e.message ?: e.javaClass.simpleName}).")
+                OfficeLoad.Error(context.getString(R.string.office_viewer_no_se_pudo_leer_el, e.message ?: e.javaClass.simpleName))
             }
         }
 
         val subtitle = when (val s = state) {
-            is OfficeLoad.Docx -> when (ext) { in OfficeFormats.ODT -> "Documento de texto (ODT)"; in OfficeFormats.DOC -> "Documento de Word 97-2003"; else -> "Documento de Word" }
-            is OfficeLoad.Pptx -> "Presentación · ${s.doc.slides.size} diapositivas"
-            is OfficeLoad.Xlsx -> "Hoja de cálculo · ${s.doc.sheets.size} hojas"
+            is OfficeLoad.Docx -> when (ext) { in OfficeFormats.ODT -> stringResource(R.string.office_viewer_documento_de_texto_odt); in OfficeFormats.DOC -> stringResource(R.string.office_viewer_documento_de_word_97_2003); else -> stringResource(R.string.office_viewer_documento_de_word) }
+            is OfficeLoad.Pptx -> stringResource(R.string.office_viewer_presentacion_diapositivas, s.doc.slides.size)
+            is OfficeLoad.Xlsx -> stringResource(R.string.office_viewer_hoja_de_calculo_hojas, s.doc.sheets.size)
             else -> ""
         }
 
@@ -149,13 +150,13 @@ fun OfficeViewerScreen(
                 Modifier.fillMaxWidth().background(BarBg).padding(horizontal = 4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = onClose) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Cerrar", tint = Color.White) }
+                IconButton(onClick = onClose) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.close), tint = Color.White) }
                 Column(Modifier.weight(1f)) {
                     Text(fileName, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     if (subtitle.isNotEmpty()) Text(subtitle, color = Color(0xFFB0B4C0), fontSize = 11.sp)
                 }
-                IconButton(onClick = onShare) { Icon(Icons.Default.Share, "Compartir", tint = Color.White) }
-                IconButton(onClick = onOpenExternal) { Icon(Icons.AutoMirrored.Filled.OpenInNew, "Abrir con otra app", tint = Color.White) }
+                IconButton(onClick = onShare) { Icon(Icons.Default.Share, stringResource(R.string.explorer_compartir), tint = Color.White) }
+                IconButton(onClick = onOpenExternal) { Icon(Icons.AutoMirrored.Filled.OpenInNew, stringResource(R.string.office_viewer_abrir_con_otra_app), tint = Color.White) }
             }
             Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                 when (val s = state) {
@@ -308,7 +309,7 @@ private fun PptxView(doc: PptxDocument) {
                         }
                     }
                 }
-                Text(stringResource(R.string.office_viewer_diapositiva, index + 1) + (slide.notes?.let { " · Notas: $it" } ?: ""),
+                Text(stringResource(R.string.office_viewer_diapositiva, index + 1) + (slide.notes?.let { stringResource(R.string.office_viewer_notas, it) } ?: ""),
                     color = Color(0xFFB0B4C0), fontSize = 11.sp, maxLines = 3, overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.padding(top = 4.dp, start = 2.dp)
                 )
@@ -397,7 +398,7 @@ private fun SheetGrid(sheet: SheetData) {
             Text(label, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = selBorder, modifier = Modifier.width(78.dp), maxLines = 1)
             Box(Modifier.weight(1f)) { androidx.compose.foundation.text.selection.SelectionContainer {
                 Text(
-                    anchor?.let { (r, c) -> sheet.cells[r]?.get(c) } ?: "Tocá una celda · mantené presionado para elegir un rango",
+                    anchor?.let { (r, c) -> sheet.cells[r]?.get(c) } ?: stringResource(R.string.office_viewer_toca_una_celda_mantene_presionado),
                     fontSize = 12.sp,
                     color = if (anchor == null) Color(0xFF8A8FA3) else PaperText,
                     maxLines = 2, overflow = TextOverflow.Ellipsis
@@ -414,7 +415,7 @@ private fun SheetGrid(sheet: SheetData) {
                     .padding(horizontal = 8.dp, vertical = 4.dp)
             )
             IconButton(onClick = { copySelection() }, enabled = range != null) {
-                Icon(Icons.Default.ContentCopy, "Copiar celdas", tint = if (range != null) selBorder else Color(0xFFBFC3CC))
+                Icon(Icons.Default.ContentCopy, stringResource(R.string.office_viewer_copiar_celdas), tint = if (range != null) selBorder else Color(0xFFBFC3CC))
             }
         }
         // Encabezado de columnas: tocar selecciona la columna; la esquina selecciona todo
