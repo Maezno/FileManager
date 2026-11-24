@@ -348,7 +348,7 @@ class SmartSearchEngine(
                 found.contains("LAVF") || found.contains("FFMPEG") -> "FFmpeg / Lavf"
                 else -> editorMatch.value
             }
-            return "[Editado] $label"
+            return context.getString(R.string.device_edited, label)
         }
 
         // 9. Android genérico

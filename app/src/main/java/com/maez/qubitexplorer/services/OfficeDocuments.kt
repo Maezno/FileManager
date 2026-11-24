@@ -411,7 +411,7 @@ object XlsxReader {
             zip.parser("xl/workbook.xml")?.let { p ->
                 while (p.next() != XmlPullParser.END_DOCUMENT) {
                     if (p.eventType == XmlPullParser.START_TAG && p.name == "sheet") {
-                        val name = p.attr("name") ?: "Hoja"
+                        val name = p.attr("name") ?: defaultSheetName()
                         val target = p.attr("r:id")?.let { wbRels[it] }
                         if (target != null) sheetRefs += name to target
                     }
@@ -481,7 +481,7 @@ object XlsxReader {
                         val raw = value.toString()
                         val text = when (type) {
                             "s" -> raw.toIntOrNull()?.let { shared.getOrNull(it) } ?: raw
-                            "b" -> if (raw == "1") "VERDADERO" else "FALSO"
+                            "b" -> if (raw == "1") sheetBoolean(true) else sheetBoolean(false)
                             "e" -> raw
                             else -> formatNumber(raw)
                         }

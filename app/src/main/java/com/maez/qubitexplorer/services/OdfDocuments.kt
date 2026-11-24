@@ -205,14 +205,14 @@ object OdsReader {
             while (p.next() != XmlPullParser.END_DOCUMENT) {
                 when (p.eventType) {
                     XmlPullParser.START_TAG -> when (p.name) {
-                        "table:table" -> { cells = HashMap(); name = p.a("table:name") ?: "Hoja"; r = 0; maxR = 0; maxC = 0; truncated = false }
+                        "table:table" -> { cells = HashMap(); name = p.a("table:name") ?: defaultSheetName(); r = 0; maxR = 0; maxC = 0; truncated = false }
                         "table:table-row" -> { c = 0; rowRepeat = (p.a("table:number-rows-repeated")?.toIntOrNull() ?: 1).coerceAtLeast(1) }
                         "table:table-cell", "table:covered-table-cell" -> {
                             colRepeat = (p.a("table:number-columns-repeated")?.toIntOrNull() ?: 1).coerceAtLeast(1)
                             text.setLength(0); pCount = 0
                             cellValue = when (p.a("office:value-type")) {
                                 "float", "percentage", "currency" -> p.a("office:value")?.let(::fmtNum)
-                                "boolean" -> if (p.a("office:boolean-value") == "true") "VERDADERO" else "FALSO"
+                                "boolean" -> if (p.a("office:boolean-value") == "true") sheetBoolean(true) else sheetBoolean(false)
                                 else -> null
                             }
                         }

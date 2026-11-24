@@ -367,13 +367,13 @@ object XlsReader {
                     for (k in 0 until n) put(row, first + k, fmt(rk(d.i32(4 + k * 6 + 2))))
                 }
                 LABEL -> put(d.u16(0), d.u16(2), xlString(d, 6))
-                BOOLERR -> put(d.u16(0), d.u16(2), if (d[7].toInt() == 0) (if (d[6].toInt() != 0) "VERDADERO" else "FALSO") else "#ERROR")
+                BOOLERR -> put(d.u16(0), d.u16(2), if (d[7].toInt() == 0) (if (d[6].toInt() != 0) sheetBoolean(true) else sheetBoolean(false)) else "#ERROR")
                 FORMULA -> {
                     val row = d.u16(0); val col = d.u16(2)
                     if (d.u16(12) == 0xFFFF) {
                         when (d[6].toInt()) {
                             0 -> pendingFormula = row to col // el texto viene en el registro STRING siguiente
-                            1 -> put(row, col, if (d[8].toInt() != 0) "VERDADERO" else "FALSO")
+                            1 -> put(row, col, if (d[8].toInt() != 0) sheetBoolean(true) else sheetBoolean(false))
                             2 -> put(row, col, "#ERROR")
                         }
                     } else put(row, col, fmt(d.f64(6)))
