@@ -5,11 +5,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-enum class StorageProtocol(val label: String) {
-    LOCAL("Local"),
-    SMB("SMB (Windows / NAS)"),
-    FTP("FTP / FTPS")
-}
+enum class StorageProtocol { LOCAL, SMB, FTP }
 
 enum class FileCategory(@androidx.annotation.StringRes val labelRes: Int) {
     ALL(R.string.file_category_all),
@@ -44,11 +40,7 @@ enum class FileCategory(@androidx.annotation.StringRes val labelRes: Int) {
     }
 }
 
-enum class MediaOrientation(val label: String) {
-    ALL("Todas"),
-    VERTICAL("Vertical"),
-    HORIZONTAL("Horizontal")
-}
+enum class MediaOrientation { ALL, VERTICAL, HORIZONTAL }
 
 enum class SortField(@androidx.annotation.StringRes val labelRes: Int) {
     NAME(R.string.sort_field_name),
@@ -85,7 +77,7 @@ data class VfsItem(
         get() = FileCategory.fromExtension(extension, isDirectory)
 
     val sizeFormatted: String
-        get() = if (isDirectory) "Carpeta" else formatBytes(sizeBytes)
+        get() = if (isDirectory) "" else formatBytes(sizeBytes)
 
     val dateFormatted: String
         get() = if (lastModified <= 0L) "--" else SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date(lastModified))
@@ -124,7 +116,7 @@ data class DiscoveredHost(
 
 data class MediaSearchItem(
     val item: VfsItem,
-    val deviceModel: String = "Desconocido",
+    val deviceModel: String = "",
     val orientation: String = "Horizontal", // "Vertical" | "Horizontal" | "Cuadrado" | "N/A"
     val resolution: String = "",
     val rotation: Int = 0,

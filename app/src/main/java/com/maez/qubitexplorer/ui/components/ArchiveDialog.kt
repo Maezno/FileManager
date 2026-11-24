@@ -204,7 +204,7 @@ fun ArchiveBrowserScreen(
                         Text(stringResource(R.string.archive_leyendo_contenido), color = TextMuted, fontSize = 13.sp)
                     }
                     else -> LazyColumn(Modifier.fillMaxSize()) {
-                        state.listing?.note?.let { note -> item { Text(note, color = Danger, fontSize = 12.sp, modifier = Modifier.padding(12.dp)) } }
+                        state.listing?.note?.let { note -> item { Text(stringResource(note), color = Danger, fontSize = 12.sp, modifier = Modifier.padding(12.dp)) } }
                         items(tree.list(currentDir), key = { it.path }) { node ->
                             val checked = isCoveredBySelection(node.path, selection)
                             val partial = !checked && node.isDir && selection.any { it.startsWith(node.path + "/") }

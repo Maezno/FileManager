@@ -1,5 +1,6 @@
 package com.maez.qubitexplorer.services
 
+import com.maez.qubitexplorer.R
 import com.github.junrar.Archive
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ensureActive
@@ -21,7 +22,7 @@ data class ArchiveEntryInfo(val name: String, val size: Long, val isDirectory: B
 data class ArchiveListing(
     val format: String,
     val entries: List<ArchiveEntryInfo>,
-    val note: String? = null
+    @param:androidx.annotation.StringRes val note: Int? = null
 ) {
     val totalSize: Long get() = entries.sumOf { it.size }
     val fileCount: Int get() = entries.count { !it.isDirectory }
@@ -81,7 +82,7 @@ object ArchiveExtractor {
 
     suspend fun list(file: File): ArchiveListing = withContext(Dispatchers.IO) {
         val entries = mutableListOf<ArchiveEntryInfo>()
-        var note: String? = null
+        var note: Int? = null
         when (kindOf(file)) {
             Kind.ZIP -> ZipFile.builder().setFile(file).get().use { zip ->
                 zip.entries.asSequence().forEach {
@@ -92,7 +93,7 @@ object ArchiveExtractor {
                 sz.entries.forEach { entries += ArchiveEntryInfo(it.name, it.size, it.isDirectory) }
             }
             Kind.RAR -> Archive(file).use { rar ->
-                if (rar.isEncrypted) note = "El RAR está protegido con contraseña."
+                if (rar.isEncrypted) note = R.string.archive_extractor_el_rar_esta_protegido_con
                 rar.fileHeaders.forEach {
                     entries += ArchiveEntryInfo(it.fileName.replace('\\', '/'), it.fullUnpackSize, it.isDirectory)
                 }
@@ -215,7 +216,7 @@ object ArchiveExtractor {
                 }
             }
             Kind.RAR -> Archive(file).use { rar ->
-                if (rar.isEncrypted) throw IllegalStateException("El RAR está protegido con contraseña.")
+                if (rar.isEncrypted) throw AppException(R.string.archive_extractor_el_rar_esta_protegido_con, passwordProtected = true)
                 for (h in rar.fileHeaders) {
                     coroutineContext.ensureActive()
                     val name = h.fileName.replace('\\', '/')

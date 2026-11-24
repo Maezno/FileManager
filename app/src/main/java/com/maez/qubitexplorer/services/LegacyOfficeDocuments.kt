@@ -1,5 +1,6 @@
 package com.maez.qubitexplorer.services
 
+import com.maez.qubitexplorer.R
 import java.io.File
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -28,7 +29,7 @@ class Ole2File(private val data: ByteArray) {
     data class Entry(val name: String, val type: Int, val start: Int, val size: Long)
 
     init {
-        require(data.size >= 512 && bb.getLong(0) == -0x1ee54e5e1fee3030L) { "No es un archivo OLE2" }
+        if (!(data.size >= 512 && bb.getLong(0) == -0x1ee54e5e1fee3030L)) throw AppException(R.string.legacy_office_documents_no_es_un_archivo_ole2)
         sectorSize = 1 shl (bb.getShort(30).toInt() and 0xFFFF)
         miniSectorSize = 1 shl (bb.getShort(32).toInt() and 0xFFFF)
         val numFat = bb.getInt(44)
@@ -108,7 +109,7 @@ class Ole2File(private val data: ByteArray) {
 
     companion object {
         fun open(file: File): Ole2File {
-            require(file.length() < 64L * 1024 * 1024) { "Archivo demasiado grande para la vista previa" }
+            if (!(file.length() < 64L * 1024 * 1024)) throw AppException(R.string.legacy_office_documents_archivo_demasiado_grande_para_la)
             return Ole2File(file.readBytes())
         }
     }
@@ -127,12 +128,12 @@ private val CP1252: Charset = runCatching { Charset.forName("windows-1252") }.ge
 object DocReader {
     suspend fun read(file: File): DocxDocument = withContext(Dispatchers.IO) {
         val ole = Ole2File.open(file)
-        val word = ole.stream("WordDocument") ?: throw IllegalArgumentException("No es un documento de Word")
-        require(word.u16(0) == 0xA5EC) { "Formato de Word no soportado (anterior a Word 97)" }
+        val word = ole.stream("WordDocument") ?: throw AppException(R.string.legacy_office_documents_no_es_un_documento_de)
+        if (!(word.u16(0) == 0xA5EC)) throw AppException(R.string.legacy_office_documents_formato_de_word_no_soportado)
         val flags = word.u16(0x0A)
-        if (flags and 0x0100 != 0) throw IllegalStateException("El documento está protegido con contraseña.")
+        if (flags and 0x0100 != 0) throw AppException(R.string.legacy_office_documents_el_documento_esta_protegido_con, passwordProtected = true)
         val table = ole.stream(if (flags and 0x0200 != 0) "1Table" else "0Table")
-            ?: throw IllegalArgumentException("Falta la tabla del documento")
+            ?: throw AppException(R.string.legacy_office_documents_falta_la_tabla_del_documento)
         // FibRgLw97: ccpText, ccpFtn, ccpHdd, ccpMcr, ccpAtn, ccpEdn, ccpTxbx, ccpHdrTxbx (a partir de 0x4C)
         val ccp = IntArray(8) { word.i32(0x4C + it * 4).coerceAtLeast(0) }
         val fcClx = word.i32(0x01A2)
@@ -161,7 +162,7 @@ object DocReader {
         val end = (fcClx + lcbClx).coerceAtMost(table.size)
         // Saltar Prc (propiedades) hasta el Pcdt
         while (i < end && table[i].toInt() == 0x01) i += 3 + table.u16(i + 1)
-        require(i < end && table[i].toInt() == 0x02) { "Tabla de piezas no encontrada" }
+        if (!(i < end && table[i].toInt() == 0x02)) throw AppException(R.string.legacy_office_documents_tabla_de_piezas_no_encontrada)
         val lcb = table.i32(i + 1)
         val plc = i + 5
         val n = (lcb - 4) / 12
@@ -299,7 +300,7 @@ object XlsReader {
     suspend fun read(file: File, maxRows: Int = 5000, maxCols: Int = 200): XlsxDocument = withContext(Dispatchers.IO) {
         val ole = Ole2File.open(file)
         val wb = ole.stream("Workbook") ?: ole.stream("Book")
-            ?: throw IllegalArgumentException("No es un libro de Excel")
+            ?: throw AppException(R.string.legacy_office_documents_no_es_un_libro_de)
         val recs = ArrayList<Rec>()
         var p = 0
         while (p + 4 <= wb.size) {
@@ -308,7 +309,7 @@ object XlsReader {
             recs += Rec(type, p, wb.copyOfRange(p + 4, p + 4 + len))
             p += 4 + len
         }
-        if (recs.any { it.type == FILEPASS }) throw IllegalStateException("El libro está protegido con contraseña.")
+        if (recs.any { it.type == FILEPASS }) throw AppException(R.string.legacy_office_documents_el_libro_esta_protegido_con, passwordProtected = true)
 
         val sheetNames = LinkedHashMap<Int, String>()
         var sst: List<String> = emptyList()
@@ -459,8 +460,8 @@ object PptReader {
 
     suspend fun read(file: File): PptxDocument = withContext(Dispatchers.IO) {
         val ole = Ole2File.open(file)
-        val s = ole.stream("PowerPoint Document") ?: throw IllegalArgumentException("No es una presentación de PowerPoint")
-        if (ole.entries.any { it.name.equals("EncryptedSummary", true) }) throw IllegalStateException("La presentación está protegida con contraseña.")
+        val s = ole.stream("PowerPoint Document") ?: throw AppException(R.string.legacy_office_documents_no_es_una_presentacion_de)
+        if (ole.entries.any { it.name.equals("EncryptedSummary", true) }) throw AppException(R.string.legacy_office_documents_la_presentacion_esta_protegida_con, passwordProtected = true)
 
         // Tamaño de diapositiva (unidades maestras: 576 por pulgada → EMU = x * 1587.5)
         var cx = 9_144_000L; var cy = 6_858_000L

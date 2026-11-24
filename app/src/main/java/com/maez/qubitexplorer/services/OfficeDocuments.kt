@@ -1,5 +1,6 @@
 package com.maez.qubitexplorer.services
 
+import com.maez.qubitexplorer.R
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.util.Xml
@@ -140,7 +141,7 @@ object DocxReader {
     suspend fun read(file: File): DocxDocument = withContext(Dispatchers.IO) {
         ZipFile(file).use { zip ->
             val rels = zip.rels("word/_rels/document.xml.rels", "word")
-            val p = zip.parser("word/document.xml") ?: throw IllegalArgumentException("No es un DOCX válido")
+            val p = zip.parser("word/document.xml") ?: throw AppException(R.string.office_documents_no_es_un_docx_valido)
             val blocks = ArrayList<DocBlock>()
             var images = 0
 

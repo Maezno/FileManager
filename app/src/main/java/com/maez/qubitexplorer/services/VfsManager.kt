@@ -1,5 +1,6 @@
 package com.maez.qubitexplorer.services
 
+import com.maez.qubitexplorer.R
 import com.hierynomus.msdtyp.AccessMask
 import com.hierynomus.mssmb2.SMB2CreateDisposition
 import com.hierynomus.mssmb2.SMB2ShareAccess
@@ -128,32 +129,6 @@ class VfsManager {
         }
     }
 
-    private fun translateSmbException(e: Exception, host: String): Exception {
-        val msg = e.message ?: e.toString()
-        val readable = when {
-            msg.contains("STATUS_LOGON_FAILURE", ignoreCase = true) ||
-                msg.contains("0xc000006d", ignoreCase = true) ||
-                msg.contains("Logon failure", ignoreCase = true) ->
-                "Windows ($host) rechazó el usuario o contraseña. Pulsa 'Configurar Credenciales' e ingresa el usuario y contraseña de tu PC."
-
-            msg.contains("STATUS_ACCESS_DENIED", ignoreCase = true) ||
-                msg.contains("0xc0000022", ignoreCase = true) ||
-                msg.contains("Access is denied", ignoreCase = true) ->
-                "Acceso denegado en $host. Tu PC requiere iniciar sesión con usuario y contraseña de Windows (no permite acceso anónimo)."
-
-            msg.contains("STATUS_BAD_NETWORK_NAME", ignoreCase = true) ||
-                msg.contains("0xc00000cc", ignoreCase = true) ->
-                "No se encontró el nombre de la carpeta compartida en $host. Deja el campo 'Carpeta compartida' vacío para ver todas las carpetas del equipo."
-
-            msg.contains("STATUS_ACCOUNT_RESTRICTION", ignoreCase = true) ||
-                msg.contains("0xc000006e", ignoreCase = true) ->
-                "Restricción de cuenta en Windows ($host): Windows bloquea cuentas sin contraseña por red. Usa una cuenta con contraseña o edita las credenciales."
-
-            else -> "No se pudo conectar a \\\\$host: $msg"
-        }
-        return IllegalStateException(readable, e)
-    }
-
     // ─────────────────────────────────────────────────────────────────────────────
     // 1. LISTADO DE CARPETAS (LOCAL, SMB, FTP)
     // ─────────────────────────────────────────────────────────────────────────────
@@ -167,12 +142,12 @@ class VfsManager {
         when (protocol) {
             StorageProtocol.LOCAL -> listLocalDirectory(path, showHidden)
             StorageProtocol.SMB -> listSmbDirectory(
-                connection ?: throw IllegalArgumentException("Conexión SMB requerida"),
+                connection ?: throw AppException(R.string.vfs_manager_conexion_smb_requerida),
                 path,
                 showHidden
             )
             StorageProtocol.FTP -> listFtpDirectory(
-                connection ?: throw IllegalArgumentException("Conexión FTP requerida"),
+                connection ?: throw AppException(R.string.vfs_manager_conexion_ftp_requerida),
                 path,
                 showHidden
             )
@@ -226,7 +201,7 @@ class VfsManager {
             try {
                 listSmbShareWithJcifs(conn, shareName, subPath, showHidden)
             } catch (_: Exception) {
-                throw translateSmbException(firstErr, conn.host)
+                throw smbError(firstErr, conn.host)
             }
         }
     }
@@ -267,8 +242,8 @@ class VfsManager {
                 lastException = e
             }
         }
-        throw translateSmbException(
-            lastException ?: IllegalStateException("No se pudieron listar los recursos compartidos de ${conn.host}"),
+        throw smbError(
+            lastException ?: AppException(R.string.vfs_manager_no_se_pudieron_listar_los, conn.host),
             conn.host
         )
     }
@@ -292,7 +267,7 @@ class VfsManager {
             smb.connect(conn.host, conn.port).use { c ->
                 c.authenticate(buildSmbjAuth(conn, useGuestFallback)).use { s ->
                     val share = s.connectShare(shareName) as? DiskShare
-                        ?: throw IllegalStateException("El recurso '$shareName' no es una carpeta compartida de disco")
+                        ?: throw AppException(R.string.vfs_manager_el_recurso_no_es_una, shareName)
                     share.use { disk ->
                         val entries = disk.list(subPath)
                         return entries
@@ -1107,7 +1082,7 @@ class VfsManager {
         } catch (_: Exception) {
         }
 
-        return "Equipo ($ip)"
+        return ip
     }
 
     /**
@@ -1358,7 +1333,7 @@ class VfsManager {
             smb.connect(conn.host, conn.port).use { c ->
                 c.authenticate(buildSmbjAuth(conn)).use { s ->
                     val share = s.connectShare(shareName.trim('/', '\\')) as? DiskShare
-                        ?: throw IllegalStateException("Recurso compartido '$shareName' no disponible")
+                        ?: throw AppException(R.string.vfs_manager_recurso_compartido_no_disponible, shareName)
                     share.use { disk ->
                         block(disk)
                     }
@@ -1376,12 +1351,12 @@ class VfsManager {
         try {
             ftp.connect(conn.host, conn.port)
             if (!FTPReply.isPositiveCompletion(ftp.replyCode)) {
-                throw IllegalStateException("El servidor FTP rechazó la conexión (${ftp.replyCode})")
+                throw AppException(R.string.vfs_manager_el_servidor_ftp_rechazo_la, ftp.replyCode)
             }
             val user = if (conn.anonymous || conn.username.isBlank()) "anonymous" else conn.username
             val pass = if (conn.anonymous || conn.username.isBlank()) "anonymous@" else conn.password
             if (!ftp.login(user, pass)) {
-                throw IllegalStateException("Autenticación FTP fallida para '$user'")
+                throw AppException(R.string.vfs_manager_autenticacion_ftp_fallida_para, user, needsCredentials = true)
             }
             if (ftp is FTPSClient) {
                 // Cifra también el canal de datos

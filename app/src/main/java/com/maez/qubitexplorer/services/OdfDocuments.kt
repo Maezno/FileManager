@@ -1,5 +1,6 @@
 package com.maez.qubitexplorer.services
 
+import com.maez.qubitexplorer.R
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.util.Xml
@@ -135,7 +136,7 @@ object OdtReader {
     suspend fun read(file: File): DocxDocument = withContext(Dispatchers.IO) {
         ZipFile(file).use { zip ->
             val styles = readOdfStyles(zip)
-            val p = odfParser(zip, "content.xml") ?: throw IllegalArgumentException("No es un documento OpenDocument")
+            val p = odfParser(zip, "content.xml") ?: throw AppException(R.string.odf_documents_no_es_un_documento_opendocument)
             val blocks = ArrayList<DocBlock>()
             val para = OdfParagraphBuilder(styles)
             var inBody = false; var inPara = false
@@ -193,7 +194,7 @@ object OdtReader {
 object OdsReader {
     suspend fun read(file: File, maxRows: Int = 5000, maxCols: Int = 200): XlsxDocument = withContext(Dispatchers.IO) {
         ZipFile(file).use { zip ->
-            val p = odfParser(zip, "content.xml") ?: throw IllegalArgumentException("No es una hoja OpenDocument")
+            val p = odfParser(zip, "content.xml") ?: throw AppException(R.string.odf_documents_no_es_una_hoja_opendocument)
             val sheets = ArrayList<SheetData>()
             var cells = HashMap<Int, HashMap<Int, String>>()
             var name = ""; var r = 0; var c = 0; var maxR = 0; var maxC = 0; var truncated = false
@@ -268,7 +269,7 @@ object OdpReader {
                     }
                 }
             }
-            val p = odfParser(zip, "content.xml") ?: throw IllegalArgumentException("No es una presentación OpenDocument")
+            val p = odfParser(zip, "content.xml") ?: throw AppException(R.string.odf_documents_no_es_una_presentacion_opendocument)
             val slides = ArrayList<Slide>()
             var elements = ArrayList<SlideElement>()
             val para = OdfParagraphBuilder(styles)

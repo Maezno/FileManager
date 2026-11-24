@@ -1,5 +1,6 @@
 package com.maez.qubitexplorer.services
 
+import com.maez.qubitexplorer.R
 import android.content.Context
 import android.graphics.BitmapFactory
 import android.media.MediaMetadataRetriever
@@ -127,7 +128,7 @@ class SmartSearchEngine(
             } else {
                 // Leer solo los primeros 64 KB por SMB/FTP para extraer EXIF sin descargar toda la foto
                 val headerBytes = vfsManager.readBytesAt(item, 0L, 64 * 1024, conn)
-                if (headerBytes.isEmpty()) return MediaSearchItem(item = item, deviceModel = "Imagen sin EXIF")
+                if (headerBytes.isEmpty()) return MediaSearchItem(item = item, deviceModel = context.getString(R.string.smart_search_engine_imagen_sin_exif))
                 ExifInterface(ByteArrayInputStream(headerBytes))
             }
 
@@ -173,9 +174,9 @@ class SmartSearchEngine(
                 }
                 model.isNotEmpty() -> cleanModelString(model)
                 make.isNotEmpty() -> cleanModelString(make)
-                software.isNotEmpty() && editorRegex.containsMatchIn(software) -> "[Editado] ${cleanModelString(software)}"
-                item.name.contains("WA0", ignoreCase = true) || item.path.contains("WhatsApp", ignoreCase = true) -> "WhatsApp (Imagen)"
-                else -> "Imagen / Sin cámara EXIF"
+                software.isNotEmpty() && editorRegex.containsMatchIn(software) -> context.getString(R.string.device_edited, cleanModelString(software))
+                item.name.contains("WA0", ignoreCase = true) || item.path.contains("WhatsApp", ignoreCase = true) -> context.getString(R.string.smart_search_engine_whatsapp_imagen)
+                else -> context.getString(R.string.smart_search_engine_imagen_sin_camara_exif)
             }
 
             val orientation = when {
@@ -193,7 +194,7 @@ class SmartSearchEngine(
                 rotation = rotation
             )
         } catch (_: Exception) {
-            MediaSearchItem(item = item, deviceModel = "Imagen", orientation = "N/A")
+            MediaSearchItem(item = item, deviceModel = context.getString(R.string.file_type_imagen), orientation = "N/A")
         }
     }
 
@@ -353,10 +354,10 @@ class SmartSearchEngine(
         // 9. Android genérico
         val androidVer = extractPrintableAfterMarker(combined, "com.android.version")
         if (androidVer.isNotEmpty() && androidVer.first().isDigit()) {
-            return "Android genérico (Android ${androidVer.take(4)})"
+            return context.getString(R.string.smart_search_engine_android_generico_android, androidVer.take(4))
         }
 
-        return "Desconocido"
+        return context.getString(R.string.device_unknown)
     }
 
     private fun extractPrintableAfterMarker(content: String, marker: String): String {
@@ -520,7 +521,7 @@ class SmartSearchEngine(
                             groupId = groupId,
                             item = match.item,
                             isPrimary = (idx == 0),
-                            sourceLabel = if (match.isFolderB) "Carpeta B" else "Carpeta A"
+                            sourceLabel = if (match.isFolderB) context.getString(R.string.smart_search_engine_carpeta_b) else context.getString(R.string.smart_search_engine_carpeta_a)
                         )
                     )
                 }
@@ -573,7 +574,7 @@ class SmartSearchEngine(
         val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
         targetFile.bufferedWriter(Charsets.UTF_8).use { writer ->
             if (exportDetails) {
-                writer.appendLine("Archivo;Carpeta;Protocolo;Categoría;Dispositivo;Orientación;Resolución;Duración (s);Tamaño (MB);Fecha")
+                writer.appendLine(context.getString(R.string.smart_search_engine_archivo_carpeta_protocolo_categoria_dispositivo))
                 for (it in items) {
                     val mb = String.format(Locale.US, "%.2f", it.item.sizeBytes / (1024.0 * 1024.0))
                     val dur = String.format(Locale.US, "%.1f", it.durationSeconds)
@@ -583,7 +584,7 @@ class SmartSearchEngine(
                     )
                 }
             } else {
-                writer.appendLine("Dispositivo / Categoría;Verticales;Horizontales;Otros;Total;% Vertical")
+                writer.appendLine(context.getString(R.string.smart_search_engine_dispositivo_categoria_verticales_horizontales_otros))
                 for (s in summaries) {
                     writer.appendLine(
                         "${escapeCsv(s.deviceModel)};${s.verticalCount};${s.horizontalCount};${s.otherCount};${s.totalCount};${s.pctVertical}"

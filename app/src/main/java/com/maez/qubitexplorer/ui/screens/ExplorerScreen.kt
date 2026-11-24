@@ -174,12 +174,12 @@ import com.maez.qubitexplorer.viewmodel.MainViewModel
 
 data class BreadcrumbSegment(val label: String, val fullPath: String)
 
-fun parseBreadcrumbs(path: String, protocol: StorageProtocol): List<BreadcrumbSegment> {
-    if (path.isEmpty() || path == "/") return listOf(BreadcrumbSegment("Raíz", "/"))
+fun parseBreadcrumbs(path: String, protocol: StorageProtocol, rootLabel: String, internalLabel: String): List<BreadcrumbSegment> {
+    if (path.isEmpty() || path == "/") return listOf(BreadcrumbSegment(rootLabel, "/"))
     val segments = mutableListOf<BreadcrumbSegment>()
     if (protocol == StorageProtocol.LOCAL) {
         if (path.startsWith("/storage/emulated/0")) {
-            segments.add(BreadcrumbSegment("Interno", "/storage/emulated/0"))
+            segments.add(BreadcrumbSegment(internalLabel, "/storage/emulated/0"))
             val rel = path.removePrefix("/storage/emulated/0").trim('/')
             if (rel.isNotEmpty()) {
                 var acc = "/storage/emulated/0"
@@ -194,9 +194,9 @@ fun parseBreadcrumbs(path: String, protocol: StorageProtocol): List<BreadcrumbSe
     var acc = ""
     path.trim('/').split('/').forEach { part ->
         acc += "/$part"
-        segments.add(BreadcrumbSegment(if (acc == "/") "Raíz" else part, acc))
+        segments.add(BreadcrumbSegment(if (acc == "/") rootLabel else part, acc))
     }
-    return segments.ifEmpty { listOf(BreadcrumbSegment("Raíz", "/")) }
+    return segments.ifEmpty { listOf(BreadcrumbSegment(rootLabel, "/")) }
 }
 
 @Composable
@@ -213,6 +213,7 @@ fun ExplorerScreen(
     val items by viewModel.directoryItems.collectAsState()
     val isLoading by viewModel.isExplorerLoading.collectAsState()
     val errorText by viewModel.explorerError.collectAsState()
+    val needsCredentials by viewModel.explorerNeedsCredentials.collectAsState()
     val quickFilter by viewModel.quickFilterQuery.collectAsState()
     val isSearchOpen by viewModel.isSearchOpen.collectAsState()
     val searchFilters by viewModel.searchFilters.collectAsState()
@@ -236,6 +237,7 @@ fun ExplorerScreen(
         items = items,
         isLoading = isLoading,
         errorText = errorText,
+        needsCredentials = needsCredentials,
         quickFilter = quickFilter,
         isSearchOpen = isSearchOpen,
         searchFilters = searchFilters,
@@ -454,6 +456,7 @@ fun ExplorerScreenContent(
     items: List<VfsItem>,
     isLoading: Boolean,
     errorText: String?,
+    needsCredentials: Boolean = false,
     quickFilter: String,
     isSearchOpen: Boolean = false,
     searchFilters: ExplorerSearchFilters = ExplorerSearchFilters(),
@@ -686,7 +689,11 @@ fun ExplorerScreenContent(
                             .horizontalScroll(rememberScrollState()),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        val segments = remember(currentPath, currentProtocol) { parseBreadcrumbs(currentPath, currentProtocol) }
+                        val rootLabel = stringResource(R.string.main_view_model_raiz)
+                        val internalLabel = stringResource(R.string.explorer_interno)
+                        val segments = remember(currentPath, currentProtocol, rootLabel, internalLabel) {
+                            parseBreadcrumbs(currentPath, currentProtocol, rootLabel, internalLabel)
+                        }
                         segments.forEachIndexed { idx, segment ->
                             if (idx > 0) {
                                 Text(" › ", color = TextMuted, fontSize = 12.sp, fontWeight = FontWeight.Bold)
@@ -1052,7 +1059,7 @@ fun ExplorerScreenContent(
                     message = errorText,
                     tint = Danger
                 )
-                if (currentProtocol != StorageProtocol.LOCAL && (errorText.contains("autenticaci", ignoreCase = true) || errorText.contains("acceso", ignoreCase = true) || errorText.contains("inválid", ignoreCase = true))) {
+                if (currentProtocol != StorageProtocol.LOCAL && needsCredentials) {
                     Spacer(Modifier.height(12.dp))
                     PrimaryButton(
                         text = stringResource(R.string.explorer_ingresar_usuario_y_contrasena),

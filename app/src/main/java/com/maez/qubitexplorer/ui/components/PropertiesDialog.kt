@@ -70,7 +70,7 @@ fun PropertiesDialog(
     var result by remember(item.path) { mutableStateOf<FileMetadataResult?>(null) }
 
     LaunchedEffect(item.path) {
-        result = FileMetadataReader.read(item, vfsManager, connection, context.cacheDir)
+        result = FileMetadataReader.read(item, vfsManager, connection, context)
     }
 
     GlassAlertDialog(

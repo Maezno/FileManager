@@ -155,7 +155,7 @@ fun NetworkScreenContent(
     ) {
         editingId = null
         formName = when {
-            presetHostname.isNotBlank() && !presetHostname.startsWith("Equipo") -> presetHostname
+            presetHostname.isNotBlank() && presetHostname != presetHost -> presetHostname
             presetHost.isNotEmpty() -> "${presetProtocol.name} ($presetHost)"
             else -> ""
         }
@@ -540,7 +540,7 @@ private fun DiscoveredHostCard(
                 Spacer(Modifier.width(10.dp))
                 Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                     Text(
-                        text = host.hostname,
+                        text = if (host.hostname == host.ip) stringResource(R.string.network_unnamed_host, host.ip) else host.hostname,
                         color = TextPrimary,
                         fontWeight = FontWeight.Bold,
                         fontSize = 13.sp,

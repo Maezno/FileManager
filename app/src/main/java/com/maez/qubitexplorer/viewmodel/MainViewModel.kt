@@ -1,5 +1,8 @@
 package com.maez.qubitexplorer.viewmodel
 
+import com.maez.qubitexplorer.services.AppException
+import com.maez.qubitexplorer.services.requiresCredentials
+import com.maez.qubitexplorer.services.userMessage
 import com.maez.qubitexplorer.R
 import android.app.Application
 import android.content.Intent
@@ -126,6 +129,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _isExplorerLoading = MutableStateFlow(false)
     val isExplorerLoading: StateFlow<Boolean> = _isExplorerLoading.asStateFlow()
 
+    private val _explorerNeedsCredentials = MutableStateFlow(false)
+    val explorerNeedsCredentials: StateFlow<Boolean> = _explorerNeedsCredentials.asStateFlow()
     private val _explorerError = MutableStateFlow<String?>(null)
     val explorerError: StateFlow<String?> = _explorerError.asStateFlow()
 
@@ -444,6 +449,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _activeConnection.value = connection
         _selectedPaths.value = emptySet()
         _explorerError.value = null
+        _explorerNeedsCredentials.value = false
         _isExplorerLoading.value = true
 
         // Guardar última carpeta recordada en esta pestaña
@@ -468,7 +474,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 if (generation == directoryLoadGeneration) _directoryItems.value = sortItems(rawItems)
             } catch (e: Exception) {
                 if (generation == directoryLoadGeneration) {
-                    _explorerError.value = e.localizedMessage ?: str(R.string.main_view_model_no_se_pudo_abrir_la, path)
+                    _explorerNeedsCredentials.value = e.requiresCredentials
+                    _explorerError.value = e.userMessage(getApplication()) ?: str(R.string.main_view_model_no_se_pudo_abrir_la, path)
                     _directoryItems.value = emptyList()
                 }
             } finally {
@@ -1036,9 +1043,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         return when {
             e is com.github.junrar.exception.UnsupportedRarV5Exception || msg.contains("rar5") ->
                 str(R.string.main_view_model_este_rar_usa_el_formato)
-            msg.contains("password") || msg.contains("contraseña") || msg.contains("encrypt") ->
+            (e as? AppException)?.passwordProtected == true || msg.contains("password") || msg.contains("contraseña") || msg.contains("encrypt") ->
                 str(R.string.main_view_model_el_comprimido_esta_protegido_con)
-            else -> str(R.string.main_view_model_no_se_pudo_leer_el_2, e.message ?: e.javaClass.simpleName)
+            else -> str(R.string.main_view_model_no_se_pudo_leer_el_2, e.userMessage(getApplication()) ?: e.javaClass.simpleName)
         }
     }
 
@@ -1092,7 +1099,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                Toast.makeText(getApplication(), e.message ?: str(R.string.main_view_model_no_se_pudo_abrir_el_3), Toast.LENGTH_SHORT).show()
+                Toast.makeText(getApplication(), e.userMessage(getApplication()) ?: str(R.string.main_view_model_no_se_pudo_abrir_el_3), Toast.LENGTH_SHORT).show()
             } finally {
                 _archive.value = _archive.value?.copy(openingEntry = null)
             }
@@ -1736,7 +1743,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 }
             } catch (e: Exception) {
-                _scanStatusText.value = str(R.string.main_view_model_escaneo_interrumpido, e.localizedMessage ?: "")
+                _scanStatusText.value = str(R.string.main_view_model_escaneo_interrumpido, e.userMessage(getApplication()).orEmpty())
             } finally {
                 _isScanning.value = false
                 _scanProgress.value = 100f
@@ -1772,7 +1779,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             } catch (e: Exception) {
                 Toast.makeText(
                     getApplication(),
-                    str(R.string.main_view_model_error_al_exportar_csv, e.localizedMessage.orEmpty()),
+                    str(R.string.main_view_model_error_al_exportar_csv, e.userMessage(getApplication()).orEmpty()),
                     Toast.LENGTH_SHORT
                 ).show()
             }

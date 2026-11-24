@@ -383,7 +383,7 @@ private fun EditorBody(
                     maxLines = 1, overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    language.label + (readOnlyReason?.let { stringResource(R.string.text_editor_solo_lectura) } ?: ""),
+                    languageLabel(language) + (readOnlyReason?.let { stringResource(R.string.text_editor_solo_lectura) } ?: ""),
                     color = palette.tokens[TokenType.FUNCTION]!!, fontSize = 11.sp
                 )
             }
@@ -531,7 +531,7 @@ private fun EditorBody(
                         .clip(RoundedCornerShape(10.dp))
                         .background(palette.bar)
                 ) {
-                    Text(stringResource(R.string.text_editor_esquema, language.label),
+                    Text(stringResource(R.string.text_editor_esquema, languageLabel(language)),
                         color = palette.text, fontSize = 12.sp, fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(10.dp)
                     )
@@ -551,7 +551,7 @@ private fun EditorBody(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    o.kind, color = kindColor(o.kind, palette), fontSize = 10.sp,
+                                    outlineKindLabel(o.kind), color = kindColor(o.kind, palette), fontSize = 10.sp,
                                     modifier = Modifier.width(58.dp)
                                 )
                                 Text(
@@ -629,6 +629,24 @@ private fun EditorBody(
     }
 }
 
+/** Los tipos del esquema son claves internas; acá se traducen para mostrarlos. */
+@Composable
+private fun outlineKindLabel(kind: String): String = when (kind) {
+    "clase" -> stringResource(R.string.outline_kind_clase)
+    "clave" -> stringResource(R.string.outline_kind_clave)
+    "elemento" -> stringResource(R.string.outline_kind_elemento)
+    "etiqueta" -> stringResource(R.string.outline_kind_etiqueta)
+    "función" -> stringResource(R.string.outline_kind_funcion)
+    "método" -> stringResource(R.string.outline_kind_metodo)
+    "objeto" -> stringResource(R.string.outline_kind_objeto)
+    "regla" -> stringResource(R.string.outline_kind_regla)
+    "sección" -> stringResource(R.string.outline_kind_seccion)
+    "selector" -> stringResource(R.string.outline_kind_selector)
+    "tipo" -> stringResource(R.string.outline_kind_tipo)
+    "título" -> stringResource(R.string.outline_kind_titulo)
+    else -> kind
+}
+
 private fun kindColor(kind: String, p: EditorPalette): Color = when (kind) {
     "clase", "tipo" -> p.tokens[TokenType.TYPE]!!
     "función", "método" -> p.tokens[TokenType.FUNCTION]!!
@@ -670,3 +688,7 @@ internal fun activityNavBarBottomPadding(): androidx.compose.ui.unit.Dp {
     val px = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.navigationBars()).bottom
     return with(density) { px.toDp() }
 }
+
+@Composable
+private fun languageLabel(l: CodeLanguage): String =
+    if (l == CodeLanguage.PLAIN) stringResource(R.string.file_type_texto) else l.label

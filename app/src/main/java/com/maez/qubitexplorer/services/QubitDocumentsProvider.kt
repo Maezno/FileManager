@@ -44,7 +44,7 @@ class QubitDocumentsProvider : DocumentsProvider() {
             )
             add(Root.COLUMN_ICON, R.mipmap.ic_launcher)
             add(Root.COLUMN_TITLE, context?.getString(R.string.app_name) ?: "Qubit Explorer")
-            add(Root.COLUMN_SUMMARY, "Almacenamiento interno")
+            add(Root.COLUMN_SUMMARY, context?.getString(R.string.storage_internal))
             add(Root.COLUMN_DOCUMENT_ID, root.absolutePath)
             add(Root.COLUMN_AVAILABLE_BYTES, root.usableSpace)
         }

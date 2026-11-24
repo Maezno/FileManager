@@ -1,5 +1,6 @@
 package com.maez.qubitexplorer.ui.components
 
+import com.maez.qubitexplorer.services.userMessage
 import com.maez.qubitexplorer.R
 import androidx.compose.ui.res.stringResource
 import androidx.activity.compose.BackHandler
@@ -128,7 +129,7 @@ fun OfficeViewerScreen(
                     else -> OfficeLoad.Error(context.getString(R.string.office_viewer_formato_no_soportado))
                 }
             } catch (e: Throwable) {
-                OfficeLoad.Error(context.getString(R.string.office_viewer_no_se_pudo_leer_el, e.message ?: e.javaClass.simpleName))
+                OfficeLoad.Error(context.getString(R.string.office_viewer_no_se_pudo_leer_el, e.userMessage(context) ?: e.javaClass.simpleName))
             }
         }
 

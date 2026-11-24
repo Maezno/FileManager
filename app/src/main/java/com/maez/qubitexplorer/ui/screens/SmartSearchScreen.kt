@@ -1,5 +1,6 @@
 package com.maez.qubitexplorer.ui.screens
 
+import com.maez.qubitexplorer.services.userMessage
 import com.maez.qubitexplorer.R
 import androidx.compose.ui.res.stringResource
 import com.maez.qubitexplorer.ui.components.rememberSelectionBarShift
@@ -672,9 +673,9 @@ fun SmartSearchScreenContent(
 
                                 FilterChipRow(label = stringResource(R.string.smart_search_orientacion)) {
                                     listOf(
-                                        MediaOrientation.ALL to "Todas",
-                                        MediaOrientation.VERTICAL to "Vertical",
-                                        MediaOrientation.HORIZONTAL to "Horizontal"
+                                        MediaOrientation.ALL to stringResource(R.string.smart_search_todas),
+                                        MediaOrientation.VERTICAL to stringResource(R.string.smart_search_vertical),
+                                        MediaOrientation.HORIZONTAL to stringResource(R.string.smart_search_horizontal)
                                     ).forEach { (orient, label) ->
                                         SelectChip(
                                             text = label,
@@ -1421,7 +1422,7 @@ private fun MediaSearchResultCard(
                     horizontalArrangement = Arrangement.spacedBy(5.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    if (entry.deviceModel.isNotBlank() && entry.deviceModel != "Desconocido") {
+                    if (entry.deviceModel.isNotBlank() && entry.deviceModel != stringResource(R.string.device_unknown)) {
                         Tag(text = entry.deviceModel, color = Violet)
                     }
                     if (entry.orientation == "Vertical") {
@@ -1577,7 +1578,7 @@ private fun FolderPickerDialog(
             folderItems = list.filter { it.isDirectory }
             isLoading = false
         } catch (e: Exception) {
-            errorMsg = e.localizedMessage ?: context.getString(R.string.smart_search_error_al_listar_directorios)
+            errorMsg = e.userMessage(context) ?: context.getString(R.string.smart_search_error_al_listar_directorios)
             isLoading = false
         }
     }
