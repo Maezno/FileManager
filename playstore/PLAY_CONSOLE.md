@@ -90,14 +90,14 @@ Contenido de la app → Permisos confidenciales → Acceso a todos los archivos.
 ```
 Qubit Explorer is a file manager. Its core functionality is to let the user browse, copy, move, rename, extract, search and delete any file in shared storage and on SD cards, including files created by other apps and non-media files (documents, archives, APKs). It also transfers files between local storage and the user's own SMB/FTP servers. These operations require broad access to all files and cannot be done with the Storage Access Framework or MediaStore without breaking the core file-manager experience.
 ```
-- **Vídeo (obligatorio):** grabar 30–60 s en el emulador: instalar limpio → la app pide el permiso → pantalla del sistema "Permitir acceso para administrar todos los archivos" → volver y explorar/copiar/borrar un archivo. Subir a YouTube como "No listado" y pegar el enlace.
-  Grabación: `adb shell screenrecord /sdcard/permiso.mp4` y luego `adb pull /sdcard/permiso.mp4`.
+- **Capturas del flujo** (`playstore/screenshots/permiso/`): 01 app sin acceso → 02 diálogo explicativo de la app → 03 ajuste del sistema desactivado → 04 activado → 05 app con acceso completo.
+- **Vídeo:** `playstore/videos/permiso_todos_los_archivos.mp4` (21 s, montado con esas 5 capturas; la carpeta no se sube a git). Subirlo a YouTube como "No listado" y pegar el enlace.
 
 ## 4. Declaración de servicio en primer plano
 Contenido de la app → Servicios en primer plano → tipo **Sincronización de datos (dataSync)**.
 - **Descripción:** `Transfers (copy/move) of files between the device and the user's SMB/FTP servers, started by the user, shown with a progress notification and stopped when the transfer ends.`
 - **Impacto si se interrumpe:** `The file transfer would fail midway, leaving incomplete files.`
-- **Vídeo:** iniciar una copia hacia/desde un servidor SMB o FTP y mostrar la notificación de progreso.
+- **Vídeo:** `playstore/videos/transferencia_servicio_primer_plano.mp4` (23 s, capturas de `playstore/screenshots/transferencia/`: servidor FTP guardado → conectado → pegar en Descargas → progreso en la app → notificación → archivo copiado). Subirlo a YouTube como "No listado".
 
 ## 5. Seguridad de los datos (Data safety)
 - ¿Recopila o comparte algún tipo de datos de usuario? **No.**

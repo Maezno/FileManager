@@ -17,3 +17,6 @@ app/build/
 keystore.properties
 *.jks
 *.keystore
+
+# Vídeos de declaraciones de Play (pesados)
+/playstore/videos/

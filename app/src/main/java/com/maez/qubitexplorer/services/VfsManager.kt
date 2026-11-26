@@ -910,7 +910,20 @@ class VfsManager {
                         val remoteTarget = if (targetParentPath == "/") "/$targetFileName" else "${targetParentPath.trimEnd('/')}/$targetFileName"
                         val stored = withFtpClient(conn) { ftp ->
                             FileInputStream(uploadFile).use { ins ->
-                                ftp.storeFile(remoteTarget, ins)
+                                // storeFile no informa progreso: copiar a mano para poder notificarlo
+                                val out = ftp.storeFileStream(remoteTarget)
+                                if (out == null) {
+                                    false
+                                } else {
+                                    out.use {
+                                        copyWithProgress(
+                                            ins, out,
+                                            if (source.protocol == StorageProtocol.LOCAL) onProgress else null,
+                                            isCancelled
+                                        )
+                                    }
+                                    ftp.completePendingCommand()
+                                }
                             }.also { ok ->
                                 if (ok && metadataCopyOptions.preserveDates && source.lastModified > 0) {
                                     val ts = java.text.SimpleDateFormat("yyyyMMddHHmmss", java.util.Locale.US)
@@ -987,9 +1000,14 @@ class VfsManager {
                 StorageProtocol.FTP -> {
                     val conn = sourceConn ?: return@withContext false
                     withFtpClient(conn) { ftp ->
-                        FileOutputStream(destFile).use { out ->
-                            ftp.retrieveFile(source.path, out)
+                        // retrieveFile no informa progreso: copiar a mano para poder notificarlo
+                        val ins = ftp.retrieveFileStream(source.path) ?: return@withFtpClient false
+                        ins.use {
+                            FileOutputStream(destFile).use { out ->
+                                copyWithProgress(ins, out, onProgress, isCancelled)
+                            }
                         }
+                        ftp.completePendingCommand()
                     }
                 }
             }
@@ -1339,6 +1357,23 @@ class VfsManager {
                     }
                 }
             }
+        }
+    }
+
+    private fun copyWithProgress(
+        input: java.io.InputStream,
+        output: java.io.OutputStream,
+        onProgress: ((bytesIncrement: Long) -> Unit)?,
+        isCancelled: (() -> Boolean)?
+    ) {
+        val buffer = ByteArray(64 * 1024)
+        var read: Int
+        while (input.read(buffer).also { read = it } >= 0) {
+            if (isCancelled?.invoke() == true) {
+                throw kotlinx.coroutines.CancellationException("Cancelled")
+            }
+            output.write(buffer, 0, read)
+            onProgress?.invoke(read.toLong())
         }
     }
 
