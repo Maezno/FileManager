@@ -12,3 +12,8 @@ app/build/
 
 # Scripts locales de mantenimiento
 /fix*.py
+
+# Firma de release (nunca subir)
+keystore.properties
+*.jks
+*.keystore
