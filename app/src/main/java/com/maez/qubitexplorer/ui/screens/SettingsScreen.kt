@@ -134,6 +134,11 @@ fun SettingsScreen(
                 }
             }
 
+            // SECCIÓN: Apoyar el desarrollo (propinas opcionales), primera a propósito
+            item {
+                SupportSection()
+            }
+
             // 1. SECCIÓN: Apariencia
             item {
                 SectionCard(
@@ -380,11 +385,6 @@ fun SettingsScreen(
                         )
                     }
                 }
-            }
-
-            // SECCIÓN: Apoyar el desarrollo (propinas opcionales)
-            item {
-                SupportSection()
             }
 
             // 5. SECCIÓN: Acerca de y Privacidad

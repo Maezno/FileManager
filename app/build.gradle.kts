@@ -14,8 +14,8 @@ android {
         applicationId = "com.maez.qubitexplorer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 2
-        versionName = "1.1.0"
+        versionCode = 3
+        versionName = "1.1.1"
     }
 
     // Clave de subida: se lee de keystore.properties (fuera de git). Sin ese archivo,

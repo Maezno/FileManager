@@ -3,7 +3,5 @@
     <style name="Theme.QubitExplorer" parent="android:Theme.Material.Light.NoActionBar">
         <item name="android:windowBackground">#FFF6F7F9</item>
         <item name="android:windowSplashScreenBackground" tools:targetApi="31">#FFF6F7F9</item>
-        <item name="android:statusBarColor">#FFF6F7F9</item>
-        <item name="android:navigationBarColor">#FFF6F7F9</item>
     </style>
 </resources>
