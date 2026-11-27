@@ -382,6 +382,11 @@ fun SettingsScreen(
                 }
             }
 
+            // SECCIÓN: Apoyar el desarrollo (propinas opcionales)
+            item {
+                SupportSection()
+            }
+
             // 5. SECCIÓN: Acerca de y Privacidad
             item {
                 SectionCard(

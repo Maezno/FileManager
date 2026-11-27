@@ -6,6 +6,11 @@
     <!-- Comunes -->
     <string name="got_it">Entendido</string>
     <string name="close">Cerrar</string>
+    <string name="support_title">Apoyar el desarrollo</string>
+    <string name="support_subtitle">Opcional · la app es gratis y sin anuncios</string>
+    <string name="support_body">Si Qubit Explorer te resulta útil, podés invitarme un café. Las propinas no desbloquean nada: solo ayudan a seguir mejorando la app.</string>
+    <string name="support_thanks">¡Muchas gracias por tu apoyo! 💜</string>
+    <string name="support_unavailable">Las propinas no están disponibles ahora. Revisá tu conexión y Google Play.</string>
     <string name="minutes_short">%1$d min</string>
 
     <!-- Accesibilidad -->

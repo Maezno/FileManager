@@ -4,6 +4,11 @@
     <string name="app_version">Qubit Explorer v%1$s</string>
     <string name="got_it">Got it</string>
     <string name="close">Close</string>
+    <string name="support_title">Support development</string>
+    <string name="support_subtitle">Optional · the app is free and ad-free</string>
+    <string name="support_body">If Qubit Explorer is useful to you, you can buy me a coffee. Tips don\'t unlock anything: they just help keep improving the app.</string>
+    <string name="support_thanks">Thank you so much for your support! 💜</string>
+    <string name="support_unavailable">Tips aren\'t available right now. Check your connection and Google Play.</string>
     <string name="minutes_short">%1$d min</string>
     <string name="a11y_select">Select</string>
     <string name="a11y_deselect">Deselect</string>

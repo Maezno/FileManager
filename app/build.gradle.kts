@@ -14,8 +14,8 @@ android {
         applicationId = "com.maez.qubitexplorer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 2
+        versionName = "1.1.0"
     }
 
     // Clave de subida: se lee de keystore.properties (fuera de git). Sin ese archivo,
@@ -98,6 +98,10 @@ dependencies {
     implementation(libs.commons.compress)
     implementation(libs.xz)
     implementation(libs.junrar)
+
+    // Propinas opcionales (Google Play Billing)
+    implementation(libs.billing)
+    implementation(libs.fragment) // la billing trae una Fragment antigua
 
     testImplementation(libs.junit)
 
